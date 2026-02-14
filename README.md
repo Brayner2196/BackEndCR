@@ -1,97 +1,97 @@
-# BackEndCR - Residential Complex Multitenant Application
+# BackEndCR - Aplicación Multitenant para Complejos Residenciales
 
-Backend application for managing residential complexes (conjuntos residenciales) with multitenant architecture using Spring Boot 3.2.2 and Java 21.
+Aplicación backend para gestionar complejos residenciales (conjuntos residenciales) con arquitectura multitenant usando Spring Boot 3.2.2 y Java 21.
 
-## Technology Stack
+## Pila Tecnológica
 
 - **Java**: 21 (OpenJDK)
 - **Spring Boot**: 3.2.2
-- **Database**: H2 (in-memory)
+- **Base de Datos**: H2 (en memoria)
 - **ORM**: Hibernate/JPA
-- **Build Tool**: Maven
-- **Architecture**: Multitenant with discriminator column
+- **Herramienta de Construcción**: Maven
+- **Arquitectura**: Multitenant con columna discriminadora
 
-## Features
+## Características
 
-- **Multitenant Architecture**: Single database with tenant isolation using discriminator column
-- **RESTful API**: Complete CRUD operations for:
-  - Residential Complexes
-  - Residential Units
-  - Residents
-- **H2 Console**: Web interface for database management
-- **Validation**: Input validation using Bean Validation
-- **Exception Handling**: Global exception handler with proper error responses
+- **Arquitectura Multitenant**: Base de datos única con aislamiento de inquilinos usando columna discriminadora
+- **API RESTful**: Operaciones CRUD completas para:
+  - Complejos Residenciales
+  - Unidades Residenciales
+  - Residentes
+- **Consola H2**: Interfaz web para gestión de base de datos
+- **Validación**: Validación de entrada usando Bean Validation
+- **Manejo de Excepciones**: Controlador global de excepciones con respuestas de error apropiadas
 
-## Prerequisites
+## Requisitos Previos
 
-- Java 21 or higher
-- Maven 3.6 or higher
+- Java 21 o superior
+- Maven 3.6 o superior
 
-## Building the Project
+## Construir el Proyecto
 
 ```bash
 mvn clean install
 ```
 
-## Running the Application
+## Ejecutar la Aplicación
 
 ```bash
 mvn spring-boot:run
 ```
 
-The application will start on `http://localhost:8080`
+La aplicación se iniciará en `http://localhost:8080`
 
-## H2 Database Console
+## Consola H2 Database
 
-Access the H2 console at: `http://localhost:8080/h2-console`
+Accede a la consola H2 en: `http://localhost:8080/h2-console`
 
 - **JDBC URL**: `jdbc:h2:mem:residentialdb`
-- **Username**: `sa`
-- **Password**: (leave empty)
+- **Usuario**: `sa`
+- **Contraseña**: (dejar vacío)
 
-## Multitenant Usage
+## Uso de Multitenant
 
-The application uses a header-based tenant identification. Include the `X-Tenant-ID` header in your requests:
+La aplicación utiliza identificación de inquilinos basada en encabezados. Incluye el encabezado `X-Tenant-ID` en tus solicitudes:
 
 ```bash
 curl -H "X-Tenant-ID: tenant1" http://localhost:8080/api/complexes
 ```
 
-If no tenant header is provided, the system uses a default tenant.
+Si no se proporciona encabezado de inquilino, el sistema utiliza un inquilino predeterminado.
 
-## API Endpoints
+## Puntos de Acceso de la API
 
-### Residential Complexes
+### Complejos Residenciales
 
-- `GET /api/complexes` - Get all complexes
-- `GET /api/complexes/{id}` - Get complex by ID
-- `GET /api/complexes/search?name={name}` - Search complexes by name
-- `POST /api/complexes` - Create new complex
-- `PUT /api/complexes/{id}` - Update complex
-- `DELETE /api/complexes/{id}` - Delete complex
+- `GET /api/complexes` - Obtener todos los complejos
+- `GET /api/complexes/{id}` - Obtener complejo por ID
+- `GET /api/complexes/search?name={name}` - Buscar complejos por nombre
+- `POST /api/complexes` - Crear nuevo complejo
+- `PUT /api/complexes/{id}` - Actualizar complejo
+- `DELETE /api/complexes/{id}` - Eliminar complejo
 
-### Residential Units
+### Unidades Residenciales
 
-- `GET /api/units` - Get all units
-- `GET /api/units/{id}` - Get unit by ID
-- `GET /api/units/complex/{complexId}` - Get units by complex
-- `POST /api/units` - Create new unit
-- `PUT /api/units/{id}` - Update unit
-- `DELETE /api/units/{id}` - Delete unit
+- `GET /api/units` - Obtener todas las unidades
+- `GET /api/units/{id}` - Obtener unidad por ID
+- `GET /api/units/complex/{complexId}` - Obtener unidades por complejo
+- `POST /api/units` - Crear nueva unidad
+- `PUT /api/units/{id}` - Actualizar unidad
+- `DELETE /api/units/{id}` - Eliminar unidad
 
-### Residents
+### Residentes
 
-- `GET /api/residents` - Get all residents
-- `GET /api/residents/{id}` - Get resident by ID
-- `GET /api/residents/unit/{unitId}` - Get residents by unit
-- `GET /api/residents/search?lastName={lastName}` - Search residents by last name
-- `POST /api/residents` - Create new resident
-- `PUT /api/residents/{id}` - Update resident
-- `DELETE /api/residents/{id}` - Delete resident
+- `GET /api/residents` - Obtener todos los residentes
+- `GET /api/residents/{id}` - Obtener residente por ID
+- `GET /api/residents/unit/{unitId}` - Obtener residentes por unidad
+- `GET /api/residents/search?lastName={lastName}` - Buscar residentes por apellido
+- `POST /api/residents` - Crear nuevo residente
+- `PUT /api/residents/{id}` - Actualizar residente
+- `DELETE /api/residents/{id}` - Eliminar residente
 
-## Example Requests
+## Solicitudes de Ejemplo
 
-### Create a Residential Complex
+### Crear un Complejo Residencial
 
 ```bash
 curl -X POST http://localhost:8080/api/complexes \
@@ -106,7 +106,7 @@ curl -X POST http://localhost:8080/api/complexes \
   }'
 ```
 
-### Create a Residential Unit
+### Crear una Unidad Residencial
 
 ```bash
 curl -X POST http://localhost:8080/api/units \
@@ -122,7 +122,7 @@ curl -X POST http://localhost:8080/api/units \
   }'
 ```
 
-### Create a Resident
+### Crear un Residente
 
 ```bash
 curl -X POST http://localhost:8080/api/residents \
@@ -139,20 +139,20 @@ curl -X POST http://localhost:8080/api/residents \
   }'
 ```
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
 src/
 ├── main/
 │   ├── java/com/backendcr/residentialcomplex/
-│   │   ├── config/          # Configuration classes
-│   │   ├── controller/      # REST controllers
-│   │   ├── dto/             # Data Transfer Objects
-│   │   ├── entity/          # JPA entities
-│   │   ├── exception/       # Exception handling
-│   │   ├── multitenancy/    # Multitenant infrastructure
-│   │   ├── repository/      # JPA repositories
-│   │   ├── service/         # Business logic
+│   │   ├── config/          # Clases de configuración
+│   │   ├── controller/      # Controladores REST
+│   │   ├── dto/             # Objetos de Transferencia de Datos
+│   │   ├── entity/          # Entidades JPA
+│   │   ├── exception/       # Manejo de excepciones
+│   │   ├── multitenancy/    # Infraestructura multitenant
+│   │   ├── repository/      # Repositorios JPA
+│   │   ├── service/         # Lógica de negocio
 │   │   └── ResidentialComplexApplication.java
 │   └── resources/
 │       └── application.properties
@@ -161,23 +161,23 @@ src/
         └── ResidentialComplexApplicationTests.java
 ```
 
-## Multitenant Architecture
+## Arquitectura Multitenant
 
-The application uses a **discriminator column strategy** for multitenancy:
+La aplicación utiliza una estrategia de **columna discriminadora** para multitenancy:
 
-1. **Tenant Context**: Thread-local storage for current tenant ID
-2. **Tenant Interceptor**: Extracts tenant ID from HTTP headers
-3. **Tenant-Aware Entities**: Base entity class that automatically sets tenant ID
-4. **Hibernate Filters**: Automatic filtering of queries by tenant ID
+1. **Contexto de Inquilino**: Almacenamiento local de hilos para ID de inquilino actual
+2. **Interceptor de Inquilino**: Extrae ID de inquilino de encabezados HTTP
+3. **Entidades Conscientes de Inquilino**: Clase de entidad base que establece automáticamente ID de inquilino
+4. **Filtros Hibernate**: Filtrado automático de consultas por ID de inquilino
 
-## Testing
+## Pruebas
 
-Run the tests with:
+Ejecuta las pruebas con:
 
 ```bash
 mvn test
 ```
 
-## License
+## Licencia
 
-This project is for educational purposes.
+Este proyecto es con fines educativos.
