@@ -20,4 +20,12 @@ public class ErrorResponse {
     private String message;
     private String path;
     private Map<String, String> validationErrors;
+    
+    
+	public static Object builder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+    
+    
 }
