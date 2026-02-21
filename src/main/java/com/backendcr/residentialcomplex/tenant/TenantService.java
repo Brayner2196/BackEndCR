@@ -20,10 +20,7 @@ public class TenantService {
 	}
 
     /**
-     * Registra un nuevo tenant:
-     * 1. Crea el schema en la BD
-     * 2. Corre las migraciones en ese schema
-     * 3. Guarda el tenant en la tabla maestra
+      Registra un nuevo tenant
      */
     public Tenant crearTenant(String schemaName, String nombre) {
 

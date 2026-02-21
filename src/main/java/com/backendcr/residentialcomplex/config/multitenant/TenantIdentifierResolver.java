@@ -1,6 +1,5 @@
 package com.backendcr.residentialcomplex.config.multitenant;
 
-
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.springframework.stereotype.Component;
 

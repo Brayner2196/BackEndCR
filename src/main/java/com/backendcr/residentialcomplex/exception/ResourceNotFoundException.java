@@ -2,7 +2,9 @@ package com.backendcr.residentialcomplex.exception;
 
 public class ResourceNotFoundException extends RuntimeException {
     
-    public ResourceNotFoundException(String message) {
+	private static final long serialVersionUID = 1945625316486068224L;
+
+	public ResourceNotFoundException(String message) {
         super(message);
     }
     

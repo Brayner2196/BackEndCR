@@ -46,7 +46,7 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
     @Override public boolean supportsAggressiveRelease() { return false; }
 
     @Override
-    public boolean isUnwrappableAs(Class unwrapType) { return false; }
+    public boolean isUnwrappableAs(@SuppressWarnings("rawtypes") Class unwrapType) { return false; }
 
     @Override
     public <T> T unwrap(Class<T> unwrapType) { return null; }
