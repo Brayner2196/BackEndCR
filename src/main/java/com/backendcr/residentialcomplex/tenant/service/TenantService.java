@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.backendcr.residentialcomplex.entity.Tenant;
+import com.backendcr.residentialcomplex.tenant.dto.CrearTenantRequest;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -20,10 +21,10 @@ public class TenantService {
 	/**
 	 * Registra un nuevo tenant
 	 */
-	public Tenant crearTenant(String schemaName, String nombre) {
+	public Tenant crearTenant(CrearTenantRequest request) {
 
 		// 1. Crear schema
-		jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
+		jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + request.schemaName());
 
 		// 2. Crear tablas en el nuevo schema (aquí llamas a Flyway manualmente
 		// o ejecutas el DDL directamente)
@@ -33,13 +34,16 @@ public class TenantService {
 				        nombre VARCHAR(100),
 				        email VARCHAR(100) UNIQUE
 				    )
-				""".formatted(schemaName));
+				""".formatted(request.schemaName()));
 
 		// 3. Guardar en tabla maestra
 		Tenant tenant = new Tenant();
-		tenant.setSchemaName(schemaName);
-		tenant.setNombre(nombre);
+		
+		tenant.setSchemaName(request.schemaName());
+		tenant.setNombre(request.nombre());
+		tenant.setCodigo(request.codigo());
 		tenant.setActivo(true);
+		
 		return tenantRepository.save(tenant);
 	}
 

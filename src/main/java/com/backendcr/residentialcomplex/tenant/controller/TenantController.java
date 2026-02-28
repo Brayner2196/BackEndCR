@@ -25,7 +25,7 @@ public class TenantController {
 
 	@PostMapping
 	public ResponseEntity<Tenant> crearTenant(@RequestBody CrearTenantRequest request) {
-		Tenant tenant = tenantService.crearTenant(request.getSchemaName(), request.getNombre());
+		Tenant tenant = tenantService.crearTenant(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(tenant);
 	}
 
