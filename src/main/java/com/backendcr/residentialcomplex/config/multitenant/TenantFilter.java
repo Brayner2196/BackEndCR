@@ -15,7 +15,7 @@ public class TenantFilter extends OncePerRequestFilter {
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/auth/");  // saltar filtro en rutas públicas
+        return path.startsWith("/auth/login") || path.startsWith("/api/tenants");  // saltar filtro en rutas públicas
     }
 
 	@Override

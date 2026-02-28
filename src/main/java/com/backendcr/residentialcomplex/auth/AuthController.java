@@ -9,14 +9,14 @@ import jakarta.validation.Valid;
 import lombok.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/auth/login")
 @RequiredArgsConstructor
 public class AuthController {
 
 	private final AuthService authService;
 
 	// Paso 1 — login normal, sin tenant
-	@PostMapping("/login")
+	@PostMapping
 	public Object login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
 		// Devuelve LoginResponse → si hay un solo tenant o es admin
@@ -24,7 +24,7 @@ public class AuthController {
 	}
 
 	// Paso 2 — solo si había múltiples tenants
-	@PostMapping("/login/seleccionar")
+	@PostMapping("/seleccionar")
 	public LoginResponse seleccionarTenant(@RequestBody SeleccionTenantRequest request) {
 		return authService.seleccionarTenant(request);
 	}

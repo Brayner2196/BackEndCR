@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.backendcr.residentialcomplex.auth.JwtAuthFilter;
 import com.backendcr.residentialcomplex.config.multitenant.TenantFilter;
 
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 	
 	private final TenantFilter tenantFilter;
+	private final JwtAuthFilter JwtAuthFilter;
 	
 	@Bean
     PasswordEncoder passwordEncoder() {
@@ -30,12 +32,14 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
-					.requestMatchers("/auth/**").permitAll() // login																								// libre
-					.requestMatchers("/admin/**").hasRole("SUPER_ADMIN") // solo admin
+					.requestMatchers("/auth/login").permitAll() // login
+					.requestMatchers("/auth/login/seleccionar").authenticated() // requiere login para seleccionar tenant// libre
+					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN") // solo admin
 					.anyRequest().authenticated() // lo demás requiere login
 		).sessionManagement(session -> session
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT, sin sesión
-		  ).addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class);
+		  ) .addFilterBefore(JwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(tenantFilter, JwtAuthFilter.class); // JWT después de establecer tenant;
 		return http.build();
 	}
 
