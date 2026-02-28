@@ -25,8 +25,6 @@ public class AuthService {
 
 	public Object login(LoginRequest request) {
 		
-		
-
 		List<Identidad> identidades = identidadRepository.findAllByEmail(request.email());
 
 		if (identidades.isEmpty()) {

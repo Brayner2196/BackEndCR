@@ -14,15 +14,14 @@ import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.tenant.dto.CrearTenantRequest;
 import com.backendcr.residentialcomplex.tenant.service.TenantService;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/api/tenants")
+@RequiredArgsConstructor
 public class TenantController {
 
 	private final TenantService tenantService;
-
-	public TenantController(TenantService tenantService) {
-		this.tenantService = tenantService;
-	}
 
 	@PostMapping
 	public ResponseEntity<Tenant> crearTenant(@RequestBody CrearTenantRequest request) {
