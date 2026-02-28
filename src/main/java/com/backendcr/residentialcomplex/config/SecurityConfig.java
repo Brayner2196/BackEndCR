@@ -33,13 +33,9 @@ public class SecurityConfig {
 					.requestMatchers("/auth/**").permitAll() // login																								// libre
 					.requestMatchers("/admin/**").hasRole("SUPER_ADMIN") // solo admin
 					.anyRequest().authenticated() // lo demás requiere login
-		)
-			.sessionManagement(session -> session
+		).sessionManagement(session -> session
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT, sin sesión
-			)
-				 .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class);
-		
-
+		  ).addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class);
 		return http.build();
 	}
 
