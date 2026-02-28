@@ -7,18 +7,20 @@ import jakarta.persistence.*;
 public class Tenant {
 
 	@Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String schemaName;   // "acme", "nike", "adidas"
+	@Column(unique = true, nullable = false)
+	private String schemaName; // "acme", "nike", "adidas"
 
-    @Column(nullable = false)
-    private String nombre;       // "ACME Corp", "Nike Inc"
+	@Column(nullable = false)
+	private String nombre; // "ACME Corp", "Nike Inc"
 
-    private boolean activo;
+	@Column(unique = true, nullable = false)
+	private String codigo; // personalizable: "EL-PRADO-01"
 
-    
+	private boolean activo = true;
+
 	public Long getId() {
 		return id;
 	}
@@ -50,4 +52,13 @@ public class Tenant {
 	public void setActivo(boolean activo) {
 		this.activo = activo;
 	}
+
+	public String getCodigo() {
+		return codigo;
+	}
+
+	public void setCodigo(String codigo) {
+		this.codigo = codigo;
+	}
+
 }
