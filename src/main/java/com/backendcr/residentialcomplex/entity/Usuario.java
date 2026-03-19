@@ -1,44 +1,73 @@
 package com.backendcr.residentialcomplex.entity;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import com.backendcr.residentialcomplex.entity.enums.EstadoUsuario;
+
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@Column(nullable = false)
-	private String nombre;
+    @NotBlank
+    @Column(nullable = false)
+    private String nombre;
 
-	@Email
-	private String email;
+    @Column(name = "identidad_id", nullable = false)
+    private Long identidadId;
 
-	public Long getId() {
-		return id;
-	}
+    @Column(length = 20)
+    private String apto;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Column(length = 20)
+    private String torre;
 
-	public String getNombre() {
-		return nombre;
-	}
+    @Column(length = 20)
+    private String telefono;
 
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
-	}
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private EstadoUsuario estado = EstadoUsuario.ACTIVO;
 
-	public String getEmail() {
-		return email;
-	}
+    @CreationTimestamp
+    @Column(name = "creado_en", nullable = false, updatable = false)
+    private LocalDateTime creadoEn;
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+    @UpdateTimestamp
+    @Column(name = "actualizado_en", nullable = false)
+    private LocalDateTime actualizadoEn;
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public Long getIdentidadId() { return identidadId; }
+    public void setIdentidadId(Long identidadId) { this.identidadId = identidadId; }
+
+    public String getApto() { return apto; }
+    public void setApto(String apto) { this.apto = apto; }
+
+    public String getTorre() { return torre; }
+    public void setTorre(String torre) { this.torre = torre; }
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public EstadoUsuario getEstado() { return estado; }
+    public void setEstado(EstadoUsuario estado) { this.estado = estado; }
+
+    public LocalDateTime getCreadoEn() { return creadoEn; }
+
+    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
 }

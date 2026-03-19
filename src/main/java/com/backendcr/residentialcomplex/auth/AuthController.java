@@ -1,9 +1,8 @@
 package com.backendcr.residentialcomplex.auth;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
 
 import jakarta.validation.Valid;
 import lombok.*;
@@ -27,5 +26,12 @@ public class AuthController {
 	@PostMapping("/seleccionar")
 	public LoginResponse seleccionarTenant(@RequestBody SeleccionTenantRequest request) {
 		return authService.seleccionarTenant(request);
+	}
+
+	// Auto-registro de residentes
+	@PostMapping("/registro")
+	@ResponseStatus(HttpStatus.CREATED)
+	public RegistroResponse registro(@Valid @RequestBody RegistroRequest request) {
+		return authService.registro(request);
 	}
 }

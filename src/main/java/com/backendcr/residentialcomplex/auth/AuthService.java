@@ -3,8 +3,10 @@ package com.backendcr.residentialcomplex.auth;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.entity.Identidad;
@@ -22,6 +24,7 @@ public class AuthService {
 	private final TenantRepository tenantRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
+	private final JdbcTemplate jdbcTemplate;
 
 	public Object login(LoginRequest request) {
 		
@@ -92,6 +95,45 @@ public class AuthService {
 				() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Tenant no encontrado"));
 
 		return generarLoginResponse(identidad, request.tenantId(), tenant.getNombre());
+	}
+
+	@Transactional
+	public RegistroResponse registro(RegistroRequest request) {
+
+		Tenant tenant = tenantRepository.findByCodigo(request.codigoConjunto())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+						"No existe un conjunto con ese código"));
+
+		if (!tenant.isActivo()) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El conjunto no está activo");
+		}
+
+		if (identidadRepository.existsByEmailAndTenantId(request.email(), tenant.getSchemaName())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+					"Ya existe una cuenta con ese email en este conjunto");
+		}
+
+		// Crear credenciales con rol RESIDENTE_PENDIENTE
+		Identidad identidad = new Identidad();
+		identidad.setEmail(request.email());
+		identidad.setPassword(passwordEncoder.encode(request.password()));
+		identidad.setRol("RESIDENTE_PENDIENTE");
+		identidad.setTenantId(tenant.getSchemaName());
+		identidad = identidadRepository.save(identidad);
+
+		// Insertar perfil en el schema del tenant con estado PENDIENTE
+		jdbcTemplate.update("""
+				INSERT INTO %s.usuarios (nombre, identidad_id, apto, torre, telefono, estado)
+				VALUES (?, ?, ?, ?, ?, 'PENDIENTE')
+				""".formatted(tenant.getSchemaName()),
+				request.nombre(), identidad.getId(),
+				request.apto(), request.torre(), request.telefono());
+
+		return new RegistroResponse(
+				"Tu solicitud fue recibida. Un administrador debe aprobar tu cuenta antes de que puedas ingresar.",
+				request.email(),
+				tenant.getNombre()
+		);
 	}
 
 	private LoginResponse generarLoginResponse(Identidad identidad, String tenantId, String nombreConjunto) {

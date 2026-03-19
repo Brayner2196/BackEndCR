@@ -79,12 +79,15 @@ public class DataInitializer implements CommandLineRunner {
 		jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS conjunto_101");
 		jdbcTemplate.execute("""
 				    CREATE TABLE IF NOT EXISTS conjunto_101.usuarios (
-				        id         BIGSERIAL PRIMARY KEY,
-				        nombre     VARCHAR(100) NOT NULL,
-				        identidad_id BIGINT NOT NULL,
-				        apto       VARCHAR(20),
-				        torre      VARCHAR(20),
-				        estado     VARCHAR(30) DEFAULT 'ACTIVO'
+				        id             BIGSERIAL PRIMARY KEY,
+				        nombre         VARCHAR(100) NOT NULL,
+				        identidad_id   BIGINT NOT NULL,
+				        apto           VARCHAR(20),
+				        torre          VARCHAR(20),
+				        telefono       VARCHAR(20),
+				        estado         VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
+				        creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				        actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 				    )
 				""");
 		log.info("🗄 Schema conjunto_101 y tablas creados");

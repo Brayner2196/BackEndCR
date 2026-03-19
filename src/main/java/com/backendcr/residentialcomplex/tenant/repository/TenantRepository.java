@@ -10,6 +10,8 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
 	Optional<Tenant> findBySchemaName(String schemaName);
 
+	Optional<Tenant> findByCodigo(String codigo);
+
 	boolean existsBySchemaName(String string);
 
 }
