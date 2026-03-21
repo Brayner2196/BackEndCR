@@ -68,9 +68,10 @@ public class AuthService {
 
 		// CASO 3 — Existe en múltiples tenants → pedir selección
 		List<MultiTenantLoginResponse.OpcionTenant> opciones = identidades.stream().map(i -> {
-			String nombre = tenantRepository.findBySchemaName(i.getTenantId()).map(Tenant::getNombre)
-					.orElse(i.getTenantId());
-			return new MultiTenantLoginResponse.OpcionTenant(i.getTenantId(), nombre);
+			java.util.Optional<Tenant> tenant = tenantRepository.findBySchemaName(i.getTenantId());
+			String nombre = tenant.map(Tenant::getNombre).orElse(i.getTenantId());
+			String direccion = tenant.map(Tenant::getDireccion).orElse(null);
+			return new MultiTenantLoginResponse.OpcionTenant(i.getTenantId(), nombre, direccion);
 		}).toList();
 
 		return new MultiTenantLoginResponse(true, opciones);

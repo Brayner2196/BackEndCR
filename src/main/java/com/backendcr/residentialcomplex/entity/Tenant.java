@@ -21,6 +21,9 @@ public class Tenant {
 
 	private boolean activo = true;
 
+	@Column
+	private String direccion;
+
 	public Long getId() {
 		return id;
 	}
@@ -59,6 +62,14 @@ public class Tenant {
 
 	public void setCodigo(String codigo) {
 		this.codigo = codigo;
+	}
+
+	public String getDireccion() {
+		return direccion;
+	}
+
+	public void setDireccion(String direccion) {
+		this.direccion = direccion;
 	}
 
 }
