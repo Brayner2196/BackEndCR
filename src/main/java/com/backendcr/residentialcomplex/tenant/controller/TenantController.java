@@ -49,4 +49,10 @@ public class TenantController {
     public void desactivarTenant(@PathVariable Long id) {
         tenantService.desactivarTenant(id);
     }
+
+    @PatchMapping("/{id}/activar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void activarTenant(@PathVariable Long id) {
+        tenantService.activarTenant(id);
+    }
 }

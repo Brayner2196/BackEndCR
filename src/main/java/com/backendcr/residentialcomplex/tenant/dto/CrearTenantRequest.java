@@ -21,5 +21,7 @@ public record CrearTenantRequest(
         String emailAdmin,
 
         @NotBlank
-        String passwordAdmin
+        String passwordAdmin,
+
+        String direccion
 ) {}

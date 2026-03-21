@@ -80,6 +80,7 @@ public class TenantService {
         tenant.setSchemaName(request.schemaName());
         tenant.setNombre(request.nombre());
         tenant.setCodigo(request.codigo());
+        tenant.setDireccion(request.direccion());
         tenant.setActivo(true);
         tenant = tenantRepository.save(tenant);
 
@@ -133,6 +134,15 @@ public class TenantService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Tenant no encontrado con id: " + id));
         tenant.setActivo(false);
+        tenantRepository.save(tenant);
+    }
+
+    @Transactional
+    public void activarTenant(Long id) {
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Tenant no encontrado con id: " + id));
+        tenant.setActivo(true);
         tenantRepository.save(tenant);
     }
 
