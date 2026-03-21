@@ -12,8 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
+import com.backendcr.residentialcomplex.tenant.dto.ActualizarTenantRequest;
 import com.backendcr.residentialcomplex.tenant.dto.CrearTenantRequest;
 import com.backendcr.residentialcomplex.tenant.dto.CrearTenantResponse;
+import com.backendcr.residentialcomplex.tenant.dto.TenantResponse;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -90,7 +92,58 @@ public class TenantService {
         );
     }
 
-    public List<Tenant> obtenerTenants() {
-        return tenantRepository.findAll();
+    public List<TenantResponse> obtenerTenants() {
+        return tenantRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public TenantResponse obtenerPorId(Long id) {
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Tenant no encontrado con id: " + id));
+        return toResponse(tenant);
+    }
+
+    @Transactional
+    public TenantResponse actualizarTenant(Long id, ActualizarTenantRequest request) {
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Tenant no encontrado con id: " + id));
+
+        if (!tenant.getCodigo().equals(request.codigo())
+                && tenantRepository.existsByCodigoAndIdNot(request.codigo(), id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe un tenant con ese código");
+        }
+
+        tenant.setNombre(request.nombre());
+        tenant.setCodigo(request.codigo());
+        tenant.setDireccion(request.direccion());
+        if (request.activo() != null) {
+            tenant.setActivo(request.activo());
+        }
+
+        return toResponse(tenantRepository.save(tenant));
+    }
+
+    @Transactional
+    public void desactivarTenant(Long id) {
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Tenant no encontrado con id: " + id));
+        tenant.setActivo(false);
+        tenantRepository.save(tenant);
+    }
+
+    private TenantResponse toResponse(Tenant tenant) {
+        return new TenantResponse(
+                tenant.getId(),
+                tenant.getSchemaName(),
+                tenant.getNombre(),
+                tenant.getCodigo(),
+                tenant.isActivo(),
+                tenant.getDireccion()
+        );
     }
 }
