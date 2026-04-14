@@ -22,7 +22,7 @@ public class AuthController {
 		// Devuelve MultiTenantResponse → si el email está en varios tenants
 	}
 
-	// Paso 2 — solo si había múltiples tenants
+	// Paso 2 — solo si el usuario tiene múltiples tenants
 	@PostMapping("/seleccionar")
 	public LoginResponse seleccionarTenant(@RequestBody SeleccionTenantRequest request) {
 		return authService.seleccionarTenant(request);
