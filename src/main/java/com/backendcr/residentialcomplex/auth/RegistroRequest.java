@@ -21,5 +21,6 @@ public record RegistroRequest(
 
         String torre,
 
-        String telefono
+        String telefono        
+        
 ) {}

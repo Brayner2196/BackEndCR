@@ -48,8 +48,7 @@ public class UsuarioController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
-    public UsuarioResponse actualizar(@PathVariable Long id,
-                                      @Valid @RequestBody ActualizarUsuarioRequest request) {
+    public UsuarioResponse actualizar(@PathVariable Long id, @Valid @RequestBody ActualizarUsuarioRequest request) {
         return usuarioService.actualizar(id, request);
     }
 
