@@ -137,9 +137,34 @@ public class AuthService {
 		);
 	}
 
+	/**
+	 * Consulta el schema del tenant directamente via JdbcTemplate (sin pasar por el
+	 * routing de Hibernate, que no está activo durante los endpoints de /auth/login)
+	 * para obtener el nombre del usuario autenticado.
+	 * Retorna null si tenantId es null o "public" (SUPER_ADMIN) o si no se encuentra registro.
+	 */
+	private String obtenerNombreDesdeSchema(String tenantId, Long identidadId) {
+		if (tenantId == null || "public".equals(tenantId)) {
+			return null;
+		}
+		if (!tenantId.matches("^[a-zA-Z0-9_]+$")) {
+			return null;
+		}
+		try {
+			return jdbcTemplate.queryForObject(
+					"SELECT nombre FROM " + tenantId + ".usuarios WHERE identidad_id = ?",
+					String.class,
+					identidadId
+			);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
 	private LoginResponse generarLoginResponse(Identidad identidad, String tenantId, String nombreConjunto) {
 		String token = jwtService.generarToken(identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId);
-		return new LoginResponse(token, identidad.getEmail(), identidad.getRol(), tenantId, nombreConjunto);
+		String nombre = obtenerNombreDesdeSchema(tenantId, identidad.getId());
+		return new LoginResponse(token, identidad.getEmail(), identidad.getRol(), tenantId, nombreConjunto, nombre);
 	}
 
 }
