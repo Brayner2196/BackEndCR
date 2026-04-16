@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -26,6 +27,20 @@ public class GlobalExceptionHandler {
 		return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
 	}
 
+	@ExceptionHandler(ResponseStatusException.class)
+	public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex,
+			HttpServletRequest request) {
+
+		HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+		if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
+
+		ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())
+				.status(status.value()).error(status.getReasonPhrase())
+				.message(ex.getReason()).path(request.getRequestURI()).build();
+
+		return new ResponseEntity<>(errorResponse, status);
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
 			HttpServletRequest request) {
@@ -37,9 +52,12 @@ public class GlobalExceptionHandler {
 			validationErrors.put(fieldName, errorMessage);
 		});
 
+		String firstMessage = validationErrors.values().stream().findFirst()
+				.orElse("Datos inválidos");
+
 		ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())
 				.status(HttpStatus.BAD_REQUEST.value()).error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-				.message("Validation failed").path(request.getRequestURI()).validationErrors(validationErrors).build();
+				.message(firstMessage).path(request.getRequestURI()).validationErrors(validationErrors).build();
 
 		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
 	}

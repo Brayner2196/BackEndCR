@@ -49,28 +49,32 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponse crear(CrearUsuarioRequest request) {
         String tenantId = TenantContext.getTenant();
+        String emailNormalizado = request.email().trim().toLowerCase();
 
-        if (identidadRepository.existsByEmailAndTenantId(request.email(), tenantId)) {
+        if (identidadRepository.existsByEmailAndTenantId(emailNormalizado, tenantId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Ya existe un usuario con ese email en este conjunto");
+                    "Ya existe un usuario con ese correo en este conjunto");
         }
 
-        // 1. Crear credenciales en public schema
+        // Usuarios RESIDENTE_PENDIENTE se crean en estado PENDIENTE (requieren aprobación)
+        EstadoUsuario estadoInicial = "RESIDENTE_PENDIENTE".equals(request.rol())
+                ? EstadoUsuario.PENDIENTE
+                : EstadoUsuario.ACTIVO;
+
         Identidad identidad = new Identidad();
-        identidad.setEmail(request.email());
+        identidad.setEmail(emailNormalizado);
         identidad.setPassword(passwordEncoder.encode(request.password()));
         identidad.setRol(request.rol());
         identidad.setTenantId(tenantId);
         identidad = identidadRepository.save(identidad);
 
-        // 2. Crear perfil en el schema del tenant
         Usuario usuario = new Usuario();
-        usuario.setNombre(request.nombre());
+        usuario.setNombre(request.nombre().trim());
         usuario.setIdentidadId(identidad.getId());
         usuario.setApto(request.apto());
         usuario.setTorre(request.torre());
         usuario.setTelefono(request.telefono());
-        usuario.setEstado(EstadoUsuario.ACTIVO);
+        usuario.setEstado(estadoInicial);
         usuario = usuarioRepository.save(usuario);
 
         return UsuarioResponse.from(usuario, identidad.getEmail(), identidad.getRol());
@@ -103,11 +107,9 @@ public class UsuarioService {
                     "Solo se pueden aprobar usuarios con estado PENDIENTE");
         }
 
-        // Cambiar estado del perfil
         usuario.setEstado(EstadoUsuario.ACTIVO);
         usuario = usuarioRepository.save(usuario);
 
-        // Cambiar rol en las credenciales
         Identidad identidad = obtenerIdentidad(usuario.getIdentidadId());
         identidad.setRol("RESIDENTE");
         identidadRepository.save(identidad);
