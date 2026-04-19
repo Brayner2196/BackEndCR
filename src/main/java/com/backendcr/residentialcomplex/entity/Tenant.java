@@ -23,6 +23,9 @@ public class Tenant {
 
 	@Column
 	private String direccion;
+	
+	@Transient
+	private int cantidadUsuarios;
 
 	public Long getId() {
 		return id;
@@ -72,4 +75,11 @@ public class Tenant {
 		this.direccion = direccion;
 	}
 
+	public int getCantidadUsuarios() {
+		return cantidadUsuarios;
+	}
+	
+	public void setCantidadUsuarios(int cantidadUsuarios) {
+		this.cantidadUsuarios = cantidadUsuarios;
+	}
 }
