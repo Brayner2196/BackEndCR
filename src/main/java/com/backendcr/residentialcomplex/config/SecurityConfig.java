@@ -32,8 +32,7 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
-					.requestMatchers("/auth/login", "/auth/registro").permitAll()
-					.requestMatchers("/auth/login/seleccionar").authenticated() // requiere login para seleccionar tenant
+					.requestMatchers("/auth/login", "/auth/login/seleccionar", "/auth/login/registro").permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN") // solo admin
 					.anyRequest().authenticated() // lo demás requiere login
 		).sessionManagement(session -> session
