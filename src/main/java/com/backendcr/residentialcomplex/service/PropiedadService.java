@@ -1,0 +1,239 @@
+package com.backendcr.residentialcomplex.service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.backendcr.residentialcomplex.dto.propiedad.PropiedadPathItemDto;
+import com.backendcr.residentialcomplex.dto.propiedad.PropiedadRequest;
+import com.backendcr.residentialcomplex.dto.propiedad.PropiedadResponse;
+import com.backendcr.residentialcomplex.dto.propiedad.ResidenteResumenDto;
+import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
+import com.backendcr.residentialcomplex.dto.propiedad.UsuarioPropiedadResponse;
+import com.backendcr.residentialcomplex.entity.Propiedad;
+import com.backendcr.residentialcomplex.entity.TipoPropiedad;
+import com.backendcr.residentialcomplex.entity.Usuario;
+import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
+import com.backendcr.residentialcomplex.entity.enums.EstadoPropiedad;
+import com.backendcr.residentialcomplex.repository.IdentidadRepository;
+import com.backendcr.residentialcomplex.repository.PropiedadRepository;
+import com.backendcr.residentialcomplex.repository.TipoPropiedadRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class PropiedadService {
+
+    private final TipoPropiedadRepository tipoRepo;
+    private final PropiedadRepository propiedadRepo;
+    private final UsuarioPropiedadRepository usuarioPropiedadRepo;
+    private final UsuarioRepository usuarioRepo;
+    private final IdentidadRepository identidadRepo;
+
+    // ── Tipos de propiedad ────────────────────────────────────────────────────
+
+    public List<TipoPropiedadNodoDto> obtenerArbol() {
+        return tipoRepo.findByParentIdIsNullOrderByOrden().stream()
+                .filter(TipoPropiedad::isActivo)
+                .map(this::toNodoDto)
+                .toList();
+    }
+
+    public TipoPropiedadNodoDto crearTipo(TipoPropiedadNodoDto request) {
+        TipoPropiedad tipo = new TipoPropiedad();
+        tipo.setNombre(request.nombre());
+        tipo.setDescripcion(request.descripcion());
+        tipo.setParentId(request.parentId());
+        tipo.setOrden(request.orden());
+        tipo.setActivo(true);
+        return toNodoDto(tipoRepo.save(tipo));
+    }
+
+    public TipoPropiedadNodoDto actualizarTipo(Long id, TipoPropiedadNodoDto request) {
+        TipoPropiedad tipo = tipoRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo no encontrado"));
+        tipo.setNombre(request.nombre());
+        tipo.setDescripcion(request.descripcion());
+        tipo.setOrden(request.orden());
+        return toNodoDto(tipoRepo.save(tipo));
+    }
+
+    public void desactivarTipo(Long id) {
+        TipoPropiedad tipo = tipoRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo no encontrado"));
+        tipo.setActivo(false);
+        tipoRepo.save(tipo);
+    }
+
+    // ── Propiedades ───────────────────────────────────────────────────────────
+
+    public List<PropiedadResponse> listarTodas() {
+        return propiedadRepo.findAll().stream()
+                .map(p -> toPropiedadResponse(p, true))
+                .toList();
+    }
+
+    @Transactional
+    public PropiedadResponse crear(PropiedadRequest request) {
+        Long propiedadHojaId = resolverOCrearPath(request.propiedadPath());
+        Propiedad hoja = propiedadRepo.findById(propiedadHojaId).orElseThrow();
+        return toPropiedadResponse(hoja, false);
+    }
+
+    @Transactional
+    public PropiedadResponse actualizarEstado(Long id, EstadoPropiedad nuevoEstado) {
+        Propiedad propiedad = propiedadRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Propiedad no encontrada"));
+        propiedad.setEstado(nuevoEstado);
+        return toPropiedadResponse(propiedadRepo.save(propiedad), false);
+    }
+
+    // ── Asignaciones usuario-propiedad ────────────────────────────────────────
+
+    @Transactional
+    public void asignarUsuario(Long propiedadId, Long usuarioId) {
+        if (!propiedadRepo.existsById(propiedadId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Propiedad no encontrada");
+        }
+        if (!usuarioRepo.existsById(usuarioId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        }
+        if (usuarioPropiedadRepo.existsByUsuarioIdAndPropiedadId(usuarioId, propiedadId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya está asignado a esta propiedad");
+        }
+
+        boolean esPrimera = usuarioPropiedadRepo.findByUsuarioId(usuarioId).isEmpty();
+
+        UsuarioPropiedad up = new UsuarioPropiedad();
+        up.setUsuarioId(usuarioId);
+        up.setPropiedadId(propiedadId);
+        up.setEsPrincipal(esPrimera);
+        usuarioPropiedadRepo.save(up);
+    }
+
+    @Transactional
+    public void quitarUsuario(Long propiedadId, Long usuarioId) {
+        UsuarioPropiedad up = usuarioPropiedadRepo
+                .findByUsuarioIdAndPropiedadId(usuarioId, propiedadId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
+        usuarioPropiedadRepo.delete(up);
+
+        if (up.isEsPrincipal()) {
+            usuarioPropiedadRepo.findByUsuarioId(usuarioId).stream()
+                    .findFirst()
+                    .ifPresent(siguiente -> {
+                        siguiente.setEsPrincipal(true);
+                        usuarioPropiedadRepo.save(siguiente);
+                    });
+        }
+    }
+
+    public List<UsuarioPropiedadResponse> getMisPropiedades(Long usuarioId) {
+        return usuarioPropiedadRepo.findByUsuarioId(usuarioId).stream()
+                .map(up -> {
+                    Propiedad p = propiedadRepo.findById(up.getPropiedadId()).orElse(null);
+                    if (p == null) return null;
+                    String path = construirPathTexto(p);
+                    String tipoRaiz = obtenerNombreTipoRaiz(p);
+                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, tipoRaiz, up.isEsPrincipal());
+                })
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    public Long resolverOCrearPath(List<PropiedadPathItemDto> path) {
+        if (path == null || path.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El path de propiedad no puede estar vacío");
+        }
+
+        Long parentPropiedadId = null;
+        Propiedad actual = null;
+
+        for (PropiedadPathItemDto item : path) {
+            String valorNormalizado = item.valor().trim().toUpperCase();
+            Long finalParent = parentPropiedadId;
+            Optional<Propiedad> existente = propiedadRepo
+                    .findByTipoIdAndIdentificadorAndParentId(item.tipoId(), valorNormalizado, finalParent);
+
+            if (existente.isPresent()) {
+                actual = existente.get();
+            } else {
+                actual = new Propiedad();
+                actual.setTipoId(item.tipoId());
+                actual.setIdentificador(valorNormalizado);
+                actual.setParentId(parentPropiedadId);
+                actual.setEstado(EstadoPropiedad.DISPONIBLE);
+                actual = propiedadRepo.save(actual);
+            }
+            parentPropiedadId = actual.getId();
+        }
+
+        return actual.getId();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private TipoPropiedadNodoDto toNodoDto(TipoPropiedad tipo) {
+        List<TipoPropiedad> hijosEntidad = tipoRepo.findByParentIdOrderByOrden(tipo.getId());
+        List<TipoPropiedadNodoDto> hijosDto = hijosEntidad.stream()
+                .filter(TipoPropiedad::isActivo)
+                .map(this::toNodoDto)
+                .toList();
+        return new TipoPropiedadNodoDto(
+                tipo.getId(), tipo.getNombre(), tipo.getDescripcion(),
+                tipo.getParentId(), tipo.getOrden(), tipo.isActivo(), hijosDto);
+    }
+
+    private PropiedadResponse toPropiedadResponse(Propiedad p, boolean incluirResidentes) {
+        String nombreTipo = tipoRepo.findById(p.getTipoId())
+                .map(TipoPropiedad::getNombre).orElse("?");
+        String path = construirPathTexto(p);
+
+        List<ResidenteResumenDto> residentes = Collections.emptyList();
+        if (incluirResidentes) {
+            residentes = usuarioPropiedadRepo.findByPropiedadId(p.getId()).stream()
+                    .map(up -> {
+                        Usuario u = usuarioRepo.findById(up.getUsuarioId()).orElse(null);
+                        if (u == null) return null;
+                        String email = identidadRepo.findById(u.getIdentidadId())
+                                .map(i -> i.getEmail()).orElse("");
+                        return new ResidenteResumenDto(u.getId(), u.getNombre(), email, up.isEsPrincipal());
+                    })
+                    .filter(r -> r != null)
+                    .toList();
+        }
+
+        return new PropiedadResponse(p.getId(), p.getTipoId(), nombreTipo,
+                p.getParentId(), p.getIdentificador(), path, p.getEstado(), residentes);
+    }
+
+    private String construirPathTexto(Propiedad hoja) {
+        List<String> partes = new ArrayList<>();
+        Propiedad actual = hoja;
+        while (actual != null) {
+            String nombreTipo = tipoRepo.findById(actual.getTipoId())
+                    .map(TipoPropiedad::getNombre).orElse("?");
+            partes.add(0, nombreTipo + " " + actual.getIdentificador());
+            if (actual.getParentId() == null) break;
+            actual = propiedadRepo.findById(actual.getParentId()).orElse(null);
+        }
+        return String.join(" / ", partes);
+    }
+
+    private String obtenerNombreTipoRaiz(Propiedad hoja) {
+        Propiedad actual = hoja;
+        while (actual.getParentId() != null) {
+            actual = propiedadRepo.findById(actual.getParentId()).orElse(actual);
+        }
+        return tipoRepo.findById(actual.getTipoId()).map(TipoPropiedad::getNombre).orElse("?");
+    }
+}
