@@ -11,13 +11,14 @@ import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
+import com.backendcr.residentialcomplex.tenant.service.TenantService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@Profile("dev") // SOLO corre en perfil dev — nunca en prod
+@Profile("dev")
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
@@ -25,25 +26,25 @@ public class DataInitializer implements CommandLineRunner {
 	private final TenantRepository tenantRepository;
 	private final JdbcTemplate jdbcTemplate;
 	private final PasswordEncoder passwordEncoder;
+	private final TenantService tenantService;
 
 	@Override
 	public void run(String... args) {
 		TenantContext.setTenant("public");
-		log.info("🚀 Iniciando carga de datos de prueba...");
+		log.info("Iniciando carga de datos de prueba...");
 
 		crearSuperAdmin();
 		crearConjuntoPrueba();
 
-		log.info("✅ Datos de prueba cargados correctamente");
+		log.info("Datos de prueba cargados correctamente");
+		log.info("Ver datos en: http://localhost:8080/h2-console");
 		imprimirCredenciales();
 	}
 
-	// ─── SUPER ADMIN ──────────────────────────────────────────────────────────
-
 	private void crearSuperAdmin() {
-		TenantContext.setTenant("public"); // Asegura que estamos en el contexto público
+		TenantContext.setTenant("public");
 		if (identidadRepository.findByEmailAndTenantIdIsNull("admin@app.com").isPresent()) {
-			log.info("⏭ SUPER_ADMIN ya existe, omitiendo...");
+			log.info("SUPER_ADMIN ya existe, omitiendo...");
 			return;
 		}
 
@@ -54,44 +55,29 @@ public class DataInitializer implements CommandLineRunner {
 		admin.setTenantId(null);
 		identidadRepository.save(admin);
 
-		log.info("👤 SUPER_ADMIN creado: admin@app.com / admin123");
+		log.info("SUPER_ADMIN creado: admin@app.com / admin123");
 	}
-
-	// ─── CONJUNTO DE PRUEBA ───────────────────────────────────────────────────
 
 	private void crearConjuntoPrueba() {
 		if (tenantRepository.existsBySchemaName("conjunto_101")) {
-			log.info("⏭ Conjunto de prueba ya existe, omitiendo...");
+			log.info("Conjunto de prueba ya existe, omitiendo...");
 			return;
 		}
 
-		// 1. Crear tenant en tabla maestra
 		Tenant tenant = new Tenant();
 		tenant.setSchemaName("conjunto_101");
 		tenant.setNombre("Conjunto El Prado");
 		tenant.setCodigo("EL-PRADO-01");
 		tenant.setActivo(true);
 		tenantRepository.save(tenant);
-		log.info("🏢 Tenant creado: Conjunto El Prado (código: EL-PRADO-01)");
+		log.info("Tenant creado: Conjunto El Prado (código: EL-PRADO-01)");
 
-		// 2. Crear schema y tablas (H2 soporta CREATE SCHEMA)
 		jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS conjunto_101");
-		jdbcTemplate.execute("""
-				    CREATE TABLE IF NOT EXISTS conjunto_101.usuarios (
-				        id             BIGSERIAL PRIMARY KEY,
-				        nombre         VARCHAR(100) NOT NULL,
-				        identidad_id   BIGINT NOT NULL,
-				        apto           VARCHAR(20),
-				        torre          VARCHAR(20),
-				        telefono       VARCHAR(20),
-				        estado         VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
-				        creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				        actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-				    )
-				""");
-		log.info("🗄 Schema conjunto_101 y tablas creados");
+		tenantService.crearTablasTenant("conjunto_101");
+		log.info("Schema conjunto_101 y tablas creados");
 
-		// 3. Crear usuarios de prueba
+		crearTiposPropiedad();
+
 		crearUsuarioConjunto("tenantadmin@prado.com", "admin123", "TENANT_ADMIN", "Carlos Admin", null, null, "ACTIVO");
 		crearUsuarioConjunto("residente@prado.com", "res123", "RESIDENTE", "Juan Residente", "101", "A", "ACTIVO");
 		crearUsuarioConjunto("vigilante@prado.com", "vig123", "VIGILANTE", "Luis Vigilante", null, null, "ACTIVO");
@@ -101,9 +87,30 @@ public class DataInitializer implements CommandLineRunner {
 		crearUsuarioConjunto("contador@prado.com", "con123", "CONTADOR", "Sofia Contadora", null, null, "ACTIVO");
 	}
 
+	private void crearTiposPropiedad() {
+		Long existeCheck = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM conjunto_101.tipos_propiedad", Long.class);
+		if (existeCheck != null && existeCheck > 0) {
+			log.info("Tipos de propiedad ya existen, omitiendo...");
+			return;
+		}
+
+		Long idTorre = jdbcTemplate.queryForObject(
+				"INSERT INTO conjunto_101.tipos_propiedad (nombre, descripcion, parent_id, orden) VALUES (?, ?, NULL, 0) RETURNING id",
+				Long.class, "Torre", "Bloque de apartamentos");
+		jdbcTemplate.update(
+				"INSERT INTO conjunto_101.tipos_propiedad (nombre, descripcion, parent_id, orden) VALUES (?, ?, ?, 0)",
+				"Apto", "Unidad de vivienda", idTorre);
+
+		jdbcTemplate.update(
+				"INSERT INTO conjunto_101.tipos_propiedad (nombre, descripcion, parent_id, orden) VALUES (?, ?, NULL, 1)",
+				"Parqueadero", "Espacio de parqueo");
+
+		log.info("Tipos de propiedad de prueba creados (Torre->Apto, Parqueadero)");
+	}
+
 	private void crearUsuarioConjunto(String email, String password, String rol, String nombre, String apto,
 			String torre, String estado) {
-		// Identidad en public
 		Identidad identidad = new Identidad();
 		identidad.setEmail(email);
 		identidad.setPassword(passwordEncoder.encode(password));
@@ -111,38 +118,28 @@ public class DataInitializer implements CommandLineRunner {
 		identidad.setTenantId("conjunto_101");
 		identidadRepository.save(identidad);
 
-		// Usuario en schema del conjunto
 		jdbcTemplate.update("""
 				INSERT INTO conjunto_101.usuarios (nombre, identidad_id, apto, torre, estado)
 				VALUES (?, ?, ?, ?, ?)
 				""", nombre, identidad.getId(), apto, torre, estado);
 
-		log.info("👤 {} creado: {} / {}", rol, email, password);
+		log.info("{} creado: {} / {}", rol, email, password);
 	}
-	
-	// ─── LOG DE CREDENCIALES ──────────────────────────────────────────────────
 
-    private void imprimirCredenciales() {
-        log.info("""
-            
-            ╔══════════════════════════════════════════════════════╗
-            ║           CREDENCIALES DE PRUEBA                     ║
-            ╠══════════════════════════════════════════════════════╣
-            ║  SUPER ADMIN                                         ║
-            ║  email:    admin@app.com                             ║
-            ║  password: admin123                                  ║
-            ╠══════════════════════════════════════════════════════╣
-            ║  CONJUNTO: El Prado  (código: EL-PRADO-01)           ║
-            ╠══════════════════════════════════════════════════════╣
-            ║  TENANT_ADMIN   tenantadmin@prado.com / admin123     ║
-            ║  RESIDENTE      residente@prado.com   / res123       ║
-            ║  VIGILANTE      vigilante@prado.com   / vig123       ║
-            ║  PORTERO        portero@prado.com     / por123       ║
-            ║  PISCINERO      piscinero@prado.com   / pis123       ║
-            ║  CONTADOR       contador@prado.com    / con123       ║
-            ║  PEND.APROB.    pendiente@prado.com   / pen123       ║
-            ╚══════════════════════════════════════════════════════╝
-            """);
-    }
+	private void imprimirCredenciales() {
+		log.info("""
+		    
+		    CREDENCIALES DE PRUEBA
+		    SUPER ADMIN:    admin@app.com / admin123
+		    CONJUNTO: El Prado  (codigo: EL-PRADO-01)
+		    TENANT_ADMIN:   tenantadmin@prado.com / admin123
+		    RESIDENTE:      residente@prado.com   / res123
+		    VIGILANTE:      vigilante@prado.com   / vig123
+		    PORTERO:        portero@prado.com     / por123
+		    PISCINERO:      piscinero@prado.com   / pis123
+		    CONTADOR:       contador@prado.com    / con123
+		    PEND.APROB.:    pendiente@prado.com   / pen123
+		    """);
+	}
 
 }

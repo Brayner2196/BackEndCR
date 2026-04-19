@@ -1,5 +1,9 @@
 package com.backendcr.residentialcomplex.tenant.dto;
 
+import java.util.List;
+
+import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -23,5 +27,7 @@ public record CrearTenantRequest(
         @NotBlank
         String passwordAdmin,
 
-        String direccion
+        String direccion,
+
+        List<TipoPropiedadNodoDto> tiposPropiedad
 ) {}

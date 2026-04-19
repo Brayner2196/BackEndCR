@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
@@ -42,25 +43,10 @@ public class TenantService {
                     "Ya existe una identidad con ese email para este tenant");
         }
 
-        // 1. Crear schema
         jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + request.schemaName());
 
-        // 2. Crear tabla usuarios en el nuevo schema
-        jdbcTemplate.execute("""
-                    CREATE TABLE IF NOT EXISTS %s.usuarios (
-                        id             BIGSERIAL PRIMARY KEY,
-                        nombre         VARCHAR(100) NOT NULL,
-                        identidad_id   BIGINT NOT NULL,
-                        apto           VARCHAR(20),
-                        torre          VARCHAR(20),
-                        telefono       VARCHAR(20),
-                        estado         VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
-                        creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                    )
-                """.formatted(request.schemaName()));
+        crearTablasTenant(request.schemaName());
 
-        // 3. Crear Identidad del TENANT_ADMIN en public schema (JPA)
         Identidad identidad = new Identidad();
         identidad.setEmail(request.emailAdmin());
         identidad.setPassword(passwordEncoder.encode(request.passwordAdmin()));
@@ -68,14 +54,16 @@ public class TenantService {
         identidad.setTenantId(request.schemaName());
         identidad = identidadRepository.save(identidad);
 
-        // 4. Insertar Usuario del TENANT_ADMIN en el nuevo schema (JDBC — JPA aún apunta a public)
         jdbcTemplate.update("""
                 INSERT INTO %s.usuarios (nombre, identidad_id, estado)
                 VALUES (?, ?, 'ACTIVO')
                 """.formatted(request.schemaName()),
                 "Administrador", identidad.getId());
 
-        // 5. Guardar registro del tenant
+        if (request.tiposPropiedad() != null && !request.tiposPropiedad().isEmpty()) {
+            insertarTiposPropiedad(request.schemaName(), request.tiposPropiedad(), null, 0);
+        }
+
         Tenant tenant = new Tenant();
         tenant.setSchemaName(request.schemaName());
         tenant.setNombre(request.nombre());
@@ -94,10 +82,9 @@ public class TenantService {
     }
 
     public List<TenantResponse> obtenerTenants() {
-    	List<TenantResponse> response = tenantRepository.findAll().stream()
-				.map(this::toResponse)
-				.toList();
-        return response;
+        return tenantRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     public TenantResponse obtenerPorId(Long id) {
@@ -154,8 +141,73 @@ public class TenantService {
                 tenant.getNombre(),
                 tenant.getCodigo(),
                 tenant.isActivo(),
-                tenant.getDireccion(),
-                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + tenant.getSchemaName() + ".usuarios", Integer.class)
+                tenant.getDireccion()
         );
+    }
+
+    public void crearTablasTenant(String schema) {
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.usuarios (
+                    id             BIGSERIAL PRIMARY KEY,
+                    nombre         VARCHAR(100) NOT NULL,
+                    identidad_id   BIGINT NOT NULL,
+                    apto           VARCHAR(20),
+                    torre          VARCHAR(20),
+                    telefono       VARCHAR(20),
+                    estado         VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
+                    creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.tipos_propiedad (
+                    id          BIGSERIAL PRIMARY KEY,
+                    nombre      VARCHAR(100) NOT NULL,
+                    descripcion VARCHAR(255),
+                    parent_id   BIGINT REFERENCES %s.tipos_propiedad(id),
+                    orden       INT NOT NULL DEFAULT 0,
+                    activo      BOOLEAN NOT NULL DEFAULT TRUE
+                )
+                """.formatted(schema, schema));
+
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.propiedades (
+                    id             BIGSERIAL PRIMARY KEY,
+                    tipo_id        BIGINT NOT NULL REFERENCES %s.tipos_propiedad(id),
+                    identificador  VARCHAR(50) NOT NULL,
+                    parent_id      BIGINT REFERENCES %s.propiedades(id),
+                    estado         VARCHAR(30) NOT NULL DEFAULT 'DISPONIBLE',
+                    creado_en      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema, schema));
+
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.usuario_propiedades (
+                    id           BIGSERIAL PRIMARY KEY,
+                    usuario_id   BIGINT NOT NULL,
+                    propiedad_id BIGINT NOT NULL REFERENCES %s.propiedades(id),
+                    es_principal BOOLEAN NOT NULL DEFAULT FALSE,
+                    creado_en    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(usuario_id, propiedad_id)
+                )
+                """.formatted(schema, schema));
+    }
+
+    private void insertarTiposPropiedad(String schema, List<TipoPropiedadNodoDto> tipos,
+                                        Long parentId, int ordenBase) {
+        for (int i = 0; i < tipos.size(); i++) {
+            TipoPropiedadNodoDto nodo = tipos.get(i);
+            Long nuevoId = jdbcTemplate.queryForObject(
+                    "INSERT INTO " + schema + ".tipos_propiedad (nombre, descripcion, parent_id, orden) " +
+                    "VALUES (?, ?, ?, ?) RETURNING id",
+                    Long.class,
+                    nodo.nombre(), nodo.descripcion(), parentId, ordenBase + i);
+
+            if (nodo.hijos() != null && !nodo.hijos().isEmpty()) {
+                insertarTiposPropiedad(schema, nodo.hijos(), nuevoId, 0);
+            }
+        }
     }
 }
