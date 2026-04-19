@@ -141,7 +141,8 @@ public class TenantService {
                 tenant.getNombre(),
                 tenant.getCodigo(),
                 tenant.isActivo(),
-                tenant.getDireccion()
+                tenant.getDireccion(),
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + tenant.getSchemaName() + ".usuarios", Integer.class)
         );
     }
 
