@@ -31,7 +31,7 @@ public class AuthService {
 		List<Identidad> identidades = identidadRepository.findAllByEmail(request.email());
 
 		if (identidades.isEmpty()) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales incorrectas");
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo electrónico no registrado");
 		}
 
 		// Validar password con la primera identidad encontrada (todas tienen el mismo
