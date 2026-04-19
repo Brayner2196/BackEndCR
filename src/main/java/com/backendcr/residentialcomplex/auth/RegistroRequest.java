@@ -1,5 +1,9 @@
 package com.backendcr.residentialcomplex.auth;
 
+import java.util.List;
+
+import com.backendcr.residentialcomplex.dto.propiedad.PropiedadPathItemDto;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -17,10 +21,8 @@ public record RegistroRequest(
         @NotBlank
         String codigoConjunto,
 
-        String apto,
+        String telefono,
 
-        String torre,
+        List<PropiedadPathItemDto> propiedadPath
 
-        String telefono        
-        
 ) {}

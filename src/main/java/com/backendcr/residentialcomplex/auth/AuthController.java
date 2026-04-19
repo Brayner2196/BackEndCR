@@ -1,37 +1,40 @@
 package com.backendcr.residentialcomplex.auth;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 
 import jakarta.validation.Valid;
 import lombok.*;
 
 @RestController
-@RequestMapping("/auth/login")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
 	private final AuthService authService;
 
-	// Paso 1 — login normal, sin tenant
-	@PostMapping
+	@PostMapping("/login")
 	public Object login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
-		// Devuelve LoginResponse → si hay un solo tenant o es admin
-		// Devuelve MultiTenantResponse → si el email está en varios tenants
 	}
 
-	// Paso 2 — solo si el usuario tiene múltiples tenants
-	@PostMapping("/seleccionar")
+	@PostMapping("/login/seleccionar")
 	public LoginResponse seleccionarTenant(@RequestBody SeleccionTenantRequest request) {
 		return authService.seleccionarTenant(request);
 	}
 
-	// Auto-registro de residentes
-	@PostMapping("/registro")
+	@PostMapping("/login/registro")
 	@ResponseStatus(HttpStatus.CREATED)
 	public RegistroResponse registro(@Valid @RequestBody RegistroRequest request) {
 		return authService.registro(request);
+	}
+
+	@GetMapping("/tipos-propiedad")
+	public List<TipoPropiedadNodoDto> tiposPropiedad(@RequestParam String codigo) {
+		return authService.getTiposPropiedad(codigo);
 	}
 }

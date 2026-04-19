@@ -32,13 +32,14 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
-					.requestMatchers("/auth/login", "/auth/login/seleccionar", "/auth/login/registro").permitAll()
-					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN") // solo admin
-					.anyRequest().authenticated() // lo demás requiere login
+					.requestMatchers("/auth/login", "/auth/login/registro", "/auth/tipos-propiedad").permitAll()
+					.requestMatchers("/auth/login/seleccionar").authenticated()
+					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
+					.anyRequest().authenticated()
 		).sessionManagement(session -> session
-					.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT, sin sesión
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 		  ) .addFilterBefore(JwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-			.addFilterAfter(tenantFilter, JwtAuthFilter.class); // JWT después de establecer tenant;
+			.addFilterAfter(tenantFilter, JwtAuthFilter.class);
 		return http.build();
 	}
 

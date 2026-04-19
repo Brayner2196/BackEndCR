@@ -1,5 +1,9 @@
 package com.backendcr.residentialcomplex.dto.usuario;
 
+import java.util.List;
+
+import com.backendcr.residentialcomplex.dto.propiedad.PropiedadPathItemDto;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -23,9 +27,7 @@ public record CrearUsuarioRequest(
                  message = "Rol no válido")
         String rol,
 
-        String apto,
+        String telefono,
 
-        String torre,
-
-        String telefono
+        List<PropiedadPathItemDto> propiedadPath
 ) {}

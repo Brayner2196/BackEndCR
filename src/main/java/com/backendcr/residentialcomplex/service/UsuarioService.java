@@ -14,8 +14,10 @@ import com.backendcr.residentialcomplex.dto.usuario.CrearUsuarioRequest;
 import com.backendcr.residentialcomplex.dto.usuario.UsuarioResponse;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Usuario;
+import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.entity.enums.EstadoUsuario;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final IdentidadRepository identidadRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioPropiedadRepository usuarioPropiedadRepository;
+    private final PropiedadService propiedadService;
 
     public List<UsuarioResponse> listarTodos() {
         return usuarioRepository.findAll().stream()
@@ -56,7 +60,6 @@ public class UsuarioService {
                     "Ya existe un usuario con ese correo en este conjunto");
         }
 
-        // Usuarios RESIDENTE_PENDIENTE se crean en estado PENDIENTE (requieren aprobación)
         EstadoUsuario estadoInicial = "RESIDENTE_PENDIENTE".equals(request.rol())
                 ? EstadoUsuario.PENDIENTE
                 : EstadoUsuario.ACTIVO;
@@ -71,11 +74,18 @@ public class UsuarioService {
         Usuario usuario = new Usuario();
         usuario.setNombre(request.nombre().trim());
         usuario.setIdentidadId(identidad.getId());
-        usuario.setApto(request.apto());
-        usuario.setTorre(request.torre());
         usuario.setTelefono(request.telefono());
         usuario.setEstado(estadoInicial);
         usuario = usuarioRepository.save(usuario);
+
+        if (request.propiedadPath() != null && !request.propiedadPath().isEmpty()) {
+            Long propiedadId = propiedadService.resolverOCrearPath(request.propiedadPath());
+            UsuarioPropiedad up = new UsuarioPropiedad();
+            up.setUsuarioId(usuario.getId());
+            up.setPropiedadId(propiedadId);
+            up.setEsPrincipal(true);
+            usuarioPropiedadRepository.save(up);
+        }
 
         return UsuarioResponse.from(usuario, identidad.getEmail(), identidad.getRol());
     }
@@ -133,8 +143,6 @@ public class UsuarioService {
         Identidad identidad = obtenerIdentidad(usuario.getIdentidadId());
         return UsuarioResponse.from(usuario, identidad.getEmail(), identidad.getRol());
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private UsuarioResponse toResponse(Usuario usuario) {
         Identidad identidad = obtenerIdentidad(usuario.getIdentidadId());
