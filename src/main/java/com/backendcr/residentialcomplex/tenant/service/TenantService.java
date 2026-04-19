@@ -94,9 +94,10 @@ public class TenantService {
     }
 
     public List<TenantResponse> obtenerTenants() {
-        return tenantRepository.findAll().stream()
-                .map(this::toResponse)
-                .toList();
+    	List<TenantResponse> response = tenantRepository.findAll().stream()
+				.map(this::toResponse)
+				.toList();
+        return response;
     }
 
     public TenantResponse obtenerPorId(Long id) {
@@ -153,7 +154,8 @@ public class TenantService {
                 tenant.getNombre(),
                 tenant.getCodigo(),
                 tenant.isActivo(),
-                tenant.getDireccion()
+                tenant.getDireccion(),
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + tenant.getSchemaName() + ".usuarios", Integer.class)
         );
     }
 }

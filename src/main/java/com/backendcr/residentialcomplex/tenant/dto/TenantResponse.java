@@ -6,5 +6,6 @@ public record TenantResponse(
         String nombre,
         String codigo,
         boolean activo,
-        String direccion
+        String direccion,
+        int cantidadUsuarios
 ) {}
