@@ -27,13 +27,13 @@ public class AuthController {
 		return authService.seleccionarTenant(request);
 	}
 
-	@PostMapping("/login/registro")
+	@PostMapping("/registro")
 	@ResponseStatus(HttpStatus.CREATED)
 	public RegistroResponse registro(@Valid @RequestBody RegistroRequest request) {
 		return authService.registro(request);
 	}
 
-	@GetMapping("/tipos-propiedad")
+	@GetMapping("/tiposPropiedad")
 	public List<TipoPropiedadNodoDto> tiposPropiedad(@RequestParam String codigo) {
 		return authService.getTiposPropiedad(codigo);
 	}
