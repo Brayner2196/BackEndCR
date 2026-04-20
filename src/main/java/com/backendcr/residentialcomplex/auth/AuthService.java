@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
@@ -97,7 +96,6 @@ public class AuthService {
 		return generarLoginResponse(identidad, request.tenantId(), tenant.getNombre());
 	}
 
-	@Transactional
 	public RegistroResponse registro(RegistroRequest request) {
 
 		Tenant tenant = tenantRepository.findByCodigo(request.codigoConjunto())
