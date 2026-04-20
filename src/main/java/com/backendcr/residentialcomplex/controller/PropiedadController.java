@@ -91,8 +91,8 @@ public class PropiedadController {
     }
 
     @GetMapping("/api/propiedades/mis-propiedades")
-    public List<UsuarioPropiedadResponse> misPropiedades(@AuthenticationPrincipal UserDetails userDetails) {
-        String email = userDetails.getUsername();
+    @PreAuthorize("isAuthenticated()")
+    public List<UsuarioPropiedadResponse> misPropiedades(@AuthenticationPrincipal String email) {
         String tenantId = TenantContext.getTenant();
         return identidadRepo.findByEmailAndTenantId(email, tenantId)
                 .flatMap(identidad -> usuarioRepo.findByIdentidadId(identidad.getId()))
