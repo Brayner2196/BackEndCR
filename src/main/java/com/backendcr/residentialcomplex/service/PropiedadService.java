@@ -157,7 +157,7 @@ public class PropiedadService {
                     if (p == null) return null;
                     String path = construirPathTexto(p);
                     String tipoRaiz = obtenerNombreTipoRaiz(p);
-                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, tipoRaiz, up.isEsPrincipal());
+                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, tipoRaiz, p.getEstado(),  up.isEsPrincipal());
                 })
                 .filter(r -> r != null)
                 .toList();
