@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
@@ -88,6 +87,19 @@ public class PropiedadController {
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public void quitarUsuario(@PathVariable Long propiedadId, @PathVariable Long usuarioId) {
         propiedadService.quitarUsuario(propiedadId, usuarioId);
+    }
+
+    @PatchMapping("/api/propiedades/{propiedadId}/usuarios/{usuarioId}/principal")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public void marcarComoPrincipal(@PathVariable Long propiedadId, @PathVariable Long usuarioId) {
+        propiedadService.marcarComoPrincipal(propiedadId, usuarioId);
+    }
+
+    @GetMapping("/api/usuarios/{usuarioId}/propiedades")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public List<UsuarioPropiedadResponse> propiedadesDeUsuario(@PathVariable Long usuarioId) {
+        return propiedadService.getMisPropiedades(usuarioId);
     }
 
     @GetMapping("/api/propiedades/mis-propiedades")

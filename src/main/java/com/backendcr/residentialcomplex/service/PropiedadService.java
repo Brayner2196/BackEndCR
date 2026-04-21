@@ -137,6 +137,19 @@ public class PropiedadService {
         }
     }
 
+    @Transactional
+    public void marcarComoPrincipal(Long propiedadId, Long usuarioId) {
+        UsuarioPropiedad up = usuarioPropiedadRepo
+                .findByUsuarioIdAndPropiedadId(usuarioId, propiedadId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
+        usuarioPropiedadRepo.findByUsuarioId(usuarioId).forEach(u -> {
+            u.setEsPrincipal(false);
+            usuarioPropiedadRepo.save(u);
+        });
+        up.setEsPrincipal(true);
+        usuarioPropiedadRepo.save(up);
+    }
+
     public List<UsuarioPropiedadResponse> getMisPropiedades(Long usuarioId) {
         return usuarioPropiedadRepo.findByUsuarioId(usuarioId).stream()
                 .map(up -> {
