@@ -7,6 +7,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.CobroService;
+import com.backendcr.residentialcomplex.service.ConfiguracionCuotaService;
 import com.backendcr.residentialcomplex.service.PagoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +25,30 @@ public class AdminPagosController {
 
     private final CobroService cobroService;
     private final PagoService pagoService;
+    private final ConfiguracionCuotaService cuotaService;
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
 
-    // ─── Períodos ─────────────────────────────────
+    // ─── Cuotas ────────────────────────────
+
+    @GetMapping("/cuotas")
+    public List<ConfiguracionCuotaResponse> listarCuotas() {
+        return cuotaService.listar();
+    }
+
+    @PostMapping("/cuotas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ConfiguracionCuotaResponse crearCuota(@Valid @RequestBody ConfiguracionCuotaRequest req) {
+        return cuotaService.crear(req);
+    }
+
+    @PutMapping("/cuotas/{id}/desactivar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void desactivarCuota(@PathVariable Long id) {
+        cuotaService.desactivar(id);
+    }
+
+    // ─── Períodos ──────────────────────────
 
     @GetMapping("/cobros/periodos")
     public List<PeriodoCobroResponse> listarPeriodos() {
@@ -45,7 +66,7 @@ public class AdminPagosController {
         return cobroService.cerrarPeriodo(id);
     }
 
-    // ─── Cobros ────────────────────────────────────
+    // ─── Cobros ───────────────────────────
 
     @PostMapping("/cobros/generar/{anio}/{mes}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -69,7 +90,7 @@ public class AdminPagosController {
         return cobroService.exonerar(id, req, resolverAdminId(email));
     }
 
-    // ─── Pagos ─────────────────────────────────────
+    // ─── Pagos ────────────────────────────
 
     @GetMapping("/pagos")
     public List<PagoResponse> listarPagos(
