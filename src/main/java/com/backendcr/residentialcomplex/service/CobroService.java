@@ -16,13 +16,14 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class CobroService {
 
     private final TipoPropiedadRepository tipoPropiedadRepository;
-
     private final PeriodoCobroRepository periodoRepo;
     private final CobroRepository cobroRepo;
     private final ConfiguracionCuotaRepository cuotaRepo;
@@ -31,7 +32,7 @@ public class CobroService {
     private final PropiedadRepository propiedadRepo;
     private final UsuarioRepository usuarioRepo;
 
-    // ─── Períodos ──────────────────────────────────────────────────
+    // ─── Períodos ──────────────────────────────────────────────
 
     public List<PeriodoCobroResponse> listarPeriodos() {
         return periodoRepo.findAllByOrderByAnioDescMesDesc().stream()
@@ -67,7 +68,7 @@ public class CobroService {
         return PeriodoCobroResponse.from(periodoRepo.save(p));
     }
 
-    // ─── Cobros ────────────────────────────────────────────────────
+    // ─── Cobros ──────────────────────────────────────────────
 
     public List<CobroResponse> listarPorPeriodo(Long periodoId) {
         return cobroRepo.findAllByPeriodoId(periodoId).stream().map(this::toResponse).toList();
@@ -128,7 +129,7 @@ public class CobroService {
         return toResponse(cobroRepo.save(cobro));
     }
 
-    // ─── Job automático de mora — corre cada día a la 1 AM ────────
+    // ─── Job automático de mora — corre cada día a la 1 AM ───────────
 
     @Scheduled(cron = "0 0 1 * * *")
     @Transactional
@@ -175,19 +176,53 @@ public class CobroService {
                 activos.stream().map(this::toResponse).toList());
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────
+    // ─── Helpers ──────────────────────────────────────────────
 
+    private static final Pattern TRAILING_NUMBER = Pattern.compile("(\\d+)\\s*$");
+
+    /**
+     * Resuelve el monto de cuota para una propiedad siguiendo esta prioridad:
+     * 1. Cuota específica para la propiedad exacta (por propiedadId)
+     * 2. Cuota por rango numérico dentro del tipo (numeroDesde..numeroHasta)
+     * 3. Cuota general del tipo (sin rango)
+     */
     private BigDecimal resolverMonto(Propiedad prop) {
-        return cuotaRepo.findByPropiedadIdAndActivoTrue(prop.getId())
+        // 1. Match exacto por propiedad
+        Optional<BigDecimal> exacto = cuotaRepo
+                .findByPropiedadIdAndActivoTrue(prop.getId())
+                .map(ConfiguracionCuota::getMonto);
+        if (exacto.isPresent()) return exacto.get();
+
+        // 2. Match por rango numérico del tipo
+        Integer numPropiedad = extraerNumero(prop.getIdentificador());
+        if (numPropiedad != null) {
+            List<ConfiguracionCuota> rangos = cuotaRepo
+                    .findByTipoPropiedadIdAndNumeroDesdeIsNotNullAndActivoTrue(prop.getTipoId());
+            Optional<BigDecimal> rango = rangos.stream()
+                    .filter(c -> c.getNumeroDesde() <= numPropiedad
+                              && numPropiedad <= c.getNumeroHasta())
+                    .map(ConfiguracionCuota::getMonto)
+                    .findFirst();
+            if (rango.isPresent()) return rango.get();
+        }
+
+        // 3. Cuota general del tipo (sin rango)
+        return cuotaRepo
+                .findByTipoPropiedadIdAndNumeroDesdeIsNullAndActivoTrue(prop.getTipoId())
                 .map(ConfiguracionCuota::getMonto)
-                .orElseGet(() -> cuotaRepo.findByTipoPropiedadIdAndActivoTrue(prop.getTipoId())
-                        .map(ConfiguracionCuota::getMonto).orElse(null));
+                .orElse(null);
+    }
+
+    /** Extrae el último número del identificador de la propiedad (ej. "Apto 5" → 5, "42" → 42). */
+    private Integer extraerNumero(String identificador) {
+        if (identificador == null) return null;
+        Matcher m = TRAILING_NUMBER.matcher(identificador.trim());
+        return m.find() ? Integer.parseInt(m.group(1)) : null;
     }
 
     private CobroResponse toResponse(Cobro c) {
         String descripcionPropiedad = propiedadRepo.findById(c.getPropiedadId())
                 .map(Propiedad::getIdentificador).orElse("N/A");
-        
         String nombreUsuario = c.getUsuarioId() != null
                 ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
         PeriodoCobro periodo = periodoRepo.findById(c.getPeriodoId()).orElse(null);
@@ -195,17 +230,17 @@ public class CobroService {
                 c.getId(), c.getPeriodoId(),
                 periodo != null ? periodo.getAnio() : 0,
                 periodo != null ? periodo.getMes() : 0,
-                c.getPropiedadId(), 
-                descripcionPropiedad, 
-                c.getUsuarioId(), 
+                c.getPropiedadId(),
+                descripcionPropiedad,
+                c.getUsuarioId(),
                 nombreUsuario,
-                c.getConcepto(), 
+                c.getConcepto(),
                 c.getDescripcion(),
-                c.getMontoBase(), 
-                c.getMontoMora(), 
+                c.getMontoBase(),
+                c.getMontoMora(),
                 c.getMontoTotal(),
-                c.getFechaGeneracion(), 
-                c.getFechaLimitePago(), 
+                c.getFechaGeneracion(),
+                c.getFechaLimitePago(),
                 c.getEstado());
     }
 }

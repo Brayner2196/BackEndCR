@@ -29,12 +29,26 @@ public class ConfiguracionCuotaService {
             cuotaRepo.findByPropiedadIdAndActivoTrue(req.propiedadId())
                     .ifPresent(c -> { c.setActivo(false); cuotaRepo.save(c); });
         } else if (req.tipoPropiedadId() != null) {
-            cuotaRepo.findByTipoPropiedadIdAndActivoTrue(req.tipoPropiedadId())
-                    .ifPresent(c -> { c.setActivo(false); cuotaRepo.save(c); });
+            if (req.numeroDesde() != null) {
+                // Desactivar cuotas de rango que se solapen
+                cuotaRepo.findByTipoPropiedadIdAndNumeroDesdeIsNotNullAndActivoTrue(req.tipoPropiedadId())
+                        .stream()
+                        .filter(c -> rangosSeSuperponen(
+                                c.getNumeroDesde(), c.getNumeroHasta(),
+                                req.numeroDesde(), req.numeroHasta()))
+                        .forEach(c -> { c.setActivo(false); cuotaRepo.save(c); });
+            } else {
+                // Desactivar cuota general del tipo (sin rango)
+                cuotaRepo.findByTipoPropiedadIdAndNumeroDesdeIsNullAndActivoTrue(req.tipoPropiedadId())
+                        .ifPresent(c -> { c.setActivo(false); cuotaRepo.save(c); });
+            }
         }
+
         ConfiguracionCuota cuota = new ConfiguracionCuota();
         cuota.setTipoPropiedadId(req.tipoPropiedadId());
         cuota.setPropiedadId(req.propiedadId());
+        cuota.setNumeroDesde(req.numeroDesde());
+        cuota.setNumeroHasta(req.numeroHasta());
         cuota.setMonto(req.monto());
         cuota.setPeriodicidad(req.periodicidad());
         cuota.setFechaVigenciaDesde(req.fechaVigenciaDesde());
@@ -45,8 +59,13 @@ public class ConfiguracionCuotaService {
     @Transactional
     public void desactivar(Long id) {
         ConfiguracionCuota cuota = cuotaRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Configuración no encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Configuración no encontrada"));
         cuota.setActivo(false);
         cuotaRepo.save(cuota);
+    }
+
+    private boolean rangosSeSuperponen(int d1, int h1, int d2, int h2) {
+        return d1 <= h2 && d2 <= h1;
     }
 }

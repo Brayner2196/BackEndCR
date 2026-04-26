@@ -8,5 +8,8 @@ import java.util.Optional;
 public interface ConfiguracionCuotaRepository extends JpaRepository<ConfiguracionCuota, Long> {
     List<ConfiguracionCuota> findAllByActivoTrue();
     Optional<ConfiguracionCuota> findByPropiedadIdAndActivoTrue(Long propiedadId);
-    Optional<ConfiguracionCuota> findByTipoPropiedadIdAndActivoTrue(Long tipoPropiedadId);
+    // Sin rango: cuota general del tipo
+    Optional<ConfiguracionCuota> findByTipoPropiedadIdAndNumeroDesdeIsNullAndActivoTrue(Long tipoPropiedadId);
+    // Con rango: cuotas del tipo que tienen rango definido
+    List<ConfiguracionCuota> findByTipoPropiedadIdAndNumeroDesdeIsNotNullAndActivoTrue(Long tipoPropiedadId);
 }

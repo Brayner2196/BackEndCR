@@ -22,6 +22,13 @@ public class ConfiguracionCuota {
     @Column(name = "propiedad_id")
     private Long propiedadId;
 
+    /** Rango de número de propiedad (ambos inclusive). Null = aplica a todo el tipo. */
+    @Column(name = "numero_desde")
+    private Integer numeroDesde;
+
+    @Column(name = "numero_hasta")
+    private Integer numeroHasta;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal monto;
 
@@ -48,6 +55,10 @@ public class ConfiguracionCuota {
     public void setTipoPropiedadId(Long tipoPropiedadId) { this.tipoPropiedadId = tipoPropiedadId; }
     public Long getPropiedadId() { return propiedadId; }
     public void setPropiedadId(Long propiedadId) { this.propiedadId = propiedadId; }
+    public Integer getNumeroDesde() { return numeroDesde; }
+    public void setNumeroDesde(Integer numeroDesde) { this.numeroDesde = numeroDesde; }
+    public Integer getNumeroHasta() { return numeroHasta; }
+    public void setNumeroHasta(Integer numeroHasta) { this.numeroHasta = numeroHasta; }
     public BigDecimal getMonto() { return monto; }
     public void setMonto(BigDecimal monto) { this.monto = monto; }
     public Periodicidad getPeriodicidad() { return periodicidad; }

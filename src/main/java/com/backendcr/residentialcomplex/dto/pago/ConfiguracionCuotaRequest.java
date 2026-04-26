@@ -9,6 +9,8 @@ import java.time.LocalDate;
 public record ConfiguracionCuotaRequest(
         Long tipoPropiedadId,
         Long propiedadId,
+        Integer numeroDesde,
+        Integer numeroHasta,
         @NotNull @DecimalMin("0.01") BigDecimal monto,
         @NotNull Periodicidad periodicidad,
         @NotNull LocalDate fechaVigenciaDesde
