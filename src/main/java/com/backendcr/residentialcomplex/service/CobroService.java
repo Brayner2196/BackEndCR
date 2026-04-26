@@ -15,10 +15,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class CobroService {
+
+    private final TipoPropiedadRepository tipoPropiedadRepository;
 
     private final PeriodoCobroRepository periodoRepo;
     private final CobroRepository cobroRepo;
@@ -182,8 +185,9 @@ public class CobroService {
     }
 
     private CobroResponse toResponse(Cobro c) {
-        String propId = propiedadRepo.findById(c.getPropiedadId())
+        String descripcionPropiedad = propiedadRepo.findById(c.getPropiedadId())
                 .map(Propiedad::getIdentificador).orElse("N/A");
+        
         String nombreUsuario = c.getUsuarioId() != null
                 ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
         PeriodoCobro periodo = periodoRepo.findById(c.getPeriodoId()).orElse(null);
@@ -191,9 +195,17 @@ public class CobroService {
                 c.getId(), c.getPeriodoId(),
                 periodo != null ? periodo.getAnio() : 0,
                 periodo != null ? periodo.getMes() : 0,
-                c.getPropiedadId(), propId, c.getUsuarioId(), nombreUsuario,
-                c.getConcepto(), c.getDescripcion(),
-                c.getMontoBase(), c.getMontoMora(), c.getMontoTotal(),
-                c.getFechaGeneracion(), c.getFechaLimitePago(), c.getEstado());
+                c.getPropiedadId(), 
+                descripcionPropiedad, 
+                c.getUsuarioId(), 
+                nombreUsuario,
+                c.getConcepto(), 
+                c.getDescripcion(),
+                c.getMontoBase(), 
+                c.getMontoMora(), 
+                c.getMontoTotal(),
+                c.getFechaGeneracion(), 
+                c.getFechaLimitePago(), 
+                c.getEstado());
     }
 }
