@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -226,7 +227,12 @@ public class CobroService {
 
     private CobroResponse toResponse(Cobro c) {
         String descripcionPropiedad = propiedadRepo.findById(c.getPropiedadId())
+<<<<<<< Updated upstream
                 .map(Propiedad::getIdentificador).orElse("N/A");
+=======
+                .map(this::construirPathTexto).orElse("N/A");
+        
+>>>>>>> Stashed changes
         String nombreUsuario = c.getUsuarioId() != null
                 ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
         PeriodoCobro periodo = periodoRepo.findById(c.getPeriodoId()).orElse(null);
@@ -246,5 +252,19 @@ public class CobroService {
                 c.getFechaGeneracion(),
                 c.getFechaLimitePago(),
                 c.getEstado());
+    }
+    
+    private String construirPathTexto(Propiedad hoja) {
+        List<String> partes = new ArrayList<>();
+        Propiedad actual = hoja;
+        while (actual != null) {
+            String nombreTipo = tipoPropiedadRepository.findById(actual.getTipoId())
+                    .map(TipoPropiedad::getNombre)
+                    .orElse("?");
+            partes.add(0, nombreTipo + " " + actual.getIdentificador());
+            if (actual.getParentId() == null) break;
+            actual = propiedadRepo.findById(actual.getParentId()).orElse(null);
+        }
+        return String.join(" / ", partes);
     }
 }
