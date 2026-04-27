@@ -194,6 +194,53 @@ public class TenantService {
                     UNIQUE(usuario_id, propiedad_id)
                 )
                 """.formatted(schema, schema));
+
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.pqrs (
+                    id               BIGSERIAL PRIMARY KEY,
+                    tipo             VARCHAR(20) NOT NULL,
+                    asunto           VARCHAR(200) NOT NULL,
+                    descripcion      VARCHAR(2000) NOT NULL,
+                    estado           VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+                    residente_id     BIGINT NOT NULL,
+                    propiedad_id     BIGINT,
+                    respuesta_admin  VARCHAR(2000),
+                    respondido_por   BIGINT,
+                    fecha_respuesta  TIMESTAMP,
+                    creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.zonas_comunes (
+                    id          BIGSERIAL PRIMARY KEY,
+                    nombre      VARCHAR(100) NOT NULL,
+                    descripcion VARCHAR(500),
+                    capacidad   INT NOT NULL DEFAULT 0,
+                    activa      BOOLEAN NOT NULL DEFAULT TRUE,
+                    creado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.reservas (
+                    id               BIGSERIAL PRIMARY KEY,
+                    zona_comun_id    BIGINT NOT NULL REFERENCES %s.zonas_comunes(id),
+                    residente_id     BIGINT NOT NULL,
+                    propiedad_id     BIGINT,
+                    fecha            DATE NOT NULL,
+                    hora_inicio      TIME NOT NULL,
+                    hora_fin         TIME NOT NULL,
+                    estado           VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+                    observaciones    VARCHAR(500),
+                    decidido_por     BIGINT,
+                    motivo_decision  VARCHAR(300),
+                    fecha_decision   TIMESTAMP,
+                    creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
     }
 
     private void insertarTiposPropiedad(String schema, List<TipoPropiedadNodoDto> tipos,
