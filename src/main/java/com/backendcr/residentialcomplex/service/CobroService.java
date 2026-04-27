@@ -227,12 +227,7 @@ public class CobroService {
 
     private CobroResponse toResponse(Cobro c) {
         String descripcionPropiedad = propiedadRepo.findById(c.getPropiedadId())
-<<<<<<< Updated upstream
-                .map(Propiedad::getIdentificador).orElse("N/A");
-=======
                 .map(this::construirPathTexto).orElse("N/A");
-        
->>>>>>> Stashed changes
         String nombreUsuario = c.getUsuarioId() != null
                 ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
         PeriodoCobro periodo = periodoRepo.findById(c.getPeriodoId()).orElse(null);
