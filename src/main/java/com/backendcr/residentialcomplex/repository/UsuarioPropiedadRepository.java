@@ -19,5 +19,6 @@ public interface UsuarioPropiedadRepository extends JpaRepository<UsuarioPropied
 
     void deleteByUsuarioIdAndPropiedadId(Long usuarioId, Long propiedadId);
 
+    Optional<UsuarioPropiedad> findOptionalByPropiedadId(Long propiedadId);
     Optional<UsuarioPropiedad> findByPropiedadIdAndEsPrincipalTrue(Long propiedadId);
 }

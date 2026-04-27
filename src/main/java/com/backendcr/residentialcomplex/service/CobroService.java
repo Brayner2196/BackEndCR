@@ -105,7 +105,7 @@ public class CobroService {
             	throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No se logro encontrar una configuracion de cuota para determinar el valor del cobro para el tipo de propiedad: " + tipoPropiedad);
             }
 
-            Long usuarioId = usuarioPropiedadRepo.findByPropiedadIdAndEsPrincipalTrue(prop.getId())
+            Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(prop.getId())
                     .map(UsuarioPropiedad::getUsuarioId).orElse(null);
 
             Cobro cobro = new Cobro();
