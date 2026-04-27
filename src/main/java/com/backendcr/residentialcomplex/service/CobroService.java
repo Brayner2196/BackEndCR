@@ -95,10 +95,14 @@ public class CobroService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El período no está abierto");
         }
 
-        for (Propiedad prop : propiedadRepo.findAll()) {
+        for (Propiedad prop : propiedadRepo.findByTipoIdIsFacturable() ) {
             if (cobroRepo.existsByPeriodoIdAndPropiedadId(periodo.getId(), prop.getId())) continue;
             BigDecimal monto = resolverMonto(prop);
-            if (monto == null) continue;
+            if (monto == null) {
+            	Optional<TipoPropiedad> tipoProp = tipoPropiedadRepository.findById(prop.getTipoId());
+            	String tipoPropiedad =  tipoProp.isPresent() ? tipoProp.get().getNombre() : "";
+            	throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No se logro encontrar una configuracion de cuota para determinar el valor del cobro para el tipo de propiedad: " + tipoPropiedad);
+            }
 
             Long usuarioId = usuarioPropiedadRepo.findByPropiedadIdAndEsPrincipalTrue(prop.getId())
                     .map(UsuarioPropiedad::getUsuarioId).orElse(null);

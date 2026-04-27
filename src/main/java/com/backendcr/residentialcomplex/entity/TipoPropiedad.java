@@ -18,6 +18,9 @@ public class TipoPropiedad {
 
     @Column(name = "parent_id")
     private Long parentId;
+    
+    @Column(name="es_facturable", nullable = false)
+    private boolean esFacturable = true;
 
     @Column(nullable = false)
     private int orden = 0;
@@ -42,4 +45,8 @@ public class TipoPropiedad {
 
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
+    
+	public boolean isEsFacturable() { return esFacturable; }
+	public void setEsFacturable(boolean esFacturable) {	this.esFacturable = esFacturable; }
+    
 }
