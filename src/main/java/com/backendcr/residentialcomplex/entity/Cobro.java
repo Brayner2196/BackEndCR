@@ -42,6 +42,9 @@ public class Cobro {
     @Column(name = "monto_total", precision = 12, scale = 2)
     private BigDecimal montoTotal;
 
+    @Column(name = "monto_pagado", precision = 12, scale = 2)
+    private BigDecimal montoPagado = BigDecimal.ZERO;
+
     @Column(name = "fecha_generacion", nullable = false)
     private LocalDate fechaGeneracion;
 
@@ -84,6 +87,9 @@ public class Cobro {
     public void setMontoMora(BigDecimal montoMora) { this.montoMora = montoMora; }
     public BigDecimal getMontoTotal() { return montoTotal; }
     public void setMontoTotal(BigDecimal montoTotal) { this.montoTotal = montoTotal; }
+    public BigDecimal getMontoPagado() { return montoPagado != null ? montoPagado : BigDecimal.ZERO; }
+    public void setMontoPagado(BigDecimal montoPagado) { this.montoPagado = montoPagado; }
+    public BigDecimal getMontoPendiente() { return getMontoTotal().subtract(getMontoPagado()); }
     public LocalDate getFechaGeneracion() { return fechaGeneracion; }
     public void setFechaGeneracion(LocalDate d) { this.fechaGeneracion = d; }
     public LocalDate getFechaLimitePago() { return fechaLimitePago; }

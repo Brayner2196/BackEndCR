@@ -19,6 +19,8 @@ public record CobroResponse(
         BigDecimal montoBase,
         BigDecimal montoMora,
         BigDecimal montoTotal,
+        BigDecimal montoPagado,
+        BigDecimal montoPendiente,
         LocalDate fechaGeneracion,
         LocalDate fechaLimitePago,
         EstadoCobro estado

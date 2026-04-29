@@ -5,13 +5,16 @@ import com.backendcr.residentialcomplex.dto.pago.*;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
+import com.backendcr.residentialcomplex.service.AbonoService;
 import com.backendcr.residentialcomplex.service.CobroService;
 import com.backendcr.residentialcomplex.service.PagoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -22,6 +25,7 @@ public class ResidentePagosController {
 
     private final CobroService cobroService;
     private final PagoService pagoService;
+    private final AbonoService abonoService;
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
 
@@ -54,6 +58,32 @@ public class ResidentePagosController {
     @GetMapping("/pagos")
     public List<PagoResponse> misPagos(@AuthenticationPrincipal String email) {
         return pagoService.listarPorUsuario(resolverUsuarioId(email));
+    }
+
+    // ─── Abonos ───────────────────────────────────────────────────
+
+    @PostMapping("/abonos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AbonoResponse registrarAbono(@Valid @RequestBody AbonoRequest req,
+                                        @AuthenticationPrincipal String email) {
+        return abonoService.registrar(req, resolverUsuarioId(email));
+    }
+
+    @GetMapping("/abonos")
+    public List<AbonoResponse> misAbonos(@AuthenticationPrincipal String email) {
+        return abonoService.listarPorUsuario(resolverUsuarioId(email));
+    }
+
+    @GetMapping("/abonos/simular")
+    public SimularAbonoResponse simularAbono(
+            @RequestParam Long propiedadId,
+            @RequestParam BigDecimal monto) {
+        return abonoService.simular(propiedadId, monto);
+    }
+
+    @GetMapping("/saldo-favor")
+    public SaldoFavorResponse saldoFavor(@RequestParam Long propiedadId) {
+        return abonoService.consultarSaldoFavor(propiedadId);
     }
 
     private Long resolverUsuarioId(String email) {

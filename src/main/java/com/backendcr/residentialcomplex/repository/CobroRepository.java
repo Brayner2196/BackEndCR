@@ -13,4 +13,9 @@ public interface CobroRepository extends JpaRepository<Cobro, Long> {
     List<Cobro> findAllByEstado(EstadoCobro estado);
     boolean existsByPeriodoIdAndPropiedadId(Long periodoId, Long propiedadId);
     List<Cobro> findAllByEstadoAndFechaLimitePagoBefore(EstadoCobro estado, LocalDate fecha);
+    List<Cobro> findAllByEstadoInAndFechaLimitePagoBefore(List<EstadoCobro> estados, LocalDate fecha);
+
+    /** Cobros pendientes de pago para una propiedad, ordenados de más antiguo a más nuevo (FIFO). */
+    List<Cobro> findAllByPropiedadIdAndEstadoInOrderByFechaGeneracionAsc(
+            Long propiedadId, List<EstadoCobro> estados);
 }

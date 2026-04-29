@@ -6,6 +6,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
+import com.backendcr.residentialcomplex.service.AbonoService;
 import com.backendcr.residentialcomplex.service.CobroService;
 import com.backendcr.residentialcomplex.service.ConfiguracionCuotaService;
 import com.backendcr.residentialcomplex.service.PagoService;
@@ -25,6 +26,7 @@ public class AdminPagosController {
 
     private final CobroService cobroService;
     private final PagoService pagoService;
+    private final AbonoService abonoService;
     private final ConfiguracionCuotaService cuotaService;
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
@@ -110,6 +112,28 @@ public class AdminPagosController {
                                  @Valid @RequestBody RechazarPagoRequest req,
                                  @AuthenticationPrincipal String email) {
         return pagoService.rechazar(id, req, resolverAdminId(email));
+    }
+
+    // ─── Abonos ───────────────────────────────────────────────────
+
+    @GetMapping("/abonos")
+    public List<AbonoResponse> listarAbonos(
+            @RequestParam(defaultValue = "PENDIENTE_VERIFICACION") EstadoPago estado) {
+        return abonoService.listarPorEstado(estado);
+    }
+
+    @PutMapping("/abonos/{id}/verificar")
+    public AbonoResponse verificarAbono(@PathVariable Long id,
+                                        @RequestBody VerificarPagoRequest req,
+                                        @AuthenticationPrincipal String email) {
+        return abonoService.verificar(id, req, resolverAdminId(email));
+    }
+
+    @PutMapping("/abonos/{id}/rechazar")
+    public AbonoResponse rechazarAbono(@PathVariable Long id,
+                                       @Valid @RequestBody RechazarPagoRequest req,
+                                       @AuthenticationPrincipal String email) {
+        return abonoService.rechazar(id, req, resolverAdminId(email));
     }
 
     private Long resolverAdminId(String email) {

@@ -139,8 +139,8 @@ public class CobroService {
     @Scheduled(cron = "0 0 1 * * *")
     @Transactional
     public void calcularMoras() {
-        List<Cobro> vencidos = cobroRepo.findAllByEstadoAndFechaLimitePagoBefore(
-                EstadoCobro.PENDIENTE, LocalDate.now());
+        List<Cobro> vencidos = cobroRepo.findAllByEstadoInAndFechaLimitePagoBefore(
+                List.of(EstadoCobro.PENDIENTE, EstadoCobro.PARCIAL), LocalDate.now());
         ConfiguracionMora config = moraRepo.findFirstByActivoTrueOrderByFechaVigenciaDesc().orElse(null);
 
         for (Cobro cobro : vencidos) {
@@ -165,18 +165,23 @@ public class CobroService {
 
     public EstadoCuentaResponse estadoCuenta(Long usuarioId) {
         List<Cobro> activos = cobroRepo.findAllByUsuarioId(usuarioId).stream()
-                .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.VENCIDO)
+                .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
+                          || c.getEstado() == EstadoCobro.PARCIAL
+                          || c.getEstado() == EstadoCobro.VENCIDO)
                 .toList();
 
-        BigDecimal totalPendiente = activos.stream().filter(c -> c.getEstado() == EstadoCobro.PENDIENTE)
-                .map(Cobro::getMontoTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalVencido = activos.stream().filter(c -> c.getEstado() == EstadoCobro.VENCIDO)
-                .map(Cobro::getMontoTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPendiente = activos.stream()
+                .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.PARCIAL)
+                .map(Cobro::getMontoPendiente).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalVencido = activos.stream()
+                .filter(c -> c.getEstado() == EstadoCobro.VENCIDO)
+                .map(Cobro::getMontoPendiente).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new EstadoCuentaResponse(
                 totalPendiente, totalVencido,
                 (int) activos.stream().filter(c -> c.getEstado() == EstadoCobro.VENCIDO).count(),
-                (int) activos.stream().filter(c -> c.getEstado() == EstadoCobro.PENDIENTE).count(),
+                (int) activos.stream().filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
+                                                || c.getEstado() == EstadoCobro.PARCIAL).count(),
                 null,
                 activos.stream().map(this::toResponse).toList());
     }
@@ -244,6 +249,8 @@ public class CobroService {
                 c.getMontoBase(),
                 c.getMontoMora(),
                 c.getMontoTotal(),
+                c.getMontoPagado(),
+                c.getMontoPendiente(),
                 c.getFechaGeneracion(),
                 c.getFechaLimitePago(),
                 c.getEstado());
