@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.YearMonth;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -201,7 +203,7 @@ public class DashboardService {
 
     @SuppressWarnings("unused")
     private static String mesNombreLargo(int mes) {
-        return java.time.Month.of(mes)
-                .getDisplayName(java.time.format.TextStyle.FULL, new Locale("es"));
+    	return Month.of(mes)
+                .getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es"));
     }
 }

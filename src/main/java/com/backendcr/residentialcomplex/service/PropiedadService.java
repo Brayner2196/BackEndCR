@@ -190,7 +190,7 @@ public class PropiedadService {
             parentPropiedadId = actual.getId();
         }
 
-        return actual.getId();
+        return actual != null?actual.getId():null;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
