@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -56,6 +57,7 @@ public class ResidenteReservasController {
         return identidadRepo.findByEmailAndTenantId(email, tenantId)
                 .flatMap(i -> usuarioRepo.findByIdentidadId(i.getId()))
                 .map(u -> u.getId())
-                .orElseThrow();
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Usuario no encontrado para email=" + email + " tenant=" + tenantId));
     }
 }
