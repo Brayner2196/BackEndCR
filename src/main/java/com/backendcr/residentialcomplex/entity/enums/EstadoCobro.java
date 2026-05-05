@@ -1,5 +1,5 @@
 package com.backendcr.residentialcomplex.entity.enums;
 
 public enum EstadoCobro {
-    PENDIENTE, PARCIAL, PAGADO, VENCIDO, EXONERADO
+    PENDIENTE,EN_VERIFICACION, PARCIAL, PAGADO, VENCIDO, EXONERADO
 }
