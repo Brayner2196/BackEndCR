@@ -32,6 +32,8 @@ public class CobroService {
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
     private final PropiedadRepository propiedadRepo;
     private final UsuarioRepository usuarioRepo;
+    private final PagoRepository pagoRepo;
+    private final MovimientoAbonoRepository movimientoAbonoRepo;
 
     // ─── Períodos ──────────────────────────────────────────────
 
@@ -236,6 +238,8 @@ public class CobroService {
         String nombreUsuario = c.getUsuarioId() != null
                 ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
         PeriodoCobro periodo = periodoRepo.findById(c.getPeriodoId()).orElse(null);
+        boolean tieneMovimientos = pagoRepo.existsByCobroId(c.getId())
+                || movimientoAbonoRepo.existsByCobroId(c.getId());
         return new CobroResponse(
                 c.getId(), c.getPeriodoId(),
                 periodo != null ? periodo.getAnio() : 0,
@@ -253,7 +257,8 @@ public class CobroService {
                 c.getMontoPendiente(),
                 c.getFechaGeneracion(),
                 c.getFechaLimitePago(),
-                c.getEstado());
+                c.getEstado(),
+                tieneMovimientos);
     }
     
     private String construirPathTexto(Propiedad hoja) {

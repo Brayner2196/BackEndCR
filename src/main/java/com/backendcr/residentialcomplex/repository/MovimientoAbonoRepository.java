@@ -7,4 +7,5 @@ import java.util.List;
 public interface MovimientoAbonoRepository extends JpaRepository<MovimientoAbono, Long> {
     List<MovimientoAbono> findAllByAbonoId(Long abonoId);
     List<MovimientoAbono> findAllByCobroId(Long cobroId);
+    boolean existsByCobroId(Long cobroId);
 }

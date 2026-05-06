@@ -23,5 +23,6 @@ public record CobroResponse(
         BigDecimal montoPendiente,
         LocalDate fechaGeneracion,
         LocalDate fechaLimitePago,
-        EstadoCobro estado
+        EstadoCobro estado,
+        boolean tieneMovimientos
 ) {}

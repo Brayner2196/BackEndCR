@@ -5,6 +5,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.entity.enums.MetodoPago;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public record AbonoResponse(
@@ -13,7 +14,7 @@ public record AbonoResponse(
         Long usuarioId,
         String usuarioNombre,
         BigDecimal montoTotal,
-        LocalDate fechaPago,
+        String fechaPago,
         MetodoPago metodoPago,
         String referencia,
         String urlComprobante,
@@ -24,14 +25,24 @@ public record AbonoResponse(
         String creadoEn,
         List<MovimientoAbonoDto> movimientos
 ) {
+	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     public static AbonoResponse from(Abono a, String usuarioNombre, List<MovimientoAbonoDto> movimientos) {
         return new AbonoResponse(
-                a.getId(), a.getPropiedadId(), a.getUsuarioId(), usuarioNombre,
-                a.getMontoTotal(), a.getFechaPago(), a.getMetodoPago(),
-                a.getReferencia(), a.getUrlComprobante(), a.getNotas(),
-                a.getEstado(), a.getMotivoRechazo(),
-                a.getFechaVerificacion() != null ? a.getFechaVerificacion().toString() : null,
-                a.getCreadoEn().toString(),
+                a.getId(),
+                a.getPropiedadId(),
+                a.getUsuarioId(),
+                usuarioNombre,
+                a.getMontoTotal(),
+                a.getFechaPago() != null ? a.getFechaPago().format(FORMATTER) : null,
+                a.getMetodoPago(),
+                a.getReferencia(),
+                a.getUrlComprobante(),
+                a.getNotas(),
+                a.getEstado(),
+                a.getMotivoRechazo(),
+                a.getFechaVerificacion() != null ? a.getFechaVerificacion().format(FORMATTER) : null,
+                a.getCreadoEn() != null ? a.getCreadoEn().format(FORMATTER) : null,
                 movimientos
         );
     }

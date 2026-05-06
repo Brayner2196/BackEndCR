@@ -11,4 +11,5 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     List<Pago> findAllByUsuarioId(Long usuarioId);
     List<Pago> findAllByCobroId(Long cobroId);
     Optional<Pago> findByCobroIdAndEstado(Long cobroId, EstadoPago estado);
+    boolean existsByCobroId(Long cobroId);
 }

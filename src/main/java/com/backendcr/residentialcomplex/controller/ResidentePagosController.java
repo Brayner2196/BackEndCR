@@ -2,6 +2,7 @@ package com.backendcr.residentialcomplex.controller;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.pago.*;
+import com.backendcr.residentialcomplex.dto.pago.MovimientoCobroDto;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
@@ -59,6 +60,15 @@ public class ResidentePagosController {
     @GetMapping("/pagos")
     public List<PagoResponse> misPagos(@AuthenticationPrincipal String email) {
         return pagoService.listarPorUsuario(resolverUsuarioId(email));
+    }
+
+    /**
+     * Retorna todos los movimientos de un cobro específico:
+     * pagos directos + movimientos de abonos distribuidos a ese cobro.
+     */
+    @GetMapping("/cobros/{id}/movimientos")
+    public List<MovimientoCobroDto> movimientosCobro(@PathVariable Long id) {
+        return pagoService.getMovimientosCobro(id);
     }
 
     // ─── Abonos ───────────────────────────────────────────────────
