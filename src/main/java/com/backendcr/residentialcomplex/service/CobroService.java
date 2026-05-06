@@ -14,11 +14,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -74,19 +73,19 @@ public class CobroService {
     // ─── Cobros ──────────────────────────────────────────────
 
     public List<CobroResponse> listarPorPeriodo(Long periodoId) {
-        return cobroRepo.findAllByPeriodoId(periodoId).stream().map(this::toResponse).toList();
+        return toResponseList(cobroRepo.findAllByPeriodoId(periodoId));
     }
 
     public List<CobroResponse> listarPorEstado(EstadoCobro estado) {
-        return cobroRepo.findAllByEstado(estado).stream().map(this::toResponse).toList();
+        return toResponseList(cobroRepo.findAllByEstado(estado));
     }
 
     public List<CobroResponse> listarPorUsuario(Long usuarioId) {
-        return cobroRepo.findAllByUsuarioId(usuarioId).stream().map(this::toResponse).toList();
+        return toResponseList(cobroRepo.findAllByUsuarioId(usuarioId));
     }
 
     public List<CobroResponse> listarPorUsuarioYEstado(Long usuarioId, EstadoCobro estado) {
-        return cobroRepo.findAllByUsuarioIdAndEstado(usuarioId, estado).stream().map(this::toResponse).toList();
+        return toResponseList(cobroRepo.findAllByUsuarioIdAndEstado(usuarioId, estado));
     }
 
     @Transactional
@@ -185,7 +184,7 @@ public class CobroService {
                 (int) activos.stream().filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
                                                 || c.getEstado() == EstadoCobro.PARCIAL).count(),
                 null,
-                activos.stream().map(this::toResponse).toList());
+                toResponseList(activos));
     }
 
     // ─── Helpers ──────────────────────────────────────────────
@@ -230,6 +229,93 @@ public class CobroService {
         if (identificador == null) return null;
         Matcher m = TRAILING_NUMBER.matcher(identificador.trim());
         return m.find() ? Integer.parseInt(m.group(1)) : null;
+    }
+
+    /**
+     * Convierte una lista de Cobro en CobroResponse usando batch loading.
+     * Reduce de 5N+1 queries individuales a ~8 queries totales.
+     */
+    @Transactional(readOnly = true)
+    private List<CobroResponse> toResponseList(List<Cobro> cobros) {
+        if (cobros.isEmpty()) return List.of();
+
+        // ── 1. Recolectar IDs únicos ─────────────────────────────────────
+        Set<Long> cobroIds    = cobros.stream().map(Cobro::getId).collect(Collectors.toSet());
+        Set<Long> propIds     = cobros.stream().map(Cobro::getPropiedadId).collect(Collectors.toSet());
+        Set<Long> periodoIds  = cobros.stream().map(Cobro::getPeriodoId).collect(Collectors.toSet());
+        Set<Long> usuarioIds  = cobros.stream().map(Cobro::getUsuarioId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+
+        // ── 2. Cargar jerarquía de propiedades en múltiples pasadas ───────
+        //    Cada pasada fetchea un nivel de padres no cargados aún.
+        Map<Long, Propiedad> propMap = new HashMap<>();
+        List<Long> toFetch = new ArrayList<>(propIds);
+        while (!toFetch.isEmpty()) {
+            List<Propiedad> fetched = propiedadRepo.findAllById(toFetch);
+            toFetch = new ArrayList<>();
+            for (Propiedad p : fetched) {
+                propMap.put(p.getId(), p);
+                if (p.getParentId() != null && !propMap.containsKey(p.getParentId())) {
+                    toFetch.add(p.getParentId());
+                }
+            }
+        }
+
+        // ── 3. Cargar tipos de propiedad usados en la jerarquía ───────────
+        Set<Long> tipoIds = propMap.values().stream().map(Propiedad::getTipoId).collect(Collectors.toSet());
+        Map<Long, TipoPropiedad> tipoMap = tipoPropiedadRepository.findAllById(tipoIds)
+                .stream().collect(Collectors.toMap(TipoPropiedad::getId, t -> t));
+
+        // ── 4. Batch fetch usuarios y períodos ────────────────────────────
+        Map<Long, Usuario> usuarioMap = usuarioRepo.findAllById(usuarioIds)
+                .stream().collect(Collectors.toMap(Usuario::getId, u -> u));
+        Map<Long, PeriodoCobro> periodoMap = periodoRepo.findAllById(periodoIds)
+                .stream().collect(Collectors.toMap(PeriodoCobro::getId, p -> p));
+
+        // ── 5. Batch check tieneMovimientos (2 queries IN en lugar de 2N) ─
+        Set<Long> conPagos      = pagoRepo.findCobroIdsWithPagos(cobroIds);
+        Set<Long> conMovAbonos  = movimientoAbonoRepo.findCobroIdsWithMovimientos(cobroIds);
+
+        // ── 6. Mapear sin ninguna query adicional ─────────────────────────
+        return cobros.stream().map(c -> {
+            Propiedad prop = propMap.get(c.getPropiedadId());
+            String descripcion = prop != null
+                    ? construirPathTextoDesdeMap(prop, propMap, tipoMap) : "N/A";
+            String nombreUsuario = c.getUsuarioId() != null
+                    ? usuarioMap.getOrDefault(c.getUsuarioId(), null) != null
+                        ? usuarioMap.get(c.getUsuarioId()).getNombre() : "N/A"
+                    : "N/A";
+            PeriodoCobro periodo = periodoMap.get(c.getPeriodoId());
+            boolean tieneMovimientos = conPagos.contains(c.getId()) || conMovAbonos.contains(c.getId());
+
+            return new CobroResponse(
+                    c.getId(), c.getPeriodoId(),
+                    periodo != null ? periodo.getAnio() : 0,
+                    periodo != null ? periodo.getMes() : 0,
+                    c.getPropiedadId(), descripcion,
+                    c.getUsuarioId(), nombreUsuario,
+                    c.getConcepto(), c.getDescripcion(),
+                    c.getMontoBase(), c.getMontoMora(), c.getMontoTotal(),
+                    c.getMontoPagado(), c.getMontoPendiente(),
+                    c.getFechaGeneracion(), c.getFechaLimitePago(),
+                    c.getEstado(), tieneMovimientos);
+        }).toList();
+    }
+
+    /** Construye el path usando mapas precargados — sin queries adicionales. */
+    private String construirPathTextoDesdeMap(Propiedad hoja,
+                                               Map<Long, Propiedad> propMap,
+                                               Map<Long, TipoPropiedad> tipoMap) {
+        List<String> partes = new ArrayList<>();
+        Propiedad actual = hoja;
+        while (actual != null) {
+            TipoPropiedad tipo = tipoMap.get(actual.getTipoId());
+            String nombreTipo = tipo != null ? tipo.getNombre() : "?";
+            partes.add(0, nombreTipo + " " + actual.getIdentificador());
+            if (actual.getParentId() == null) break;
+            actual = propMap.get(actual.getParentId());
+        }
+        return String.join(" / ", partes);
     }
 
     private CobroResponse toResponse(Cobro c) {
