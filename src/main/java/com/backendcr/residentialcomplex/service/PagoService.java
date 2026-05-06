@@ -129,9 +129,32 @@ public class PagoService {
                 saldoFavorRepo.save(sf);
             }
         } else {
-            // Pago parcial → PARCIAL
+            // Pago parcial → aplicar pago al cobro
             cobro.setMontoPagado(cobro.getMontoPagado().add(montoPago));
             cobro.setEstado(EstadoCobro.PARCIAL);
+
+            // Intentar cerrar el cobro con saldo a favor existente de la propiedad.
+            // Esto cubre el caso donde el residente pagó (pendiente - saldoFavor)
+            // y el saldo a favor cubre el resto.
+            BigDecimal pendienteRestante = cobro.getMontoTotal().subtract(cobro.getMontoPagado());
+            if (pendienteRestante.compareTo(BigDecimal.ZERO) > 0) {
+                saldoFavorRepo.findByPropiedadId(cobro.getPropiedadId()).ifPresent(sf -> {
+                    if (sf.getSaldo().compareTo(BigDecimal.ZERO) > 0) {
+                        if (sf.getSaldo().compareTo(pendienteRestante) >= 0) {
+                            // Saldo a favor cubre el resto → PAGADO
+                            sf.setSaldo(sf.getSaldo().subtract(pendienteRestante));
+                            cobro.setMontoPagado(cobro.getMontoTotal());
+                            cobro.setEstado(EstadoCobro.PAGADO);
+                        } else {
+                            // Saldo a favor reduce parcialmente el pendiente
+                            cobro.setMontoPagado(cobro.getMontoPagado().add(sf.getSaldo()));
+                            sf.setSaldo(BigDecimal.ZERO);
+                            // cobro sigue PARCIAL pero con menos pendiente
+                        }
+                        saldoFavorRepo.save(sf);
+                    }
+                });
+            }
         }
 
         cobroRepo.save(cobro);
