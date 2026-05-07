@@ -19,4 +19,8 @@ public interface PropiedadRepository extends JpaRepository<Propiedad, Long> {
     
     @Query("Select p from Propiedad p join TipoPropiedad t on p.tipoId = t.id where t.esFacturable=true")
     List<Propiedad> findByTipoIdIsFacturable();
+    
+    @Query("Select COUNT(p) from Propiedad p join TipoPropiedad t on p.tipoId = t.id where t.esFacturable=true")
+    Integer countPropiedadesIsFacturable();
+    
 }

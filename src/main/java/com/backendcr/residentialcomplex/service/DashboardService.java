@@ -115,7 +115,7 @@ public class DashboardService {
     }
 
     public EstadoUnidadesResponse estadoUnidades() {
-        long total = propiedadRepo.count();
+        long total = propiedadRepo.countPropiedadesIsFacturable();
         LocalDate hoy = LocalDate.now();
         LocalDate proximaSemana = hoy.plusDays(7);
         java.util.Set<Long> mora = new java.util.HashSet<>();
