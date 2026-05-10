@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.chrono.ChronoLocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -287,6 +288,11 @@ public class CobroService {
                     : "N/A";
             PeriodoCobro periodo = periodoMap.get(c.getPeriodoId());
             boolean tieneMovimientos = conPagos.contains(c.getId()) || conMovAbonos.contains(c.getId());
+            EstadoCobro estadoCobro;
+			if (c.getEstado() != null && (c.getEstado().equals(EstadoCobro.PENDIENTE) || c.getEstado().equals(EstadoCobro.PARCIAL)  && c.getFechaLimitePago().isAfter(LocalDate.now())))
+				estadoCobro = EstadoCobro.VENCIDO;
+			else
+				estadoCobro = c.getEstado();
 
             return new CobroResponse(
                     c.getId(), c.getPeriodoId(),
@@ -298,7 +304,7 @@ public class CobroService {
                     c.getMontoBase(), c.getMontoMora(), c.getMontoTotal(),
                     c.getMontoPagado(), c.getMontoPendiente(),
                     c.getFechaGeneracion(), c.getFechaLimitePago(),
-                    c.getEstado(), tieneMovimientos);
+                    estadoCobro, tieneMovimientos);
         }).toList();
     }
 
