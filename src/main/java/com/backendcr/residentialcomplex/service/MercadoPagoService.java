@@ -37,20 +37,23 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MercadoPagoService {
 
-    @Value("${mercadopago.access-token}")
+    @Value("${mercadopago.access-token:MISSING_TOKEN}")
     private String accessToken;
 
-    @Value("${mercadopago.webhook-url}")
+    @Value("${mercadopago.webhook-url:https://backendcr-ob40.onrender.com}")
     private String webhookUrl;
 
-    @Value("${mercadopago.success-url}")
+    @Value("${mercadopago.success-url:conjuntosapp://pago/exito}")
     private String successUrl;
 
-    @Value("${mercadopago.failure-url}")
+    @Value("${mercadopago.failure-url:conjuntosapp://pago/fallo}")
     private String failureUrl;
 
-    @Value("${mercadopago.pending-url}")
+    @Value("${mercadopago.pending-url:conjuntosapp://pago/pendiente}")
     private String pendingUrl;
+
+    @Value("${mercadopago.sandbox:true}")
+    private boolean sandbox;
 
     private final CobroRepository cobroRepo;
     private final PagoRepository pagoRepo;
@@ -80,10 +83,20 @@ public class MercadoPagoService {
                     "Este cobro ya está " + cobro.getEstado());
         }
 
-        if (pagoRepo.findByCobroIdAndEstado(cobroId, EstadoPago.PENDIENTE_VERIFICACION).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Ya existe un pago pendiente de verificación para este cobro");
-        }
+        // Si hay un pago PENDIENTE_VERIFICACION de MP, puede ser un checkout abandonado.
+        // Lo eliminamos para permitir un nuevo intento. Si el usuario SÍ pagó, el webhook
+        // llegará igualmente y lo verificará automáticamente.
+        // Si es un pago manual (comprobante), lo respetamos y bloqueamos.
+        pagoRepo.findByCobroIdAndEstado(cobroId, EstadoPago.PENDIENTE_VERIFICACION)
+                .ifPresent(pagoExistente -> {
+                    if (pagoExistente.getMetodoPago() == MetodoPago.MERCADO_PAGO) {
+                        log.info("Eliminando pago MP abandonado {} para cobro {}", pagoExistente.getId(), cobroId);
+                        pagoRepo.delete(pagoExistente);
+                    } else {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Ya existe un comprobante de pago pendiente de verificación para este cobro");
+                    }
+                });
 
         BigDecimal monto = cobro.getMontoPendiente();
         String periodoDesc = periodoRepo.findById(cobro.getPeriodoId())
@@ -121,7 +134,7 @@ public class MercadoPagoService {
             log.info("Preferencia MP creada: {} para cobro {} tenant {}", preference.getId(), cobroId, tenantId);
 
             // En sandbox usa sandbox_init_point; en producción usa init_point
-            return preference.getSandboxInitPoint();
+            return sandbox ? preference.getSandboxInitPoint() : preference.getInitPoint();
 
         } catch (MPException | MPApiException e) {
             log.error("Error creando preferencia MP: {}", e.getMessage());
