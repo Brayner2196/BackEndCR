@@ -15,7 +15,8 @@ public class TenantFilter extends OncePerRequestFilter {
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/auth") || path.startsWith("/api/tenants");  // saltar filtro en rutas públicas
+        // Webhook de MP llega sin X-Tenant-ID (el tenant se extrae del external_reference internamente)
+        return path.startsWith("/auth") || path.startsWith("/api/tenants") || path.equals("/api/mp/webhook");
     }
 
 	@Override

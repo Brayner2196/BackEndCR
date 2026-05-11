@@ -161,6 +161,18 @@ public class PagoService {
         return toResponse(pago);
     }
 
+    // ─── Auto-verificación (MercadoPago webhook) ───────────────────
+
+    /**
+     * Verifica un pago de forma automática sin requerir un adminId.
+     * Solo debe llamarse desde el webhook de MercadoPago tras confirmar que el pago fue aprobado.
+     */
+    @Transactional
+    public void autoVerificar(Long pagoId) {
+        VerificarPagoRequest req = new VerificarPagoRequest("Verificado automáticamente vía MercadoPago");
+        verificar(pagoId, req, null);
+    }
+
     // ─── Rechazo (admin) ───────────────────────────────────────────
 
     @Transactional
