@@ -288,11 +288,15 @@ public class CobroService {
                     : "N/A";
             PeriodoCobro periodo = periodoMap.get(c.getPeriodoId());
             boolean tieneMovimientos = conPagos.contains(c.getId()) || conMovAbonos.contains(c.getId());
-            EstadoCobro estadoCobro;
-			if (c.getEstado() != null && (c.getEstado().equals(EstadoCobro.PENDIENTE) || c.getEstado().equals(EstadoCobro.PARCIAL)  && c.getFechaLimitePago().isAfter(LocalDate.now())))
+            EstadoCobro estadoCobro = c.getEstado();
+			if (
+					c.getEstado() != null && 
+					(
+							c.getEstado().equals(EstadoCobro.PENDIENTE) || 
+							c.getEstado().equals(EstadoCobro.PARCIAL)
+					)  && 
+					c.getFechaLimitePago().isBefore(LocalDate.now()))
 				estadoCobro = EstadoCobro.VENCIDO;
-			else
-				estadoCobro = c.getEstado();
 
             return new CobroResponse(
                     c.getId(), c.getPeriodoId(),
