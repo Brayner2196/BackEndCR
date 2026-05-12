@@ -52,7 +52,7 @@ public class MercadoPagoService {
     @Value("${mercadopago.pending-url:conjuntosapp://pago/pendiente}")
     private String pendingUrl;
 
-    @Value("${mercadopago.sandbox:true}")
+    @Value("${mercadopago.sandbox}")
     private boolean sandbox;
 
     private final CobroRepository cobroRepo;
