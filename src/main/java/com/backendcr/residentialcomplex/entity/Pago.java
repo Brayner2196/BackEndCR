@@ -30,7 +30,7 @@ public class Pago {
     private LocalDate fechaPago;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "metodo_pago", nullable = false, length = 20)
+    @Column(name = "metodo_pago", nullable = false, columnDefinition = "varchar(20)")
     private MetodoPago metodoPago;
 
     @Column(length = 100)
