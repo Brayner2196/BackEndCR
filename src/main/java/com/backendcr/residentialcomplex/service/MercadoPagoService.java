@@ -4,6 +4,7 @@ import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.entity.Cobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
+import com.backendcr.residentialcomplex.entity.enums.MetodoPago;
 import com.backendcr.residentialcomplex.repository.CobroRepository;
 import com.backendcr.residentialcomplex.repository.PagoRepository;
 import com.backendcr.residentialcomplex.repository.PeriodoCobroRepository;
@@ -98,7 +99,7 @@ public class MercadoPagoService {
         String periodoDesc = periodoRepo.findById(cobro.getPeriodoId())
                 .map(p -> p.getMes() + "/" + p.getAnio())
                 .orElse("Período " + cobro.getPeriodoId());
-        String titulo = "Cuota administraciónes - " + cobro.getPropiedadId() + " - " + periodoDesc;
+        String titulo = "Cuota(s) administracion(es) - " + cobro.getPropiedadId() + " - " + periodoDesc;
 
         try {
             PreferenceItemRequest item = PreferenceItemRequest.builder()
