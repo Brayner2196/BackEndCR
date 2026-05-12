@@ -102,7 +102,7 @@ public class MercadoPagoService {
         String periodoDesc = periodoRepo.findById(cobro.getPeriodoId())
                 .map(p -> p.getMes() + "/" + p.getAnio())
                 .orElse("Período " + cobro.getPeriodoId());
-        String titulo = "Cuota administración - " + cobro.getPropiedadId() + " - " + periodoDesc;
+        String titulo = "Cuota administraciónes - " + cobro.getPropiedadId() + " - " + periodoDesc;
 
         try {
             PreferenceItemRequest item = PreferenceItemRequest.builder()
