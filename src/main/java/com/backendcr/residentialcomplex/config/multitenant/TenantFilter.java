@@ -16,7 +16,11 @@ public class TenantFilter extends OncePerRequestFilter {
 	protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         // Webhook de MP llega sin X-Tenant-ID (el tenant se extrae del external_reference internamente)
-        return path.startsWith("/auth") || path.startsWith("/api/tenants") || path.equals("/api/mp/webhook");
+        return path.startsWith("/auth")
+                || path.startsWith("/api/tenants")
+                || path.equals("/api/mp/webhook")
+                || path.startsWith("/api/mp/confirmar/")
+                || path.startsWith("/api/mp/pago-");
     }
 
 	@Override
