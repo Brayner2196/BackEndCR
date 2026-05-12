@@ -81,6 +81,20 @@ public class MercadoPagoController {
         return ResponseEntity.ok().build();
     }
 
+    // ─── Confirmación desde la app (complemento al webhook) ──────────────────
+
+    /**
+     * La app Flutter llama este endpoint al interceptar la back_url de éxito/pendiente.
+     * Reutiliza el mismo procesarWebhook para registrar el pago.
+     * Es idempotente: si el webhook ya lo procesó, lo ignora automáticamente.
+     */
+    @PostMapping("/api/mp/confirmar/{paymentId}")
+    public ResponseEntity<Void> confirmarDesdeApp(@PathVariable String paymentId) {
+        log.info("Confirmación de pago desde app - paymentId={}", paymentId);
+        mercadoPagoService.procesarWebhook(paymentId);
+        return ResponseEntity.ok().build();
+    }
+
     // ─── Back URLs (solo para sandbox/testing en browser) ────────────────────
 
     @GetMapping("/api/mp/pago-exito")
