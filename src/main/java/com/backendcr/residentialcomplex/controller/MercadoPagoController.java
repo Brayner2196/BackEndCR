@@ -81,6 +81,26 @@ public class MercadoPagoController {
         return ResponseEntity.ok().build();
     }
 
+    // ─── Back URLs (solo para sandbox/testing en browser) ────────────────────
+
+    @GetMapping("/api/mp/pago-exito")
+    public ResponseEntity<Map<String, String>> pagoExito(@RequestParam Map<String, String> params) {
+        log.info("MP back_url éxito - params={}", params);
+        return ResponseEntity.ok(Map.of("estado", "aprobado", "mensaje", "Pago procesado correctamente"));
+    }
+
+    @GetMapping("/api/mp/pago-fallo")
+    public ResponseEntity<Map<String, String>> pagoFallo(@RequestParam Map<String, String> params) {
+        log.info("MP back_url fallo - params={}", params);
+        return ResponseEntity.ok(Map.of("estado", "fallido", "mensaje", "El pago no pudo procesarse"));
+    }
+
+    @GetMapping("/api/mp/pago-pendiente")
+    public ResponseEntity<Map<String, String>> pagoPendiente(@RequestParam Map<String, String> params) {
+        log.info("MP back_url pendiente - params={}", params);
+        return ResponseEntity.ok(Map.of("estado", "pendiente", "mensaje", "El pago está en revisión"));
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     /**

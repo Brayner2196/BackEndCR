@@ -33,7 +33,7 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
 					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad").permitAll()
-					.requestMatchers("/api/mp/webhook").permitAll()
+					.requestMatchers("/api/mp/webhook", "/api/mp/pago-exito", "/api/mp/pago-fallo", "/api/mp/pago-pendiente").permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
 					.anyRequest().authenticated()
 		).sessionManagement(session -> session

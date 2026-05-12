@@ -37,10 +37,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MercadoPagoService {
 
-    @Value("${mercadopago.access-token:MISSING_TOKEN}")
+    @Value("${mercadopago.access-token}")
     private String accessToken;
 
-    @Value("${mercadopago.webhook-url:https://backendcr-ob40.onrender.com}")
+    @Value("${mercadopago.webhook-url}")
     private String webhookUrl;
 
     @Value("${mercadopago.success-url:conjuntosapp://pago/exito}")
