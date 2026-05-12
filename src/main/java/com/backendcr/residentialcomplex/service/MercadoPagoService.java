@@ -134,7 +134,9 @@ public class MercadoPagoService {
             log.info("Preferencia MP creada: {} para cobro {} tenant {}", preference.getId(), cobroId, tenantId);
 
             // En sandbox usa sandbox_init_point; en producción usa init_point
-            return sandbox ? preference.getSandboxInitPoint() : preference.getInitPoint();
+            String url = sandbox ? preference.getSandboxInitPoint() : preference.getInitPoint();
+            log.info("Sandbox={}, URL generada: {}", sandbox, url);
+            return url;
 
         } catch (MPException | MPApiException e) {
             log.error("Error creando preferencia MP: {}", e.getMessage());
