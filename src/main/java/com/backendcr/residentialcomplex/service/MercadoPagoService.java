@@ -2,10 +2,8 @@ package com.backendcr.residentialcomplex.service;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.entity.Cobro;
-import com.backendcr.residentialcomplex.entity.Pago;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
-import com.backendcr.residentialcomplex.entity.enums.MetodoPago;
 import com.backendcr.residentialcomplex.repository.CobroRepository;
 import com.backendcr.residentialcomplex.repository.PagoRepository;
 import com.backendcr.residentialcomplex.repository.PeriodoCobroRepository;
@@ -25,11 +23,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -153,7 +149,17 @@ public class MercadoPagoService {
      *
      * El webhook llega sin header X-Tenant-ID, por eso se decodifica desde external_reference.
      */
-    @Transactional
+    /**
+     * Recibe la notificación de MercadoPago, consulta el pago real y,
+     * si fue aprobado, registra y verifica el Pago automáticamente en el cobro.
+     *
+     * IMPORTANTE: Este método NO es @Transactional a propósito.
+     * El TenantContext debe estar seteado ANTES de que comience cualquier
+     * transacción de Hibernate, porque el CurrentTenantIdentifierResolver
+     * lee el schema al inicio de la transacción. Si fuera @Transactional,
+     * Hibernate resolvería al schema "public" antes de que se parsee el
+     * externalRef y se llame a TenantContext.setTenant().
+     */
     public void procesarWebhook(String paymentId) {
         if (paymentId == null || paymentId.isBlank()) {
             log.warn("Webhook MP recibido sin paymentId, ignorando");
@@ -185,43 +191,19 @@ public class MercadoPagoService {
             Long cobroId   = Long.parseLong(partes[1]);
             Long usuarioId = Long.parseLong(partes[2]);
 
-            // Configurar el contexto de tenant para que JPA use el schema correcto
+            if (!"approved".equals(status)) {
+                log.info("Pago MP no aprobado (status={}), no se registra", status);
+                return;
+            }
+
+            // Setear tenant ANTES de abrir cualquier transacción DB
             TenantContext.setTenant(tenantId);
-
             try {
-                if (!"approved".equals(status)) {
-                    log.info("Pago MP no aprobado (status={}), no se registra", status);
-                    return;
-                }
-
-                // Evitar duplicados: si ya hay pago verificado para este cobro, ignorar
-                boolean yaVerificado = pagoRepo.findAllByCobroId(cobroId).stream()
-                        .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
-                if (yaVerificado) {
-                    log.info("Cobro {} ya tiene pago verificado, webhook ignorado", cobroId);
-                    return;
-                }
-
                 BigDecimal montoMP = mpPayment.getTransactionAmount();
-
-                // Crear el pago en estado PENDIENTE_VERIFICACION
-                Pago pago = new Pago();
-                pago.setCobroId(cobroId);
-                pago.setUsuarioId(usuarioId);
-                pago.setMontoPagado(montoMP);
-                pago.setFechaPago(LocalDate.now());
-                pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
-                pago.setReferencia("MP-" + paymentId);
-                pago.setNotas("Pago automático vía MercadoPago");
-                pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
-                Pago saved = pagoRepo.save(pago);
-
-                // Auto-verificar: MP ya confirmó el pago, no requiere revisión manual
-                pagoService.autoVerificar(saved.getId());
-
-                log.info("Pago {} registrado y verificado automáticamente para cobro {} tenant {}",
-                        saved.getId(), cobroId, tenantId);
-
+                // La lógica DB va en PagoService (bean distinto) para que
+                // @Transactional abra la sesión ya con el tenant correcto
+                pagoService.registrarYVerificarPagoMP(cobroId, usuarioId, paymentId, montoMP);
+                log.info("Pago MP registrado y verificado para cobro {} tenant {}", cobroId, tenantId);
             } finally {
                 TenantContext.clear();
             }

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -162,6 +163,39 @@ public class PagoService {
     }
 
     // ─── Auto-verificación (MercadoPago webhook) ───────────────────
+
+    /**
+     * Registra y verifica en una sola transacción el pago aprobado por MercadoPago.
+     *
+     * Este método DEBE estar en PagoService (bean distinto a MercadoPagoService)
+     * para que @Transactional abra la sesión de Hibernate ya con el TenantContext
+     * correctamente seteado. Si estuviera en MercadoPagoService y se llamara desde
+     * el mismo bean, Spring AOP no aplicaría el proxy y la transacción no iniciaría
+     * en el momento correcto.
+     */
+    @Transactional
+    public void registrarYVerificarPagoMP(Long cobroId, Long usuarioId, String paymentId, BigDecimal montoMP) {
+        // Idempotencia: ignorar si ya está verificado
+        boolean yaVerificado = pagoRepo.findAllByCobroId(cobroId).stream()
+                .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
+        if (yaVerificado) {
+            return;
+        }
+
+        Pago pago = new Pago();
+        pago.setCobroId(cobroId);
+        pago.setUsuarioId(usuarioId);
+        pago.setMontoPagado(montoMP);
+        pago.setFechaPago(LocalDate.now());
+        pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
+        pago.setReferencia("MP-" + paymentId);
+        pago.setNotas("Pago automático vía MercadoPago");
+        pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
+        Pago saved = pagoRepo.save(pago);
+
+        VerificarPagoRequest req = new VerificarPagoRequest("Verificado automáticamente vía MercadoPago");
+        verificar(saved.getId(), req, null);
+    }
 
     /**
      * Verifica un pago de forma automática sin requerir un adminId.
