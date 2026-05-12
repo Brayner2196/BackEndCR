@@ -65,6 +65,7 @@ public class MercadoPagoController {
         try {
             String rawBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
             log.info("Webhook MP - queryString={} body={}", request.getQueryString(), rawBody);
+            System.out.println("Webhook MP - queryString=" + request.getQueryString() + " body=" + rawBody);
 
             String paymentId = extraerPaymentId(request, rawBody);
 
