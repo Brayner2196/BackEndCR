@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@Profile("dev")
+@Profile("default")
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
