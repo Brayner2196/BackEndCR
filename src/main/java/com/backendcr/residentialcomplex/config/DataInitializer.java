@@ -50,7 +50,6 @@ public class DataInitializer implements CommandLineRunner {
 		crearConjuntoPrueba();
 
 		log.info("Datos de prueba cargados correctamente");
-		log.info("Ver datos en: http://localhost:8080/h2-console");
 		imprimirCredenciales();
 	}
 
