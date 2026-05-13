@@ -18,4 +18,7 @@ public interface CobroRepository extends JpaRepository<Cobro, Long> {
     /** Cobros pendientes de pago para una propiedad, ordenados de más antiguo a más nuevo (FIFO). */
     List<Cobro> findAllByPropiedadIdAndEstadoInOrderByFechaGeneracionAsc(
             Long propiedadId, List<EstadoCobro> estados);
+
+    /** Cobros especiales (multas, sanciones, etc.) sin período asociado. */
+    List<Cobro> findAllByPeriodoIdIsNull();
 }

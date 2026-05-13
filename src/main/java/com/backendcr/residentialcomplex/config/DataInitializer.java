@@ -115,14 +115,14 @@ public class DataInitializer implements CommandLineRunner {
 		}
 
 		Long idTorre = jdbcTemplate.queryForObject(
-				"INSERT INTO " + SCHEMA + ".tipos_propiedad (nombre, descripcion, parent_id, orden) VALUES (?, ?, NULL, 0) RETURNING id",
+				"INSERT INTO " + SCHEMA + ".tipos_propiedad (nombre, descripcion, parent_id, orden, es_facturable) VALUES (?, ?, NULL, 0, FALSE) RETURNING id",
 				Long.class, "Torre", "Bloque de apartamentos");
 		jdbcTemplate.update(
-				"INSERT INTO " + SCHEMA + ".tipos_propiedad (nombre, descripcion, parent_id, orden) VALUES (?, ?, ?, 0)",
+				"INSERT INTO " + SCHEMA + ".tipos_propiedad (nombre, descripcion, parent_id, orden, es_facturable) VALUES (?, ?, ?, 0, TRUE)",
 				"Apto", "Unidad de vivienda", idTorre);
 
 		jdbcTemplate.update(
-				"INSERT INTO " + SCHEMA + ".tipos_propiedad (nombre, descripcion, parent_id, orden) VALUES (?, ?, NULL, 1)",
+				"INSERT INTO " + SCHEMA + ".tipos_propiedad (nombre, descripcion, parent_id, orden, es_facturable) VALUES (?, ?, NULL, 1, TRUE)",
 				"Parqueadero", "Espacio de parqueo");
 
 		log.info("Tipos de propiedad de prueba creados (Torre->Apto, Parqueadero)");
@@ -185,7 +185,7 @@ public class DataInitializer implements CommandLineRunner {
 
 		BigDecimal montoAdmin = new BigDecimal("350000");
 		jdbcTemplate.update(
-				"INSERT INTO " + SCHEMA + ".configuracion_cuotas (tipo_propiedad_id, monto, periodicidad, fecha_vigencia_desde, activo) VALUES (?, ?, 'MENSUAL', ?, TRUE)",
+				"INSERT INTO " + SCHEMA + ".configuracion_cuotas (tipo_propiedad_id, monto, periodicidad, fecha_vigencia_desde, fecha_vigencia_hasta, activo) VALUES (?, ?, 'MENSUAL', ?, NULL, TRUE)",
 				idTipoApto, montoAdmin, LocalDate.now().minusYears(1));
 
 		Map<YearMonth, Long> periodos = new HashMap<>();

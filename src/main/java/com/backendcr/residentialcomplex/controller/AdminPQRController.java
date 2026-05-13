@@ -2,6 +2,7 @@ package com.backendcr.residentialcomplex.controller;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.pqr.PQRCambiarEstadoRequest;
+import com.backendcr.residentialcomplex.dto.pqr.PQRHistorialResponse;
 import com.backendcr.residentialcomplex.dto.pqr.PQRResponderRequest;
 import com.backendcr.residentialcomplex.dto.pqr.PQRResponse;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPQR;
@@ -33,6 +34,11 @@ public class AdminPQRController {
         return estado != null ? pqrService.listarPorEstado(estado) : pqrService.listarTodas();
     }
 
+    @GetMapping("/{id}/historial")
+    public List<PQRHistorialResponse> historial(@PathVariable Long id) {
+        return pqrService.listarHistorial(id);
+    }
+
     @PutMapping("/{id}/responder")
     public PQRResponse responder(@PathVariable Long id,
                                  @Valid @RequestBody PQRResponderRequest req,
@@ -42,8 +48,9 @@ public class AdminPQRController {
 
     @PutMapping("/{id}/estado")
     public PQRResponse cambiarEstado(@PathVariable Long id,
-                                     @Valid @RequestBody PQRCambiarEstadoRequest req) {
-        return pqrService.cambiarEstado(id, req);
+                                     @Valid @RequestBody PQRCambiarEstadoRequest req,
+                                     @AuthenticationPrincipal String email) {
+        return pqrService.cambiarEstado(id, req, resolverAdminId(email));
     }
 
     private Long resolverAdminId(String email) {

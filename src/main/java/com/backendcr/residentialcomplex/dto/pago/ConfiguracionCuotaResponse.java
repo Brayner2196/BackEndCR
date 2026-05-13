@@ -9,11 +9,13 @@ public record ConfiguracionCuotaResponse(
         Long id,
         Long tipoPropiedadId,
         Long propiedadId,
+        Long tipoPropiedadCondicionId,
         Integer numeroDesde,
         Integer numeroHasta,
         BigDecimal monto,
         Periodicidad periodicidad,
         LocalDate fechaVigenciaDesde,
+        LocalDate fechaVigenciaHasta,
         boolean activo
 ) {
     public static ConfiguracionCuotaResponse from(ConfiguracionCuota c) {
@@ -21,11 +23,13 @@ public record ConfiguracionCuotaResponse(
                 c.getId(),
                 c.getTipoPropiedadId(),
                 c.getPropiedadId(),
+                c.getTipoPropiedadCondicionId(),
                 c.getNumeroDesde(),
                 c.getNumeroHasta(),
                 c.getMonto(),
                 c.getPeriodicidad(),
                 c.getFechaVigenciaDesde(),
+                c.getFechaVigenciaHasta(),
                 c.isActivo()
         );
     }

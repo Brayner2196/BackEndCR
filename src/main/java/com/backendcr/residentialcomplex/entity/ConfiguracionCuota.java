@@ -22,7 +22,16 @@ public class ConfiguracionCuota {
     @Column(name = "propiedad_id")
     private Long propiedadId;
 
-    /** Rango de número de propiedad (ambos inclusive). Null = aplica a todo el tipo. */
+    /**
+     * Cuando se define un rango numérico, indica sobre qué nivel de la jerarquía
+     * se aplica el rango. Si es null, el rango se aplica sobre el identificador
+     * de la propiedad facturable misma.
+     * Ejemplo: para regla "piso 1-10 = precio X", se pone el id del TipoPropiedad PISO.
+     */
+    @Column(name = "tipo_propiedad_condicion_id")
+    private Long tipoPropiedadCondicionId;
+
+    /** Rango numérico (ambos inclusive). Null = aplica a todo el tipo / propiedad. */
     @Column(name = "numero_desde")
     private Integer numeroDesde;
 
@@ -38,6 +47,10 @@ public class ConfiguracionCuota {
 
     @Column(name = "fecha_vigencia_desde", nullable = false)
     private LocalDate fechaVigenciaDesde;
+
+    /** Null = sin fecha de fin (vigente indefinidamente). */
+    @Column(name = "fecha_vigencia_hasta")
+    private LocalDate fechaVigenciaHasta;
 
     private boolean activo = true;
 
@@ -55,6 +68,8 @@ public class ConfiguracionCuota {
     public void setTipoPropiedadId(Long tipoPropiedadId) { this.tipoPropiedadId = tipoPropiedadId; }
     public Long getPropiedadId() { return propiedadId; }
     public void setPropiedadId(Long propiedadId) { this.propiedadId = propiedadId; }
+    public Long getTipoPropiedadCondicionId() { return tipoPropiedadCondicionId; }
+    public void setTipoPropiedadCondicionId(Long tipoPropiedadCondicionId) { this.tipoPropiedadCondicionId = tipoPropiedadCondicionId; }
     public Integer getNumeroDesde() { return numeroDesde; }
     public void setNumeroDesde(Integer numeroDesde) { this.numeroDesde = numeroDesde; }
     public Integer getNumeroHasta() { return numeroHasta; }
@@ -65,6 +80,8 @@ public class ConfiguracionCuota {
     public void setPeriodicidad(Periodicidad periodicidad) { this.periodicidad = periodicidad; }
     public LocalDate getFechaVigenciaDesde() { return fechaVigenciaDesde; }
     public void setFechaVigenciaDesde(LocalDate d) { this.fechaVigenciaDesde = d; }
+    public LocalDate getFechaVigenciaHasta() { return fechaVigenciaHasta; }
+    public void setFechaVigenciaHasta(LocalDate d) { this.fechaVigenciaHasta = d; }
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
     public LocalDateTime getCreadoEn() { return creadoEn; }

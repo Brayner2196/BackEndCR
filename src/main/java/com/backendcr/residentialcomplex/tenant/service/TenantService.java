@@ -142,7 +142,8 @@ public class TenantService {
                 tenant.getCodigo(),
                 tenant.isActivo(),
                 tenant.getDireccion(),
-                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + tenant.getSchemaName() + ".usuarios", Integer.class)
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM " + tenant.getSchemaName() + ".usuarios", Integer.class)
         );
     }
 
@@ -156,16 +157,22 @@ public class TenantService {
      *  3. propiedades
      *  4. usuario_propiedades
      *  5. pqrs
-     *  6. zonas_comunes
-     *  7. reservas
-     *  8. periodos_cobro
-     *  9. configuracion_cuotas
-     * 10. configuracion_mora
-     * 11. cobros
-     * 12. pagos
-     * 13. abonos
-     * 14. movimientos_abono
-     * 15. saldos_favor
+     *  6. pqr_historial           ← trazabilidad de estados PQR
+     *  7. anuncios
+     *  8. anuncio_vistas
+     *  9. zonas_comunes
+     * 10. reservas
+     * 11. periodos_cobro
+     * 12. configuracion_cuotas    ← +tipo_propiedad_condicion_id, +fecha_vigencia_hasta
+     * 13. configuracion_mora
+     * 14. cobros                  ← periodo_id nullable (cobros especiales)
+     * 15. pagos
+     * 16. abonos
+     * 17. movimientos_abono
+     * 18. saldos_favor
+     * 19. votaciones
+     * 20. opciones_votacion
+     * 21. votos_residentes
      */
     public void crearTablasTenant(String schema) {
 
@@ -187,13 +194,13 @@ public class TenantService {
         // ── 2. tipos_propiedad ────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.tipos_propiedad (
-                    id          BIGSERIAL PRIMARY KEY,
-                    nombre      VARCHAR(100) NOT NULL,
-                    descripcion VARCHAR(255),
-                    parent_id   BIGINT REFERENCES %s.tipos_propiedad(id),
-                    orden       INT NOT NULL DEFAULT 0,
-                    es_facturable      BOOLEAN NOT NULL DEFAULT FALSE,
-                    activo      BOOLEAN NOT NULL DEFAULT TRUE
+                    id            BIGSERIAL PRIMARY KEY,
+                    nombre        VARCHAR(100) NOT NULL,
+                    descripcion   VARCHAR(255),
+                    parent_id     BIGINT REFERENCES %s.tipos_propiedad(id),
+                    orden         INT NOT NULL DEFAULT 0,
+                    es_facturable BOOLEAN NOT NULL DEFAULT FALSE,
+                    activo        BOOLEAN NOT NULL DEFAULT TRUE
                 )
                 """.formatted(schema, schema));
 
@@ -240,7 +247,48 @@ public class TenantService {
                 )
                 """.formatted(schema));
 
-        // ── 6. zonas_comunes ──────────────────────────────────────────────
+        // ── 6. pqr_historial ─────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.pqr_historial (
+                    id              BIGSERIAL PRIMARY KEY,
+                    pqr_id          BIGINT NOT NULL REFERENCES %s.pqrs(id),
+                    estado_anterior VARCHAR(20),
+                    estado_nuevo    VARCHAR(20) NOT NULL,
+                    cambiado_por    BIGINT,
+                    comentario      VARCHAR(500),
+                    fecha_cambio    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+
+        // ── 7. anuncios ───────────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.anuncios (
+                    id             BIGSERIAL PRIMARY KEY,
+                    titulo         VARCHAR(200) NOT NULL,
+                    contenido      VARCHAR(4000) NOT NULL,
+                    imagen_url     VARCHAR(500),
+                    estado         VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
+                    creado_por     BIGINT NOT NULL,
+                    fecha_inicio   TIMESTAMP,
+                    fecha_fin      TIMESTAMP,
+                    creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+
+        // ── 8. anuncio_vistas ─────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.anuncio_vistas (
+                    id               BIGSERIAL PRIMARY KEY,
+                    anuncio_id       BIGINT NOT NULL REFERENCES %s.anuncios(id),
+                    residente_id     BIGINT NOT NULL,
+                    residente_nombre VARCHAR(150),
+                    visto_en         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(anuncio_id, residente_id)
+                )
+                """.formatted(schema, schema));
+
+        // ── 9. zonas_comunes ──────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.zonas_comunes (
                     id          BIGSERIAL PRIMARY KEY,
@@ -252,7 +300,7 @@ public class TenantService {
                 )
                 """.formatted(schema));
 
-        // ── 7. reservas ───────────────────────────────────────────────────
+        // ── 10. reservas ──────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.reservas (
                     id               BIGSERIAL PRIMARY KEY,
@@ -272,7 +320,7 @@ public class TenantService {
                 )
                 """.formatted(schema, schema));
 
-        // ── 8. periodos_cobro ─────────────────────────────────────────────
+        // ── 11. periodos_cobro ────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.periodos_cobro (
                     id                  BIGSERIAL PRIMARY KEY,
@@ -287,24 +335,29 @@ public class TenantService {
                 )
                 """.formatted(schema));
 
-        // ── 9. configuracion_cuotas ───────────────────────────────────────
+        // ── 12. configuracion_cuotas ──────────────────────────────────────
+        // tipo_propiedad_condicion_id: tipo ancestro sobre el que se evalúa
+        //   el rango numérico (null = usa el identificador propio de la propiedad).
+        // fecha_vigencia_hasta: null = sin fecha de fin (vigente indefinidamente).
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.configuracion_cuotas (
-                    id                    BIGSERIAL PRIMARY KEY,
-                    tipo_propiedad_id     BIGINT REFERENCES %s.tipos_propiedad(id),
-                    propiedad_id          BIGINT REFERENCES %s.propiedades(id),
-                    numero_desde          INT,
-                    numero_hasta          INT,
-                    monto                 NUMERIC(12,2) NOT NULL,
-                    periodicidad          VARCHAR(20) NOT NULL DEFAULT 'MENSUAL',
-                    fecha_vigencia_desde  DATE NOT NULL,
-                    activo                BOOLEAN NOT NULL DEFAULT TRUE,
-                    creado_en             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    id                          BIGSERIAL PRIMARY KEY,
+                    tipo_propiedad_id           BIGINT REFERENCES %s.tipos_propiedad(id),
+                    propiedad_id                BIGINT REFERENCES %s.propiedades(id),
+                    tipo_propiedad_condicion_id BIGINT REFERENCES %s.tipos_propiedad(id),
+                    numero_desde                INT,
+                    numero_hasta                INT,
+                    monto                       NUMERIC(12,2) NOT NULL,
+                    periodicidad                VARCHAR(20) NOT NULL DEFAULT 'MENSUAL',
+                    fecha_vigencia_desde        DATE NOT NULL,
+                    fecha_vigencia_hasta        DATE,
+                    activo                      BOOLEAN NOT NULL DEFAULT TRUE,
+                    creado_en                   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema, schema, schema));
+                """.formatted(schema, schema, schema, schema));
 
-        // ── 10. configuracion_mora ────────────────────────────────────────
+        // ── 13. configuracion_mora ────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.configuracion_mora (
                     id                  BIGSERIAL PRIMARY KEY,
@@ -318,11 +371,12 @@ public class TenantService {
                 )
                 """.formatted(schema));
 
-        // ── 11. cobros ────────────────────────────────────────────────────
+        // ── 14. cobros ────────────────────────────────────────────────────
+        // periodo_id es nullable: null = cobro especial (multa, sanción, etc.)
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.cobros (
                     id                   BIGSERIAL PRIMARY KEY,
-                    periodo_id           BIGINT NOT NULL REFERENCES %s.periodos_cobro(id),
+                    periodo_id           BIGINT REFERENCES %s.periodos_cobro(id),
                     propiedad_id         BIGINT NOT NULL REFERENCES %s.propiedades(id),
                     usuario_id           BIGINT,
                     concepto             VARCHAR(20) NOT NULL DEFAULT 'ADMINISTRACION',
@@ -341,7 +395,7 @@ public class TenantService {
                 )
                 """.formatted(schema, schema, schema));
 
-        // ── 12. pagos ─────────────────────────────────────────────────────
+        // ── 15. pagos ─────────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.pagos (
                     id                  BIGSERIAL PRIMARY KEY,
@@ -362,7 +416,7 @@ public class TenantService {
                 )
                 """.formatted(schema, schema));
 
-        // ── 13. abonos ────────────────────────────────────────────────────
+        // ── 16. abonos ────────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.abonos (
                     id                  BIGSERIAL PRIMARY KEY,
@@ -383,7 +437,7 @@ public class TenantService {
                 )
                 """.formatted(schema, schema));
 
-        // ── 14. movimientos_abono ─────────────────────────────────────────
+        // ── 17. movimientos_abono ─────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.movimientos_abono (
                     id              BIGSERIAL PRIMARY KEY,
@@ -395,7 +449,7 @@ public class TenantService {
                 )
                 """.formatted(schema, schema, schema));
 
-        // ── 15. saldos_favor ──────────────────────────────────────────────
+        // ── 18. saldos_favor ──────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.saldos_favor (
                     id              BIGSERIAL PRIMARY KEY,
@@ -406,6 +460,50 @@ public class TenantService {
                     actualizado_en  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
+
+        // ── 19. votaciones ────────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.votaciones (
+                    id                   BIGSERIAL PRIMARY KEY,
+                    titulo               VARCHAR(300) NOT NULL,
+                    descripcion          VARCHAR(2000),
+                    tipo_votacion        VARCHAR(30) NOT NULL,
+                    estado               VARCHAR(20) NOT NULL DEFAULT 'BORRADOR',
+                    escala_max           INT,
+                    mostrar_votantes     BOOLEAN NOT NULL DEFAULT FALSE,
+                    permite_cambiar_voto BOOLEAN NOT NULL DEFAULT FALSE,
+                    fecha_inicio         TIMESTAMP,
+                    fecha_fin            TIMESTAMP,
+                    creado_por           BIGINT NOT NULL,
+                    creado_en            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+
+        // ── 20. opciones_votacion ─────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.opciones_votacion (
+                    id          BIGSERIAL PRIMARY KEY,
+                    votacion_id BIGINT NOT NULL REFERENCES %s.votaciones(id),
+                    texto       VARCHAR(300) NOT NULL,
+                    orden       INT NOT NULL DEFAULT 0
+                )
+                """.formatted(schema, schema));
+
+        // ── 21. votos_residentes ──────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.votos_residentes (
+                    id               BIGSERIAL PRIMARY KEY,
+                    votacion_id      BIGINT NOT NULL REFERENCES %s.votaciones(id),
+                    residente_id     BIGINT NOT NULL,
+                    residente_nombre VARCHAR(150),
+                    opcion_id        BIGINT REFERENCES %s.opciones_votacion(id),
+                    valor_numerico   INT,
+                    respuesta_texto  VARCHAR(2000),
+                    votado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema, schema));
     }
 
     private void insertarTiposPropiedad(String schema, List<TipoPropiedadNodoDto> tipos,

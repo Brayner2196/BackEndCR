@@ -17,7 +17,8 @@ public class Cobro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "periodo_id", nullable = false)
+    /** Null para cobros especiales (multas, sanciones) que no pertenecen a un período. */
+    @Column(name = "periodo_id")
     private Long periodoId;
 
     @Column(name = "propiedad_id", nullable = false)

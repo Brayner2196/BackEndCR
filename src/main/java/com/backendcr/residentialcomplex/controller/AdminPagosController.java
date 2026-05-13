@@ -34,9 +34,16 @@ public class AdminPagosController {
 
     // ─── Cuotas ────────────────────────────
 
+    /** Solo cuotas activas. */
     @GetMapping("/cuotas")
     public List<ConfiguracionCuotaResponse> listarCuotas() {
         return cuotaService.listar();
+    }
+
+    /** Histórico completo de cuotas (activas e inactivas), del más reciente al más antiguo. */
+    @GetMapping("/cuotas/historico")
+    public List<ConfiguracionCuotaResponse> historicoCuotas() {
+        return cuotaService.listarHistorico();
     }
 
     @PostMapping("/cuotas")
@@ -84,6 +91,23 @@ public class AdminPagosController {
         if (periodoId != null) return cobroService.listarPorPeriodo(periodoId);
         if (estado != null) return cobroService.listarPorEstado(estado);
         return cobroService.listarPorEstado(EstadoCobro.PENDIENTE);
+    }
+
+    /** Cobros especiales (multas, sanciones, etc.) sin período de cobro asociado. */
+    @GetMapping("/cobros/especiales")
+    public List<CobroResponse> listarCobrosEspeciales() {
+        return cobroService.listarEspeciales();
+    }
+
+    /**
+     * Crea un cobro especial (multa, sanción, recargo, etc.) sobre una propiedad.
+     * No requiere período abierto.
+     */
+    @PostMapping("/cobros/especiales")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CobroResponse crearCobroEspecial(@Valid @RequestBody CobroEspecialRequest req,
+                                             @AuthenticationPrincipal String email) {
+        return cobroService.crearCobroEspecial(req, resolverAdminId(email));
     }
 
     @PutMapping("/cobros/{id}/exonerar")

@@ -14,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.chrono.ChronoLocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -89,6 +88,10 @@ public class CobroService {
         return toResponseList(cobroRepo.findAllByUsuarioIdAndEstado(usuarioId, estado));
     }
 
+    public List<CobroResponse> listarEspeciales() {
+        return toResponseList(cobroRepo.findAllByPeriodoIdIsNull());
+    }
+
     @Transactional
     public List<CobroResponse> generarCobros(int anio, int mes) {
         PeriodoCobro periodo = periodoRepo.findByAnioAndMes(anio, mes)
@@ -98,13 +101,20 @@ public class CobroService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El período no está abierto");
         }
 
-        for (Propiedad prop : propiedadRepo.findByTipoIdIsFacturable() ) {
+        // Fecha de referencia para resolver cuotas vigentes: inicio del período
+        LocalDate fechaRef = periodo.getFechaInicio() != null
+                ? periodo.getFechaInicio()
+                : LocalDate.of(anio, mes, 1);
+
+        for (Propiedad prop : propiedadRepo.findByTipoIdIsFacturable()) {
             if (cobroRepo.existsByPeriodoIdAndPropiedadId(periodo.getId(), prop.getId())) continue;
-            BigDecimal monto = resolverMonto(prop);
+
+            BigDecimal monto = resolverMonto(prop, fechaRef);
             if (monto == null) {
-            	Optional<TipoPropiedad> tipoProp = tipoPropiedadRepository.findById(prop.getTipoId());
-            	String tipoPropiedad =  tipoProp.isPresent() ? tipoProp.get().getNombre() : "";
-            	throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No se logro encontrar una configuracion de cuota para determinar el valor del cobro para el tipo de propiedad: " + tipoPropiedad);
+                Optional<TipoPropiedad> tipoProp = tipoPropiedadRepository.findById(prop.getTipoId());
+                String tipoPropiedad = tipoProp.map(TipoPropiedad::getNombre).orElse("");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No se encontró configuración de cuota para el tipo de propiedad: " + tipoPropiedad);
             }
 
             Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(prop.getId())
@@ -124,6 +134,33 @@ public class CobroService {
             cobroRepo.save(cobro);
         }
         return listarPorPeriodo(periodo.getId());
+    }
+
+    /**
+     * Crea un cobro especial (multa, sanción, etc.) directamente sobre una propiedad,
+     * sin necesidad de un período de cobro abierto.
+     */
+    @Transactional
+    public CobroResponse crearCobroEspecial(CobroEspecialRequest req, Long adminId) {
+        Propiedad propiedad = propiedadRepo.findById(req.propiedadId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Propiedad no encontrada"));
+
+        Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(propiedad.getId())
+                .map(UsuarioPropiedad::getUsuarioId).orElse(null);
+
+        Cobro cobro = new Cobro();
+        cobro.setPeriodoId(null); // cobro especial, sin período
+        cobro.setPropiedadId(propiedad.getId());
+        cobro.setUsuarioId(usuarioId);
+        cobro.setConcepto(req.concepto());
+        cobro.setDescripcion(req.descripcion());
+        cobro.setMontoBase(req.monto());
+        cobro.setMontoMora(BigDecimal.ZERO);
+        cobro.setMontoTotal(req.monto());
+        cobro.setFechaGeneracion(LocalDate.now());
+        cobro.setFechaLimitePago(req.fechaLimitePago());
+        cobro.setEstado(EstadoCobro.PENDIENTE);
+        return toResponse(cobroRepo.save(cobro));
     }
 
     @Transactional
@@ -188,67 +225,98 @@ public class CobroService {
                 toResponseList(activos));
     }
 
-    // ─── Helpers ──────────────────────────────────────────────
+    // ─── Helpers de resolución de cuota ──────────────────────────────
 
     private static final Pattern TRAILING_NUMBER = Pattern.compile("(\\d+)\\s*$");
 
     /**
-     * Resuelve el monto de cuota para una propiedad siguiendo esta prioridad:
-     * 1. Cuota específica para la propiedad exacta (por propiedadId)
-     * 2. Cuota por rango numérico dentro del tipo (numeroDesde..numeroHasta)
-     * 3. Cuota general del tipo (sin rango)
+     * Resuelve el monto de cuota vigente en {@code fechaRef} para la propiedad,
+     * siguiendo esta prioridad:
+     * 1. Cuota específica para la propiedad exacta (propiedadId).
+     * 2. Cuota con rango numérico del tipo:
+     *    - Si tipoPropiedadCondicionId != null → el número se extrae del ancestro de ese tipo.
+     *    - Si tipoPropiedadCondicionId == null → el número se extrae del identificador propio.
+     * 3. Cuota general del tipo (sin rango).
      */
-    private BigDecimal resolverMonto(Propiedad prop) {
-        // 1. Match exacto por propiedad
+    private BigDecimal resolverMonto(Propiedad prop, LocalDate fechaRef) {
+        // 1. Cuota específica de esta propiedad vigente en la fecha
         Optional<BigDecimal> exacto = cuotaRepo
-                .findByPropiedadIdAndActivoTrue(prop.getId())
+                .findVigenteByPropiedadId(prop.getId(), fechaRef)
                 .map(ConfiguracionCuota::getMonto);
         if (exacto.isPresent()) return exacto.get();
 
-        // 2. Match por rango numérico del tipo
-        Integer numPropiedad = extraerNumero(prop.getIdentificador());
-        if (numPropiedad != null) {
-            List<ConfiguracionCuota> rangos = cuotaRepo
-                    .findByTipoPropiedadIdAndNumeroDesdeIsNotNullAndActivoTrue(prop.getTipoId());
-            Optional<BigDecimal> rango = rangos.stream()
-                    .filter(c -> c.getNumeroDesde() <= numPropiedad
-                              && numPropiedad <= c.getNumeroHasta())
-                    .map(ConfiguracionCuota::getMonto)
-                    .findFirst();
-            if (rango.isPresent()) return rango.get();
+        // 2. Cuotas con rango numérico del tipo vigentes en la fecha
+        List<ConfiguracionCuota> rangos = cuotaRepo
+                .findVigentesByTipoIdConRango(prop.getTipoId(), fechaRef);
+
+        if (!rangos.isEmpty()) {
+            for (ConfiguracionCuota c : rangos) {
+                Integer num = resolverNumeroParaCondicion(prop, c.getTipoPropiedadCondicionId());
+                if (num == null) continue;
+                int hasta = c.getNumeroHasta() != null ? c.getNumeroHasta() : Integer.MAX_VALUE;
+                if (c.getNumeroDesde() <= num && num <= hasta) {
+                    return c.getMonto();
+                }
+            }
         }
 
-        // 3. Cuota general del tipo (sin rango)
+        // 3. Cuota general del tipo (sin rango) vigente en la fecha
         return cuotaRepo
-                .findByTipoPropiedadIdAndNumeroDesdeIsNullAndActivoTrue(prop.getTipoId())
+                .findVigenteByTipoIdSinRango(prop.getTipoId(), fechaRef)
                 .map(ConfiguracionCuota::getMonto)
                 .orElse(null);
     }
 
-    /** Extrae el último número del identificador de la propiedad (ej. "Apto 5" → 5, "42" → 42). */
+    /**
+     * Determina el número a usar para evaluar la regla de rango.
+     * - Si condicionTipoId es null → usa el identificador numérico de la propia propiedad.
+     * - Si condicionTipoId tiene valor → sube por la jerarquía hasta encontrar un ancestro
+     *   cuyo tipoId coincida, y usa su identificador numérico.
+     *   Si no hay ningún ancestro de ese tipo, retorna null (regla no aplica).
+     */
+    private Integer resolverNumeroParaCondicion(Propiedad prop, Long condicionTipoId) {
+        if (condicionTipoId == null) {
+            return extraerNumero(prop.getIdentificador());
+        }
+        // Subir por la jerarquía buscando el ancestro del tipo indicado
+        Long parentId = prop.getParentId();
+        while (parentId != null) {
+            Optional<Propiedad> ancestroOpt = propiedadRepo.findById(parentId);
+            if (ancestroOpt.isEmpty()) break;
+            Propiedad ancestro = ancestroOpt.get();
+            if (condicionTipoId.equals(ancestro.getTipoId())) {
+                return extraerNumero(ancestro.getIdentificador());
+            }
+            parentId = ancestro.getParentId();
+        }
+        return null; // no se encontró el tipo ancestro → regla no aplica
+    }
+
+    /** Extrae el último número del identificador (ej. "Piso 10" → 10, "42" → 42). */
     private Integer extraerNumero(String identificador) {
         if (identificador == null) return null;
         Matcher m = TRAILING_NUMBER.matcher(identificador.trim());
         return m.find() ? Integer.parseInt(m.group(1)) : null;
     }
 
+    // ─── Helpers de mapeo a response ─────────────────────────────────
+
     /**
      * Convierte una lista de Cobro en CobroResponse usando batch loading.
-     * Reduce de 5N+1 queries individuales a ~8 queries totales.
      */
     @Transactional(readOnly = true)
     private List<CobroResponse> toResponseList(List<Cobro> cobros) {
         if (cobros.isEmpty()) return List.of();
 
-        // ── 1. Recolectar IDs únicos ─────────────────────────────────────
-        Set<Long> cobroIds    = cobros.stream().map(Cobro::getId).collect(Collectors.toSet());
-        Set<Long> propIds     = cobros.stream().map(Cobro::getPropiedadId).collect(Collectors.toSet());
-        Set<Long> periodoIds  = cobros.stream().map(Cobro::getPeriodoId).collect(Collectors.toSet());
-        Set<Long> usuarioIds  = cobros.stream().map(Cobro::getUsuarioId)
+        Set<Long> cobroIds   = cobros.stream().map(Cobro::getId).collect(Collectors.toSet());
+        Set<Long> propIds    = cobros.stream().map(Cobro::getPropiedadId).collect(Collectors.toSet());
+        // periodoId puede ser null en cobros especiales — filtramos
+        Set<Long> periodoIds = cobros.stream().map(Cobro::getPeriodoId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> usuarioIds = cobros.stream().map(Cobro::getUsuarioId)
                 .filter(Objects::nonNull).collect(Collectors.toSet());
 
-        // ── 2. Cargar jerarquía de propiedades en múltiples pasadas ───────
-        //    Cada pasada fetchea un nivel de padres no cargados aún.
+        // Jerarquía de propiedades (múltiples pasadas para subir niveles)
         Map<Long, Propiedad> propMap = new HashMap<>();
         List<Long> toFetch = new ArrayList<>(propIds);
         while (!toFetch.isEmpty()) {
@@ -262,41 +330,36 @@ public class CobroService {
             }
         }
 
-        // ── 3. Cargar tipos de propiedad usados en la jerarquía ───────────
         Set<Long> tipoIds = propMap.values().stream().map(Propiedad::getTipoId).collect(Collectors.toSet());
         Map<Long, TipoPropiedad> tipoMap = tipoPropiedadRepository.findAllById(tipoIds)
                 .stream().collect(Collectors.toMap(TipoPropiedad::getId, t -> t));
 
-        // ── 4. Batch fetch usuarios y períodos ────────────────────────────
         Map<Long, Usuario> usuarioMap = usuarioRepo.findAllById(usuarioIds)
                 .stream().collect(Collectors.toMap(Usuario::getId, u -> u));
-        Map<Long, PeriodoCobro> periodoMap = periodoRepo.findAllById(periodoIds)
-                .stream().collect(Collectors.toMap(PeriodoCobro::getId, p -> p));
+        Map<Long, PeriodoCobro> periodoMap = periodoIds.isEmpty()
+                ? Map.of()
+                : periodoRepo.findAllById(periodoIds)
+                        .stream().collect(Collectors.toMap(PeriodoCobro::getId, p -> p));
 
-        // ── 5. Batch check tieneMovimientos (2 queries IN en lugar de 2N) ─
-        Set<Long> conPagos      = pagoRepo.findCobroIdsWithPagos(cobroIds);
-        Set<Long> conMovAbonos  = movimientoAbonoRepo.findCobroIdsWithMovimientos(cobroIds);
+        Set<Long> conPagos     = pagoRepo.findCobroIdsWithPagos(cobroIds);
+        Set<Long> conMovAbonos = movimientoAbonoRepo.findCobroIdsWithMovimientos(cobroIds);
 
-        // ── 6. Mapear sin ninguna query adicional ─────────────────────────
         return cobros.stream().map(c -> {
             Propiedad prop = propMap.get(c.getPropiedadId());
             String descripcion = prop != null
                     ? construirPathTextoDesdeMap(prop, propMap, tipoMap) : "N/A";
             String nombreUsuario = c.getUsuarioId() != null
-                    ? usuarioMap.getOrDefault(c.getUsuarioId(), null) != null
-                        ? usuarioMap.get(c.getUsuarioId()).getNombre() : "N/A"
+                    ? Optional.ofNullable(usuarioMap.get(c.getUsuarioId()))
+                        .map(Usuario::getNombre).orElse("N/A")
                     : "N/A";
-            PeriodoCobro periodo = periodoMap.get(c.getPeriodoId());
+            PeriodoCobro periodo = c.getPeriodoId() != null ? periodoMap.get(c.getPeriodoId()) : null;
             boolean tieneMovimientos = conPagos.contains(c.getId()) || conMovAbonos.contains(c.getId());
             EstadoCobro estadoCobro = c.getEstado();
-			if (
-					c.getEstado() != null && 
-					(
-							c.getEstado().equals(EstadoCobro.PENDIENTE) || 
-							c.getEstado().equals(EstadoCobro.PARCIAL)
-					)  && 
-					c.getFechaLimitePago().isBefore(LocalDate.now()))
-				estadoCobro = EstadoCobro.VENCIDO;
+            if (c.getEstado() != null
+                    && (c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.PARCIAL)
+                    && c.getFechaLimitePago().isBefore(LocalDate.now())) {
+                estadoCobro = EstadoCobro.VENCIDO;
+            }
 
             return new CobroResponse(
                     c.getId(), c.getPeriodoId(),
@@ -312,7 +375,6 @@ public class CobroService {
         }).toList();
     }
 
-    /** Construye el path usando mapas precargados — sin queries adicionales. */
     private String construirPathTextoDesdeMap(Propiedad hoja,
                                                Map<Long, Propiedad> propMap,
                                                Map<Long, TipoPropiedad> tipoMap) {
@@ -333,37 +395,29 @@ public class CobroService {
                 .map(this::construirPathTexto).orElse("N/A");
         String nombreUsuario = c.getUsuarioId() != null
                 ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
-        PeriodoCobro periodo = periodoRepo.findById(c.getPeriodoId()).orElse(null);
+        PeriodoCobro periodo = c.getPeriodoId() != null
+                ? periodoRepo.findById(c.getPeriodoId()).orElse(null) : null;
         boolean tieneMovimientos = pagoRepo.existsByCobroId(c.getId())
                 || movimientoAbonoRepo.existsByCobroId(c.getId());
         return new CobroResponse(
                 c.getId(), c.getPeriodoId(),
                 periodo != null ? periodo.getAnio() : 0,
                 periodo != null ? periodo.getMes() : 0,
-                c.getPropiedadId(),
-                descripcionPropiedad,
-                c.getUsuarioId(),
-                nombreUsuario,
-                c.getConcepto(),
-                c.getDescripcion(),
-                c.getMontoBase(),
-                c.getMontoMora(),
-                c.getMontoTotal(),
-                c.getMontoPagado(),
-                c.getMontoPendiente(),
-                c.getFechaGeneracion(),
-                c.getFechaLimitePago(),
-                c.getEstado(),
-                tieneMovimientos);
+                c.getPropiedadId(), descripcionPropiedad,
+                c.getUsuarioId(), nombreUsuario,
+                c.getConcepto(), c.getDescripcion(),
+                c.getMontoBase(), c.getMontoMora(), c.getMontoTotal(),
+                c.getMontoPagado(), c.getMontoPendiente(),
+                c.getFechaGeneracion(), c.getFechaLimitePago(),
+                c.getEstado(), tieneMovimientos);
     }
-    
+
     private String construirPathTexto(Propiedad hoja) {
         List<String> partes = new ArrayList<>();
         Propiedad actual = hoja;
         while (actual != null) {
             String nombreTipo = tipoPropiedadRepository.findById(actual.getTipoId())
-                    .map(TipoPropiedad::getNombre)
-                    .orElse("?");
+                    .map(TipoPropiedad::getNombre).orElse("?");
             partes.add(0, nombreTipo + " " + actual.getIdentificador());
             if (actual.getParentId() == null) break;
             actual = propiedadRepo.findById(actual.getParentId()).orElse(null);
