@@ -17,6 +17,7 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
@@ -32,16 +33,33 @@ public class MercadoPagoController {
 
     // ─── Crear preferencia (residente autenticado) ────────────────────────────
 
+    /**
+     * Crea una preferencia de MercadoPago para el cobro.
+     * Body opcional: {"monto": 50000} — si se envía, se usa ese monto en vez del pendiente total.
+     * Útil para pagos parciales (abono) o valores diferentes.
+     * Si el monto > montoPendiente, el exceso se acumula como saldo a favor al confirmar.
+     */
     @PostMapping("/api/residente/mp/preferencia/{cobroId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> crearPreferencia(
             @PathVariable Long cobroId,
+            @RequestBody(required = false) Map<String, Object> body,
             @AuthenticationPrincipal String email) {
 
         String tenantId = TenantContext.getTenant();
         Long usuarioId = resolverUsuarioId(email, tenantId);
 
-        String checkoutUrl = mercadoPagoService.crearPreferencia(cobroId, usuarioId, tenantId);
+        // Monto personalizado opcional
+        BigDecimal montoPersonalizado = null;
+        if (body != null && body.containsKey("monto")) {
+            try {
+                montoPersonalizado = new BigDecimal(body.get("monto").toString());
+            } catch (Exception e) {
+                log.warn("Monto inválido en body: {}", body.get("monto"));
+            }
+        }
+
+        String checkoutUrl = mercadoPagoService.crearPreferencia(cobroId, usuarioId, tenantId, montoPersonalizado);
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 

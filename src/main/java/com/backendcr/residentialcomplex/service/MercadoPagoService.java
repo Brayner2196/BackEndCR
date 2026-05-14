@@ -70,8 +70,12 @@ public class MercadoPagoService {
      *
      * external_reference codifica: {tenantId}|{cobroId}|{usuarioId}
      * para que el webhook pueda recuperar el contexto multitenant sin header.
+     *
+     * @param montoPersonalizado monto opcional. Si es null se usa montoPendiente del cobro.
+     *   Si es mayor al pendiente, el exceso se acumula como saldo a favor al confirmar el pago.
+     *   Si es menor, se registra como abono parcial.
      */
-    public String crearPreferencia(Long cobroId, Long usuarioId, String tenantId) {
+    public String crearPreferencia(Long cobroId, Long usuarioId, String tenantId, BigDecimal montoPersonalizado) {
         Cobro cobro = cobroRepo.findById(cobroId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobro no encontrado"));
 
@@ -95,7 +99,10 @@ public class MercadoPagoService {
                     }
                 });
 
-        BigDecimal monto = cobro.getMontoPendiente();
+        // Usar monto personalizado si viene; de lo contrario, el total pendiente del cobro
+        BigDecimal monto = (montoPersonalizado != null && montoPersonalizado.compareTo(BigDecimal.ZERO) > 0)
+                ? montoPersonalizado
+                : cobro.getMontoPendiente();
         String periodoDesc = periodoRepo.findById(cobro.getPeriodoId())
                 .map(p -> p.getMes() + "/" + p.getAnio())
                 .orElse("Período " + cobro.getPeriodoId());
