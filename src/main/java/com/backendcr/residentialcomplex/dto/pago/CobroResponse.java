@@ -8,8 +8,8 @@ import java.time.LocalDate;
 public record CobroResponse(
         Long id,
         Long periodoId,
-        int anio,
-        int mes,
+        Integer anio,
+        Integer mes,
         Long propiedadId,
         String propiedadIdentificador,
         Long usuarioId,

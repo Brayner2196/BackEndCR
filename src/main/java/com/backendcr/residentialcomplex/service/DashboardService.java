@@ -161,9 +161,9 @@ public class DashboardService {
             if (c.getPeriodoId() != null && periodosById.containsKey(c.getPeriodoId())) {
                 PeriodoCobro p = periodosById.get(c.getPeriodoId());
                 ym = YearMonth.of(p.getAnio(), p.getMes());
-            } else if (c.getFechaLimitePago() != null) {
-                // Cobros especiales (multas/sanciones) sin período → fallback a fechaLimitePago
-                ym = YearMonth.from(c.getFechaLimitePago());
+            } else if (c.getFechaGeneracion() != null) {
+                // Cobros especiales (multas/sanciones) sin período → agrupar por fecha de emisión
+                ym = YearMonth.from(c.getFechaGeneracion());
             } else {
                 continue;
             }

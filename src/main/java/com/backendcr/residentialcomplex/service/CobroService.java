@@ -373,8 +373,8 @@ public class CobroService {
 
             return new CobroResponse(
                     c.getId(), c.getPeriodoId(),
-                    periodo != null ? periodo.getAnio() : 0,
-                    periodo != null ? periodo.getMes() : 0,
+                    periodo != null ? periodo.getAnio() : null,
+                    periodo != null ? periodo.getMes() : null,
                     c.getPropiedadId(), descripcion,
                     c.getUsuarioId(), nombreUsuario,
                     c.getConcepto(), c.getDescripcion(),
