@@ -6,9 +6,11 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPQR;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.entity.enums.EstadoReserva;
+import com.backendcr.residentialcomplex.entity.PeriodoCobro;
 import com.backendcr.residentialcomplex.repository.CobroRepository;
 import com.backendcr.residentialcomplex.repository.PQRRepository;
 import com.backendcr.residentialcomplex.repository.PagoRepository;
+import com.backendcr.residentialcomplex.repository.PeriodoCobroRepository;
 import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.ReservaRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class DashboardService {
     private final PQRRepository pqrRepo;
     private final ReservaRepository reservaRepo;
     private final PropiedadRepository propiedadRepo;
+    private final PeriodoCobroRepository periodoRepo;
 
     public DashboardResumenResponse resumen() {
         return new DashboardResumenResponse(
@@ -138,11 +142,31 @@ public class DashboardService {
 
     // ─── Helpers ──────────────────────────────────
 
+    /**
+     * Agrupa cobros por el mes/año de su PERÍODO (no por fechaLimitePago).
+     * Así la tendencia refleja en qué período de facturación pertenece cada cobro,
+     * independientemente de cuándo vence o se paga.
+     * Los cobros especiales sin período (multas, sanciones) se agrupan por fechaLimitePago
+     * como fallback para no perder esa información en el gráfico.
+     */
     private Map<YearMonth, List<Cobro>> agruparCobrosPorMes() {
+        // Pre-cargar todos los períodos para evitar N+1 queries
+        Map<Long, PeriodoCobro> periodosById = periodoRepo.findAll()
+                .stream()
+                .collect(Collectors.toMap(PeriodoCobro::getId, p -> p));
+
         Map<YearMonth, List<Cobro>> mapa = new java.util.HashMap<>();
         for (Cobro c : cobroRepo.findAll()) {
-            if (c.getFechaLimitePago() == null) continue;
-            YearMonth ym = YearMonth.from(c.getFechaLimitePago());
+            YearMonth ym;
+            if (c.getPeriodoId() != null && periodosById.containsKey(c.getPeriodoId())) {
+                PeriodoCobro p = periodosById.get(c.getPeriodoId());
+                ym = YearMonth.of(p.getAnio(), p.getMes());
+            } else if (c.getFechaLimitePago() != null) {
+                // Cobros especiales (multas/sanciones) sin período → fallback a fechaLimitePago
+                ym = YearMonth.from(c.getFechaLimitePago());
+            } else {
+                continue;
+            }
             mapa.computeIfAbsent(ym, k -> new ArrayList<>()).add(c);
         }
         return mapa;
