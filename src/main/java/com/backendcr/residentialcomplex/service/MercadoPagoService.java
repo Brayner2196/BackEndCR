@@ -103,10 +103,18 @@ public class MercadoPagoService {
         BigDecimal monto = (montoPersonalizado != null && montoPersonalizado.compareTo(BigDecimal.ZERO) > 0)
                 ? montoPersonalizado
                 : cobro.getMontoPendiente();
-        String periodoDesc = periodoRepo.findById(cobro.getPeriodoId())
-                .map(p -> p.getMes() + "/" + p.getAnio())
-                .orElse("Período " + cobro.getPeriodoId());
-        String titulo = "Cuota(s) administracion(es) - " + cobro.getPropiedadId() + " - " + periodoDesc;
+
+        // Cobros especiales (multas/sanciones) no tienen período — armar título diferente
+        String titulo;
+        if (cobro.getPeriodoId() != null) {
+            String periodoDesc = periodoRepo.findById(cobro.getPeriodoId())
+                    .map(p -> p.getMes() + "/" + p.getAnio())
+                    .orElse("Período " + cobro.getPeriodoId());
+            titulo = "Cuota administración - propiedad " + cobro.getPropiedadId() + " - " + periodoDesc;
+        } else {
+            String concepto = cobro.getConcepto() != null ? cobro.getConcepto().name() : "Cobro especial";
+            titulo = concepto + " - propiedad " + cobro.getPropiedadId();
+        }
 
         try {
             PreferenceItemRequest item = PreferenceItemRequest.builder()
