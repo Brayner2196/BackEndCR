@@ -66,6 +66,13 @@ public class ResidentePagosController {
      * Retorna todos los movimientos de un cobro específico:
      * pagos directos + movimientos de abonos distribuidos a ese cobro.
      */
+    /** Retorna el estado actualizado de un cobro específico del residente. */
+    @GetMapping("/cobros/{id}")
+    public CobroResponse miCobro(@PathVariable Long id,
+                                 @AuthenticationPrincipal String email) {
+        return cobroService.getCobroPorIdYUsuario(id, resolverUsuarioId(email));
+    }
+
     @GetMapping("/cobros/{id}/movimientos")
     public List<MovimientoCobroDto> movimientosCobro(@PathVariable Long id) {
         return pagoService.getMovimientosCobro(id);

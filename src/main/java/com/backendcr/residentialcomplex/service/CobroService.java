@@ -88,6 +88,16 @@ public class CobroService {
         return toResponseList(cobroRepo.findAllByUsuarioIdAndEstado(usuarioId, estado));
     }
 
+    /** Obtiene un único cobro validando que pertenece al usuario. */
+    public CobroResponse getCobroPorIdYUsuario(Long id, Long usuarioId) {
+        Cobro cobro = cobroRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobro no encontrado"));
+        if (!cobro.getUsuarioId().equals(usuarioId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este cobro");
+        }
+        return toResponse(cobro);
+    }
+
     public List<CobroResponse> listarEspeciales() {
         return toResponseList(cobroRepo.findAllByPeriodoIdIsNull());
     }
