@@ -178,6 +178,19 @@ public class AdminPagosController {
         return pagoService.rechazar(id, req, resolverAdminId(email));
     }
 
+    // ─── Vista Admin: cobros y estado de cuenta de un residente ───
+
+    @GetMapping("/usuarios/{id}/cobros")
+    public List<CobroResponse> cobrosPorUsuario(@PathVariable Long id) {
+        return cobroService.listarPorUsuario(id);
+    }
+
+    @GetMapping("/usuarios/{id}/estado-cuenta")
+    public EstadoCuentaResponse estadoCuentaUsuario(
+            @PathVariable Long id) {
+        return cobroService.estadoCuenta(id);
+    }
+
     // ─── Abonos ───────────────────────────────────────────────────
 
     @GetMapping("/abonos")
