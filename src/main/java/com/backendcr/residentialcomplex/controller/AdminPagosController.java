@@ -2,6 +2,8 @@ package com.backendcr.residentialcomplex.controller;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.pago.*;
+import com.backendcr.residentialcomplex.dto.pago.ConfiguracionMoraRequest;
+import com.backendcr.residentialcomplex.dto.pago.ConfiguracionMoraResponse;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
@@ -9,6 +11,7 @@ import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.AbonoService;
 import com.backendcr.residentialcomplex.service.CobroService;
 import com.backendcr.residentialcomplex.service.ConfiguracionCuotaService;
+import com.backendcr.residentialcomplex.service.ConfiguracionMoraService;
 import com.backendcr.residentialcomplex.service.PagoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +32,32 @@ public class AdminPagosController {
     private final PagoService pagoService;
     private final AbonoService abonoService;
     private final ConfiguracionCuotaService cuotaService;
+    private final ConfiguracionMoraService moraService;
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
+
+    // ─── Mora ──────────────────────────────
+
+    /** Configuración de mora activa. 404 si nunca se configuró. */
+    @GetMapping("/mora")
+    public ConfiguracionMoraResponse obtenerMoraActiva() {
+        return moraService.obtenerActiva()
+                .orElseThrow(() -> new ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Sin configuración de mora activa"));
+    }
+
+    /** Histórico completo de configuraciones de mora. */
+    @GetMapping("/mora/historico")
+    public List<ConfiguracionMoraResponse> historicoMora() {
+        return moraService.listarHistorico();
+    }
+
+    /** Crea nueva configuración de mora (desactiva la anterior). */
+    @PostMapping("/mora")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ConfiguracionMoraResponse crearMora(@Valid @RequestBody ConfiguracionMoraRequest req) {
+        return moraService.crear(req);
+    }
 
     // ─── Cuotas ────────────────────────────
 
