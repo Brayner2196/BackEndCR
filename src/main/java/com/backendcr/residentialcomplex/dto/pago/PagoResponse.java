@@ -4,7 +4,6 @@ import com.backendcr.residentialcomplex.entity.Pago;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.entity.enums.MetodoPago;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 public record PagoResponse(

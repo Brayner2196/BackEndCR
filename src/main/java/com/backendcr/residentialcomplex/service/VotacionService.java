@@ -3,7 +3,6 @@ package com.backendcr.residentialcomplex.service;
 import com.backendcr.residentialcomplex.dto.votacion.*;
 import com.backendcr.residentialcomplex.entity.*;
 import com.backendcr.residentialcomplex.entity.enums.EstadoVotacion;
-import com.backendcr.residentialcomplex.entity.enums.TipoVotacion;
 import com.backendcr.residentialcomplex.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -134,7 +134,8 @@ public class TenantService {
         tenantRepository.save(tenant);
     }
 
-    private TenantResponse toResponse(Tenant tenant) {
+    @SuppressWarnings("null")
+	private TenantResponse toResponse(Tenant tenant) {
         return new TenantResponse(
                 tenant.getId(),
                 tenant.getSchemaName(),
