@@ -105,6 +105,18 @@ public class AdminPagosController {
 
     // ─── Cobros ───────────────────────────
 
+    /** Sugiere el año/mes del siguiente período a abrir. */
+    @GetMapping("/cobros/proximo-periodo")
+    public java.util.Map<String, Integer> sugerirProximoPeriodo() {
+        return cobroService.sugerirProximoPeriodo();
+    }
+
+    /** Dry-run: cuántos cobros se generarían para (anio, mes) sin crear nada. */
+    @GetMapping("/cobros/generar/{anio}/{mes}/preview")
+    public CobroPreviewResponse previewGenerarCobros(@PathVariable int anio, @PathVariable int mes) {
+        return cobroService.previewGenerarCobros(anio, mes);
+    }
+
     @PostMapping("/cobros/generar/{anio}/{mes}")
     @ResponseStatus(HttpStatus.CREATED)
     public List<CobroResponse> generarCobros(@PathVariable int anio, @PathVariable int mes) {

@@ -183,6 +183,109 @@ public class CobroService {
         return toResponse(cobroRepo.save(cobro));
     }
 
+    // ─── Preview y sugerencia de próximo período ──────────────────────
+
+    /**
+     * Sugiere el año/mes del siguiente período a abrir, basándose en el último
+     * período registrado (sin importar su estado).
+     */
+    public Map<String, Integer> sugerirProximoPeriodo() {
+        List<PeriodoCobro> periodos = periodoRepo.findAllByOrderByAnioDescMesDesc();
+        int anio, mes;
+        if (periodos.isEmpty()) {
+            LocalDate next = LocalDate.now().plusMonths(1);
+            anio = next.getYear();
+            mes  = next.getMonthValue();
+        } else {
+            PeriodoCobro ultimo = periodos.get(0);
+            LocalDate next = LocalDate.of(ultimo.getAnio(), ultimo.getMes(), 1).plusMonths(1);
+            anio = next.getYear();
+            mes  = next.getMonthValue();
+        }
+        return Map.of("anio", anio, "mes", mes);
+    }
+
+    /**
+     * Dry-run de generarCobros: calcula cuántos cobros se generarían para (anio, mes)
+     * sin persistir nada.
+     */
+    @Transactional(readOnly = true)
+    public CobroPreviewResponse previewGenerarCobros(int anio, int mes) {
+        LocalDate fechaRef = LocalDate.of(anio, mes, 1);
+        List<Propiedad> props = propiedadRepo.findByTipoIdIsFacturable();
+
+        // Cobros ya generados en este período (si el período existe)
+        Optional<PeriodoCobro> periodoOpt = periodoRepo.findByAnioAndMes(anio, mes);
+        Set<Long> yaGenerados = periodoOpt
+                .map(p -> new HashSet<>(cobroRepo.findAllByPeriodoId(p.getId())
+                        .stream().map(Cobro::getPropiedadId).toList()))
+                .orElseGet(HashSet::new);
+
+        List<String> advertencias = new ArrayList<>();
+        boolean sinCuotasAlguna = false;
+
+        // Precargar tipos de propiedad para lookup rápido
+        Map<Long, String> tipoNombreMap = new HashMap<>();
+        tipoPropiedadRepository.findAll().forEach(t -> tipoNombreMap.put(t.getId(), t.getNombre()));
+
+        // Agrupar: key = "tipoNombre|periodicidad", value = {count, monto}
+        record GrupoKey(String nombreTipo, String periodicidad) {}
+        Map<GrupoKey, BigDecimal[]> grupos = new LinkedHashMap<>(); // [0]=monto, [1]=count
+
+        int totalPendientes = 0;
+        for (Propiedad prop : props) {
+            if (yaGenerados.contains(prop.getId())) continue;
+            BigDecimal monto = resolverMonto(prop, fechaRef);
+            if (monto == null) {
+                String nombreTipo = tipoNombreMap.getOrDefault(prop.getTipoId(), "?");
+                advertencias.add("Sin cuota configurada para tipo: " + nombreTipo);
+                sinCuotasAlguna = true;
+                continue;
+            }
+            // Determinar periodicidad de la cuota que aplica (buscamos la cuota vigente)
+            String periodicidad = cuotaRepo.findVigenteByPropiedadId(prop.getId(), fechaRef)
+                    .map(c -> c.getPeriodicidad().name())
+                    .or(() -> cuotaRepo.findVigenteByTipoIdSinRango(prop.getTipoId(), fechaRef)
+                            .map(c -> c.getPeriodicidad().name()))
+                    .orElse("MENSUAL");
+
+            String nombreTipo = tipoNombreMap.getOrDefault(prop.getTipoId(), "?");
+            GrupoKey key = new GrupoKey(nombreTipo, periodicidad);
+            grupos.computeIfAbsent(key, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+            grupos.get(key)[0] = monto; // monto por unidad (último visto, todos iguales en el grupo)
+            grupos.get(key)[1] = grupos.get(key)[1].add(BigDecimal.ONE); // count
+            totalPendientes++;
+        }
+
+        if (!moraRepo.findFirstByActivoTrueOrderByFechaVigenciaDesc().isPresent()) {
+            advertencias.add("Sin configuración de mora activa. Los cobros vencidos no generarán recargo.");
+        }
+
+        List<CobroPreviewResponse.DetalleGrupo> detalles = grupos.entrySet().stream()
+                .map(e -> new CobroPreviewResponse.DetalleGrupo(
+                        e.getKey().nombreTipo(),
+                        e.getKey().periodicidad(),
+                        e.getValue()[1].intValue(),
+                        e.getValue()[0],
+                        e.getValue()[0].multiply(e.getValue()[1])
+                ))
+                .toList();
+
+        BigDecimal montoTotal = detalles.stream()
+                .map(CobroPreviewResponse.DetalleGrupo::subtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new CobroPreviewResponse(
+                anio, mes,
+                props.size(),
+                yaGenerados.size(),
+                totalPendientes,
+                montoTotal,
+                detalles,
+                advertencias
+        );
+    }
+
     // ─── Job automático de mora — corre cada día a la 1 AM ───────────
 
     @Scheduled(cron = "0 0 1 * * *")
