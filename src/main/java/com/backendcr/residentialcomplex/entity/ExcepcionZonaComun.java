@@ -8,13 +8,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * Excepción puntual al horario estándar de una ZonaComun.
- * <ul>
- *   <li>CIERRE_ESPECIAL   — zona cerrada ese día.</li>
- *   <li>APERTURA_ESPECIAL — zona abierta con horario diferente al estándar.</li>
- * </ul>
- */
 @Entity
 @Table(name = "excepciones_zonas_comunes")
 public class ExcepcionZonaComun {

@@ -222,8 +222,6 @@ public class CobroService {
                 .orElseGet(HashSet::new);
 
         List<String> advertencias = new ArrayList<>();
-        boolean sinCuotasAlguna = false;
-
         // Precargar tipos de propiedad para lookup rápido
         Map<Long, String> tipoNombreMap = new HashMap<>();
         tipoPropiedadRepository.findAll().forEach(t -> tipoNombreMap.put(t.getId(), t.getNombre()));
@@ -239,7 +237,6 @@ public class CobroService {
             if (monto == null) {
                 String nombreTipo = tipoNombreMap.getOrDefault(prop.getTipoId(), "?");
                 advertencias.add("Sin cuota configurada para tipo: " + nombreTipo);
-                sinCuotasAlguna = true;
                 continue;
             }
             // Determinar periodicidad de la cuota que aplica (buscamos la cuota vigente)
