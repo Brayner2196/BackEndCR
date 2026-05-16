@@ -102,7 +102,7 @@ public class NotificacionService {
     private Message construirMensaje(String token, String titulo, String cuerpo, Map<String, String> datos) {
         Message.Builder builder = Message.builder()
             .setToken(token)
-            .setNotification(Notification.newBuilder()
+            .setNotification(Notification.builder()
                 .setTitle(titulo)
                 .setBody(cuerpo)
                 .build());
