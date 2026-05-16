@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
+import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.votacion.*;
 import com.backendcr.residentialcomplex.entity.*;
 import com.backendcr.residentialcomplex.entity.enums.EstadoVotacion;
@@ -22,6 +23,7 @@ public class VotacionService {
     private final OpcionVotacionRepository opcionRepo;
     private final VotoResidenteRepository votoRepo;
     private final UsuarioRepository usuarioRepo;
+    private final NotificacionService notificacionService;
 
     // ─── Admin: CRUD ─────────────────────────────────────────────────────────
 
@@ -63,7 +65,18 @@ public class VotacionService {
     public VotacionResponse cambiarEstado(Long id, CambiarEstadoVotacionRequest req) {
         Votacion v = obtener(id);
         v.setEstado(req.estado());
-        return toResponse(votacionRepo.save(v), null, true);
+        VotacionResponse response = toResponse(votacionRepo.save(v), null, true);
+
+        if (req.estado() == EstadoVotacion.ABIERTA) {
+            notificacionService.enviarATenant(
+                TenantContext.getTenant(),
+                "🗳️ Nueva votación disponible",
+                v.getTitulo(),
+                java.util.Map.of("tipo", "VOTACION", "votacionId", String.valueOf(id))
+            );
+        }
+
+        return response;
     }
 
     /** Resultados detallados para el admin */

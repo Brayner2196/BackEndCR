@@ -77,7 +77,12 @@ public class NotificacionService {
     // ─── Internos ─────────────────────────────────────────────────────────────
 
     private void enviarATokens(List<DeviceToken> deviceTokens, String titulo, String cuerpo, Map<String, String> datos) {
-        if (deviceTokens.isEmpty()) return;
+        if (deviceTokens.isEmpty()) {
+            log.warn("FCM: no hay tokens registrados para enviar la notificación '{}'", titulo);
+            return;
+        }
+
+        log.info("FCM: intentando enviar '{}' a {} dispositivos", titulo, deviceTokens.size());
 
         List<Message> mensajes = deviceTokens.stream()
             .map(dt -> construirMensaje(dt.getToken(), titulo, cuerpo, datos))
@@ -88,14 +93,13 @@ public class NotificacionService {
             log.info("FCM: {} enviados, {} fallidos de {} tokens",
                 response.getSuccessCount(), response.getFailureCount(), mensajes.size());
 
-            // Loguear errores individuales sin lanzar excepción
             response.getResponses().forEach(r -> {
                 if (!r.isSuccessful()) {
-                    log.warn("FCM error en token: {}", r.getException().getMessage());
+                    log.warn("FCM token inválido o expirado: {}", r.getException().getMessage());
                 }
             });
         } catch (FirebaseMessagingException e) {
-            log.error("Error al enviar notificaciones FCM: {}", e.getMessage(), e);
+            log.error("FCM error al enviar batch: {}", e.getMessage(), e);
         }
     }
 
@@ -117,8 +121,23 @@ public class NotificacionService {
     private boolean firebaseDisponible() {
         boolean disponible = !FirebaseApp.getApps().isEmpty();
         if (!disponible) {
-            log.debug("Firebase no inicializado — notificación omitida.");
+            log.warn("FCM: Firebase no inicializado — verifica la variable FIREBASE_CREDENTIALS_JSON en Railway.");
         }
         return disponible;
+    }
+
+    /** Diagnóstico: retorna el estado de Firebase y la cantidad de tokens en DB. */
+    public Map<String, Object> diagnostico(Long usuarioId) {
+        boolean inicializado = !FirebaseApp.getApps().isEmpty();
+        List<DeviceToken> tokens = deviceTokenRepository.findByUsuarioId(usuarioId);
+        return Map.of(
+            "firebaseInicializado", inicializado,
+            "tokensEnDb", tokens.size(),
+            "tokens", tokens.stream().map(t -> Map.of(
+                "plataforma", t.getPlataforma(),
+                "tokenParcial", t.getToken().substring(0, Math.min(20, t.getToken().length())) + "...",
+                "actualizadoEn", t.getActualizadoEn() != null ? t.getActualizadoEn().toString() : "N/A"
+            )).toList()
+        );
     }
 }

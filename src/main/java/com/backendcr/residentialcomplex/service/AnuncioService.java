@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
+import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.anuncio.*;
 import com.backendcr.residentialcomplex.entity.Anuncio;
 import com.backendcr.residentialcomplex.entity.AnuncioVista;
@@ -23,6 +24,7 @@ public class AnuncioService {
     private final AnuncioRepository anuncioRepo;
     private final AnuncioVistaRepository vistaRepo;
     private final UsuarioRepository usuarioRepo;
+    private final NotificacionService notificacionService;
 
     // ─── Admin ──────────────────────────────────────────────────────────────
 
@@ -43,7 +45,16 @@ public class AnuncioService {
         a.setEstado(EstadoAnuncio.ACTIVO);
         if (req.fechaInicio() != null) a.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
         if (req.fechaFin() != null) a.setFechaFin(LocalDateTime.parse(req.fechaFin()));
-        return toResponse(anuncioRepo.save(a), null, false);
+        AnuncioResponse response = toResponse(anuncioRepo.save(a), null, false);
+
+        notificacionService.enviarATenant(
+            TenantContext.getTenant(),
+            "📢 Nuevo anuncio",
+            req.titulo(),
+            java.util.Map.of("tipo", "ANUNCIO", "anuncioId", String.valueOf(response.id()))
+        );
+
+        return response;
     }
 
     @Transactional

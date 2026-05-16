@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
+import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.pago.*;
 import com.backendcr.residentialcomplex.entity.*;
 import com.backendcr.residentialcomplex.entity.enums.*;
@@ -33,6 +34,7 @@ public class CobroService {
     private final UsuarioRepository usuarioRepo;
     private final PagoRepository pagoRepo;
     private final MovimientoAbonoRepository movimientoAbonoRepo;
+    private final NotificacionService notificacionService;
 
     // ─── Períodos ──────────────────────────────────────────────
 
@@ -56,7 +58,17 @@ public class CobroService {
         p.setFechaFin(req.fechaFin());
         p.setFechaLimitePago(req.fechaLimitePago());
         p.setEstado(EstadoPeriodo.ABIERTO);
-        return PeriodoCobroResponse.from(periodoRepo.save(p));
+        PeriodoCobroResponse response = PeriodoCobroResponse.from(periodoRepo.save(p));
+
+        String mesAnio = req.mes() + "/" + req.anio();
+        notificacionService.enviarATenant(
+            TenantContext.getTenant(),
+            "💳 Nuevo período de cobro abierto",
+            "Se abrió el período de cobro " + mesAnio + ". Pronto recibirás tu liquidación.",
+            java.util.Map.of("tipo", "COBRO_PERIODO", "periodoId", String.valueOf(response.id()))
+        );
+
+        return response;
     }
 
     @Transactional
@@ -143,7 +155,19 @@ public class CobroService {
             cobro.setEstado(EstadoCobro.PENDIENTE);
             cobroRepo.save(cobro);
         }
-        return listarPorPeriodo(periodo.getId());
+        List<CobroResponse> cobros = listarPorPeriodo(periodo.getId());
+
+        // Notificar a cada residente con su monto específico
+        cobros.stream()
+            .filter(c -> c.usuarioId() != null)
+            .forEach(c -> notificacionService.enviarAUsuario(
+                c.usuarioId(),
+                "💳 Tu cobro de administración está listo",
+                "Tienes un cobro pendiente de $" + c.montoTotal() + " con límite " + c.fechaLimitePago(),
+                java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()))
+            ));
+
+        return cobros;
     }
 
     /**

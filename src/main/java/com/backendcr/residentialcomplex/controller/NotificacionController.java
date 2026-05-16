@@ -27,7 +27,6 @@ public class NotificacionController {
 
     /**
      * Registra o actualiza el FCM token del usuario autenticado.
-     * Flutter lo llama al iniciar sesión (y cuando el token se renueva).
      */
     @PostMapping("/token")
     public Map<String, String> registrarToken(
@@ -41,13 +40,39 @@ public class NotificacionController {
     }
 
     /**
-     * Elimina el FCM token al hacer logout (evita recibir notificaciones en sesiones cerradas).
+     * Elimina el FCM token al hacer logout.
      */
     @DeleteMapping("/token")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarToken(@AuthenticationPrincipal String email) {
+        notificacionService.eliminarTokensDeUsuario(resolverUsuarioId(email));
+    }
+
+    /**
+     * Diagnóstico: verifica si Firebase está inicializado y qué tokens hay en DB para el usuario.
+     * Útil para depurar por qué no llegan notificaciones.
+     * GET /api/notificaciones/diagnostico
+     */
+    @GetMapping("/diagnostico")
+    public Map<String, Object> diagnostico(@AuthenticationPrincipal String email) {
         Long usuarioId = resolverUsuarioId(email);
-        notificacionService.eliminarTokensDeUsuario(usuarioId);
+        return notificacionService.diagnostico(usuarioId);
+    }
+
+    /**
+     * Envía una notificación de prueba al usuario autenticado.
+     * POST /api/notificaciones/test
+     */
+    @PostMapping("/test")
+    public Map<String, String> test(@AuthenticationPrincipal String email) {
+        Long usuarioId = resolverUsuarioId(email);
+        notificacionService.enviarAUsuario(
+            usuarioId,
+            "🔔 Notificación de prueba",
+            "Si ves esto, FCM está funcionando correctamente.",
+            Map.of("tipo", "TEST")
+        );
+        return Map.of("mensaje", "Notificación enviada — revisa el dispositivo");
     }
 
     // ── Helper ────────────────────────────────────────────
