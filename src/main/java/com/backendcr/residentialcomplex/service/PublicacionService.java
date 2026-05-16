@@ -41,8 +41,11 @@ public class PublicacionService {
      */
     public List<PublicacionResponse> marketplace(Long compradorId, String busqueda,
                                                   CategoriaPublicacion categoria) {
-        List<Publicacion> activas = publicacionRepo.buscarActivas(categoria,
-                busqueda != null && busqueda.isBlank() ? null : busqueda);
+        // Pasar categoría como String para la native query (evita bytea con null)
+        String categoriaStr = categoria != null ? categoria.name() : null;
+        String busquedaStr  = busqueda != null && !busqueda.isBlank() ? busqueda : null;
+
+        List<Publicacion> activas = publicacionRepo.buscarActivas(categoriaStr, busquedaStr);
 
         // Obtener propiedad principal del comprador para calcular proximidad
         Long propiedadCompradorId = propiedadPrincipalId(compradorId);
