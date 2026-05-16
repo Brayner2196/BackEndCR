@@ -23,7 +23,7 @@ public class Reserva {
     @Column(name = "residente_id", nullable = false)
     private Long residenteId;
 
-    @Column(name = "propiedad_id")
+    @Column(name = "propiedad_id") 
     private Long propiedadId;
 
     @Column(nullable = false)
