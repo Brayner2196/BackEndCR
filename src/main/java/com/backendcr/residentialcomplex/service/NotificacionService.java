@@ -109,6 +109,14 @@ public class NotificacionService {
             .setNotification(Notification.builder()
                 .setTitle(titulo)
                 .setBody(cuerpo)
+                .build())
+            .setAndroidConfig(AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(AndroidNotification.builder()
+                    .setChannelId("conjuntos_cr_channel")
+                    .setClickAction("FLUTTER_NOTIFICATION_CLICK")
+                    .setSound("default")
+                    .build())
                 .build());
 
         if (datos != null && !datos.isEmpty()) {
