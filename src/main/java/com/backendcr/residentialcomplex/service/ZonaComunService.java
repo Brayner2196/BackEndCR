@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -57,8 +59,8 @@ public class ZonaComunService {
         if (req.capacidad() != null) z.setCapacidad(req.capacidad());
         if (req.activa() != null) z.setActiva(req.activa());
 
-        z.setHoraApertura(req.horaApertura());
-        z.setHoraCierre(req.horaCierre());
+        z.setHoraApertura(parseTime(req.horaApertura()));
+        z.setHoraCierre(parseTime(req.horaCierre()));
         z.setDiasDisponibles(req.diasDisponibles());
         z.setDuracionMinMinutos(req.duracionMinMinutos());
         z.setDuracionMaxMinutos(req.duracionMaxMinutos());
@@ -105,30 +107,34 @@ public class ZonaComunService {
                                                         @Valid ExcepcionZonaComunRequest req) {
         obtener(zonaId); // valida existencia
 
+        LocalTime apertura = parseTime(req.horaApertura());
+        LocalTime cierre   = parseTime(req.horaCierre());
+        LocalDate fecha    = parseDate(req.fecha());
+
         // Para APERTURA_ESPECIAL se requieren horas
         if (req.tipo() == TipoExcepcionZona.APERTURA_ESPECIAL) {
-            if (req.horaApertura() == null || req.horaCierre() == null) {
+            if (apertura == null || cierre == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "APERTURA_ESPECIAL requiere horaApertura y horaCierre");
             }
-            if (!req.horaCierre().isAfter(req.horaApertura())) {
+            if (!cierre.isAfter(apertura)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "horaCierre debe ser posterior a horaApertura");
             }
         }
 
         // No se puede tener dos excepciones el mismo día
-        excepcionRepo.findByZonaComunIdAndFecha(zonaId, req.fecha()).ifPresent(e -> {
+        excepcionRepo.findByZonaComunIdAndFecha(zonaId, fecha).ifPresent(e -> {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Ya existe una excepción para la fecha " + req.fecha());
+                    "Ya existe una excepción para la fecha " + fecha);
         });
 
         ExcepcionZonaComun ex = new ExcepcionZonaComun();
         ex.setZonaComunId(zonaId);
-        ex.setFecha(req.fecha());
+        ex.setFecha(fecha);
         ex.setTipo(req.tipo());
-        ex.setHoraApertura(req.horaApertura());
-        ex.setHoraCierre(req.horaCierre());
+        ex.setHoraApertura(apertura);
+        ex.setHoraCierre(cierre);
         ex.setMotivo(req.motivo());
         return ExcepcionZonaComunResponse.from(excepcionRepo.save(ex));
     }
@@ -145,11 +151,43 @@ public class ZonaComunService {
         });
     }
 
-    // ─── Helper ────────────────────────────────────────────────
+    // ─── Helpers ───────────────────────────────────────────────
 
     public ZonaComun obtener(Long id) {
         return zonaRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Zona común no encontrada"));
+    }
+
+    /**
+     * Parsea "HH:mm", "HH:mm:ss" o "HH:mm:ss+00" → LocalTime.
+     * Retorna null si la cadena es nula o vacía.
+     */
+    private LocalTime parseTime(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            // Tomar solo los primeros 8 caracteres para ignorar offset de timezone
+            String normalized = s.length() > 8 ? s.substring(0, 8) : s;
+            // Si viene "HH:mm" (5 chars), agregarle ":00"
+            if (normalized.length() == 5) normalized += ":00";
+            return LocalTime.parse(normalized);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Formato de hora inválido: " + s + ". Use HH:mm o HH:mm:ss");
+        }
+    }
+
+    /**
+     * Parsea "yyyy-MM-dd" o "yyyy-MM-ddT..." → LocalDate.
+     * Retorna null si la cadena es nula o vacía.
+     */
+    private LocalDate parseDate(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return LocalDate.parse(s.substring(0, 10));
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Formato de fecha inválido: " + s + ". Use yyyy-MM-dd");
+        }
     }
 }
