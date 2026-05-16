@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * Un usuario puede tener varios dispositivos (móvil, tablet, etc.).
  */
 @Entity
-@Table(name = "device_tokens",
+@Table(name = "device_tokens", schema = "public",
     uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_id", "plataforma"})
 )
 public class DeviceToken {

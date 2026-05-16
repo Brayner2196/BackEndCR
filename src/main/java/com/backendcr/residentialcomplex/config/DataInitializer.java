@@ -46,11 +46,58 @@ public class DataInitializer implements CommandLineRunner {
 		TenantContext.setTenant("public");
 		log.info("Iniciando carga de datos de prueba...");
 
+		crearTablasPublicas();
 		crearSuperAdmin();
 		crearConjuntoPrueba();
 
 		log.info("Datos de prueba cargados correctamente");
 		imprimirCredenciales();
+	}
+
+	// ─── Schema public ────────────────────────────────────────────────────────
+
+	/**
+	 * Crea las tablas del schema public que corresponden a las entidades
+	 * anotadas con @Table(schema = "public"): identidades, tenants, device_tokens.
+	 * Usa CREATE TABLE IF NOT EXISTS para ser idempotente en cada arranque.
+	 */
+	private void crearTablasPublicas() {
+		log.info("Verificando tablas del schema public...");
+
+		jdbcTemplate.execute("""
+				CREATE TABLE IF NOT EXISTS public.identidades (
+				    id        BIGSERIAL PRIMARY KEY,
+				    email     VARCHAR(255) NOT NULL,
+				    password  VARCHAR(255) NOT NULL,
+				    rol       VARCHAR(255) NOT NULL,
+				    tenant_id VARCHAR(255)
+				)
+				""");
+
+		jdbcTemplate.execute("""
+				CREATE TABLE IF NOT EXISTS public.tenants (
+				    id          BIGSERIAL PRIMARY KEY,
+				    schema_name VARCHAR(255) NOT NULL UNIQUE,
+				    nombre      VARCHAR(255) NOT NULL,
+				    codigo      VARCHAR(255) NOT NULL UNIQUE,
+				    activo      BOOLEAN      NOT NULL DEFAULT TRUE,
+				    direccion   VARCHAR(255)
+				)
+				""");
+
+		jdbcTemplate.execute("""
+				CREATE TABLE IF NOT EXISTS public.device_tokens (
+				    id             BIGSERIAL PRIMARY KEY,
+				    usuario_id     BIGINT       NOT NULL,
+				    tenant_id      VARCHAR(255)  NOT NULL,
+				    token          VARCHAR(512)  NOT NULL,
+				    plataforma     VARCHAR(20)   NOT NULL,
+				    actualizado_en TIMESTAMP,
+				    UNIQUE(usuario_id, plataforma)
+				)
+				""");
+
+		log.info("Tablas del schema public verificadas/creadas");
 	}
 
 	private void crearSuperAdmin() {
@@ -72,7 +119,9 @@ public class DataInitializer implements CommandLineRunner {
 
 	private void crearConjuntoPrueba() {
 		if (tenantRepository.existsBySchemaName(SCHEMA)) {
-			log.info("Conjunto de prueba ya existe, omitiendo...");
+			log.info("Conjunto de prueba ya existe — ejecutando migraciones de schema...");
+			jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + SCHEMA);
+			tenantService.crearTablasTenant(SCHEMA);
 			return;
 		}
 

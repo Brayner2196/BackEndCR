@@ -292,14 +292,41 @@ public class TenantService {
         // ── 9. zonas_comunes ──────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.zonas_comunes (
-                    id          BIGSERIAL PRIMARY KEY,
-                    nombre      VARCHAR(100) NOT NULL,
-                    descripcion VARCHAR(500),
-                    capacidad   INT NOT NULL DEFAULT 0,
-                    activa      BOOLEAN NOT NULL DEFAULT TRUE,
-                    creado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    id                    BIGSERIAL PRIMARY KEY,
+                    nombre                VARCHAR(100) NOT NULL,
+                    descripcion           VARCHAR(500),
+                    capacidad             INT          NOT NULL DEFAULT 0,
+                    activa                BOOLEAN      NOT NULL DEFAULT TRUE,
+                    hora_apertura         TIME,
+                    hora_cierre           TIME,
+                    dias_disponibles      VARCHAR(100),
+                    duracion_min_minutos  INT,
+                    duracion_max_minutos  INT,
+                    anticipacion_min_dias INT,
+                    anticipacion_max_dias INT,
+                    requiere_aprobacion   BOOLEAN      NOT NULL DEFAULT TRUE,
+                    suspendida            BOOLEAN      NOT NULL DEFAULT FALSE,
+                    motivo_suspension     VARCHAR(300),
+                    creado_en             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+
+        // Migración: agrega columnas nuevas a tenants existentes (idempotente)
+        jdbcTemplate.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS hora_apertura         TIME;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS hora_cierre           TIME;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS dias_disponibles      VARCHAR(100);
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS duracion_min_minutos  INT;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS duracion_max_minutos  INT;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS anticipacion_min_dias INT;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS anticipacion_max_dias INT;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS requiere_aprobacion   BOOLEAN NOT NULL DEFAULT TRUE;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS suspendida            BOOLEAN NOT NULL DEFAULT FALSE;
+                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS motivo_suspension     VARCHAR(300);
+                END $$;
+                """.formatted(schema, schema, schema, schema, schema,
+                              schema, schema, schema, schema, schema));
 
         // ── 10. reservas ──────────────────────────────────────────────────
         jdbcTemplate.execute("""
