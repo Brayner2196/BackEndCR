@@ -25,7 +25,7 @@ public class SaldoFavor {
     @Column(name = "usuario_id", nullable = false)
     private Long usuarioId;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(nullable = false, precision = 12, scale = 0)
     private BigDecimal saldo = BigDecimal.ZERO;
 
     @CreationTimestamp

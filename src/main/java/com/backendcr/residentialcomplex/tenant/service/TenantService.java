@@ -20,9 +20,11 @@ import com.backendcr.residentialcomplex.tenant.dto.TenantResponse;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TenantService {
 
     private final TenantRepository tenantRepository;
@@ -162,18 +164,22 @@ public class TenantService {
      *  7. anuncios
      *  8. anuncio_vistas
      *  9. zonas_comunes
-     * 10. reservas
-     * 11. periodos_cobro
-     * 12. configuracion_cuotas    ← +tipo_propiedad_condicion_id, +fecha_vigencia_hasta
-     * 13. configuracion_mora
-     * 14. cobros                  ← periodo_id nullable (cobros especiales)
-     * 15. pagos
-     * 16. abonos
-     * 17. movimientos_abono
-     * 18. saldos_favor
-     * 19. votaciones
-     * 20. opciones_votacion
-     * 21. votos_residentes
+     * 1.excepciones_zonas_comunes
+     * 1. reservas
+     * 1. periodos_cobro
+     * 1. configuracion_cuotas    ← +tipo_propiedad_condicion_id, +fecha_vigencia_hasta
+     * 1. configuracion_mora
+     * 1. cobros                  ← periodo_id nullable (cobros especiales)
+     * 1. pagos
+     * 1. abonos
+     * 1. movimientos_abono
+     * 1. saldos_favor
+     * 1. votaciones
+     * 2. opciones_votacion
+     * 2. votos_residentes
+     * 2. inquilino_permisos
+     * 2. publicaciones
+     * 2. solicitudes
      */
     public void crearTablasTenant(String schema) {
 
@@ -189,6 +195,7 @@ public class TenantService {
                     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        log.info("Tabla usuarios creada para tenant '{}'", schema);
 
         // ── 2. tipos_propiedad ────────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -202,6 +209,7 @@ public class TenantService {
                     activo        BOOLEAN NOT NULL DEFAULT TRUE
                 )
                 """.formatted(schema, schema));
+        log.info("Tabla tipos_propiedad creada para tenant '{}'", schema);
 
         // ── 3. propiedades ────────────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -210,11 +218,12 @@ public class TenantService {
                     tipo_id        BIGINT NOT NULL REFERENCES %s.tipos_propiedad(id),
                     identificador  VARCHAR(50) NOT NULL,
                     parent_id      BIGINT REFERENCES %s.propiedades(id),
-                    estado         VARCHAR(30) NOT NULL DEFAULT 'DISPONIBLE',
+                    estado         VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE',
                     creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
+        log.info("Tabla propiedades creada para tenant '{}'", schema);
 
         // ── 4. usuario_propiedades ────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -227,24 +236,27 @@ public class TenantService {
                     UNIQUE(usuario_id, propiedad_id)
                 )
                 """.formatted(schema, schema));
+        log.info("Tabla usuario_propiedades creada para tenant '{}'", schema);
 
         // ── 5. pqrs ───────────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.pqrs (
                     id               BIGSERIAL PRIMARY KEY,
-                    tipo             VARCHAR(20) NOT NULL,
+                    tipo             VARCHAR(12) NOT NULL,
                     asunto           VARCHAR(200) NOT NULL,
-                    descripcion      VARCHAR(2000) NOT NULL,
+                    descripcion      VARCHAR(500) NOT NULL,
                     estado           VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
                     residente_id     BIGINT NOT NULL,
                     propiedad_id     BIGINT,
-                    respuesta_admin  VARCHAR(2000),
+                    respuesta_admin  VARCHAR(500),
                     respondido_por   BIGINT,
                     fecha_respuesta  TIMESTAMP,
                     creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        log.info("Tabla pqrs creada para tenant '{}'", schema);
+        
 
         // ── 6. pqr_historial ─────────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -258,34 +270,36 @@ public class TenantService {
                     fecha_cambio    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
+        log.info("Tabla pqr_historial creada para tenant '{}'", schema);
 
         // ── 7. anuncios ───────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.anuncios (
                     id             BIGSERIAL PRIMARY KEY,
                     titulo         VARCHAR(200) NOT NULL,
-                    contenido      VARCHAR(4000) NOT NULL,
-                    imagen_url     VARCHAR(500),
+                    contenido      VARCHAR(2500) NOT NULL,
                     estado         VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
-                    creado_por     BIGINT NOT NULL,
+                    creado_por     BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     fecha_inicio   TIMESTAMP,
                     fecha_fin      TIMESTAMP,
                     creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        log.info("Tabla anuncios creada para tenant '{}'", schema);
 
         // ── 8. anuncio_vistas ─────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.anuncio_vistas (
                     id               BIGSERIAL PRIMARY KEY,
                     anuncio_id       BIGINT NOT NULL REFERENCES %s.anuncios(id),
-                    residente_id     BIGINT NOT NULL,
+                    residente_id     BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     residente_nombre VARCHAR(150),
                     visto_en         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(anuncio_id, residente_id)
                 )
                 """.formatted(schema, schema));
+        log.info("Tabla anuncio_vistas creada para tenant '{}'", schema);
 
         // ── 9. zonas_comunes ──────────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -308,9 +322,10 @@ public class TenantService {
                     creado_en             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        	log.info("Tabla zonas_comunes creada para tenant '{}'", schema);
 
         // Migración: agrega columnas nuevas a tenants existentes (idempotente)
-        jdbcTemplate.execute("""
+        /*jdbcTemplate.execute("""
                 DO $$ BEGIN
                     ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS hora_apertura         TIME;
                     ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS hora_cierre           TIME;
@@ -324,27 +339,44 @@ public class TenantService {
                     ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS motivo_suspension     VARCHAR(300);
                 END $$;
                 """.formatted(schema, schema, schema, schema, schema,
-                              schema, schema, schema, schema, schema));
+                              schema, schema, schema, schema, schema));*/
 
-        // ── 10. reservas ──────────────────────────────────────────────────
+        
+        // ── 10. excepciones_zonas_comunes ──────────────────────────────────────────────────
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS %s.excepciones_zonas_comunes (
+                        id               BIGSERIAL PRIMARY KEY,
+                        zona_comun_id    BIGINT NOT NULL REFERENCES %s.zonas_comunes(id),
+                        fecha			 DATE NOT NULL,
+                        tipo             VARCHAR(30) NOT NULL,
+                        hora_apertura    TIME NOT NULL,
+                        hora_cierre      TIME NOT NULL,
+                        motivo		     VARCHAR(300),
+                        creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP                        
+                    )
+                    """.formatted(schema, schema));
+            log.info("Tabla excepciones_zonas_comunes creada para tenant '{}'", schema);
+        	
+        // ── 11. reservas ──────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.reservas (
                     id               BIGSERIAL PRIMARY KEY,
                     zona_comun_id    BIGINT NOT NULL REFERENCES %s.zonas_comunes(id),
-                    residente_id     BIGINT NOT NULL,
-                    propiedad_id     BIGINT,
+                    residente_id     BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    propiedad_id     BIGINT NOT NULL REFERENCES %s.propiedades(id),
                     fecha            DATE NOT NULL,
                     hora_inicio      TIME NOT NULL,
                     hora_fin         TIME NOT NULL,
                     estado           VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
                     observaciones    VARCHAR(500),
-                    decidido_por     BIGINT,
+                    decidido_por     BIGINT REFERENCES %s.usuarios(id),
                     motivo_decision  VARCHAR(300),
                     fecha_decision   TIMESTAMP,
                     creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
+        log.info("Tabla reservas creada para tenant '{}'", schema);
 
         // ── 11. periodos_cobro ────────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -356,10 +388,12 @@ public class TenantService {
                     fecha_fin           DATE NOT NULL,
                     fecha_limite_pago   DATE NOT NULL,
                     estado              VARCHAR(20) NOT NULL DEFAULT 'ABIERTO',
+                    creado_por     BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(anio, mes)
                 )
                 """.formatted(schema));
+        log.info("Tabla periodos_cobro creada para tenant '{}'", schema);
 
         // ── 12. configuracion_cuotas ──────────────────────────────────────
         // tipo_propiedad_condicion_id: tipo ancestro sobre el que se evalúa
@@ -373,7 +407,7 @@ public class TenantService {
                     tipo_propiedad_condicion_id BIGINT REFERENCES %s.tipos_propiedad(id),
                     numero_desde                INT,
                     numero_hasta                INT,
-                    monto                       NUMERIC(12,2) NOT NULL,
+                    monto                       NUMERIC(12,0) NOT NULL,
                     periodicidad                VARCHAR(20) NOT NULL DEFAULT 'MENSUAL',
                     fecha_vigencia_desde        DATE NOT NULL,
                     fecha_vigencia_hasta        DATE,
@@ -382,6 +416,7 @@ public class TenantService {
                     actualizado_en              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema, schema));
+        log.info("Tabla configuracion_cuotas creada para tenant '{}'", schema);
 
         // ── 13. configuracion_mora ────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -390,12 +425,13 @@ public class TenantService {
                     porcentaje_mensual  NUMERIC(5,2),
                     dias_gracia         INT NOT NULL DEFAULT 0,
                     tipo_calculo        VARCHAR(20) NOT NULL DEFAULT 'PORCENTAJE',
-                    monto_fijo          NUMERIC(12,2),
+                    monto_fijo          NUMERIC(12,0),
                     activo              BOOLEAN NOT NULL DEFAULT TRUE,
                     fecha_vigencia      DATE NOT NULL,
                     creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        log.info("Tabla configuracion_mora creada para tenant '{}'", schema);
 
         // ── 14. cobros ────────────────────────────────────────────────────
         // periodo_id es nullable: null = cobro especial (multa, sanción, etc.)
@@ -407,10 +443,10 @@ public class TenantService {
                     usuario_id           BIGINT,
                     concepto             VARCHAR(20) NOT NULL DEFAULT 'ADMINISTRACION',
                     descripcion          VARCHAR(200),
-                    monto_base           NUMERIC(12,2) NOT NULL,
-                    monto_mora           NUMERIC(12,2) NOT NULL DEFAULT 0,
-                    monto_total          NUMERIC(12,2),
-                    monto_pagado         NUMERIC(12,2) NOT NULL DEFAULT 0,
+                    monto_base           NUMERIC(12,0) NOT NULL,
+                    monto_mora           NUMERIC(12,0) NOT NULL DEFAULT 0,
+                    monto_total          NUMERIC(12,0),
+                    monto_pagado         NUMERIC(12,0) NOT NULL DEFAULT 0,
                     fecha_generacion     DATE NOT NULL,
                     fecha_limite_pago    DATE NOT NULL,
                     estado               VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
@@ -420,35 +456,36 @@ public class TenantService {
                     actualizado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
+        log.info("Tabla cobros creada para tenant '{}'", schema);
 
         // ── 15. pagos ─────────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.pagos (
                     id                  BIGSERIAL PRIMARY KEY,
                     cobro_id            BIGINT NOT NULL REFERENCES %s.cobros(id),
-                    usuario_id          BIGINT NOT NULL,
-                    monto_pagado        NUMERIC(12,2) NOT NULL,
+                    usuario_id          BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    monto_pagado        NUMERIC(12,0) NOT NULL,
                     fecha_pago          DATE NOT NULL,
                     metodo_pago         VARCHAR(20) NOT NULL,
                     referencia          VARCHAR(100),
                     url_comprobante     VARCHAR(500),
-                    notas               VARCHAR(500),
                     estado              VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE_VERIFICACION',
-                    verificado_por      BIGINT,
+                    verificado_por      BIGINT REFERENCES %s.usuarios(id),
                     fecha_verificacion  TIMESTAMP,
                     motivo_rechazo      VARCHAR(300),
                     creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
+        	log.info("Tabla pagos creada para tenant '{}'", schema);
 
         // ── 16. abonos ────────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.abonos (
                     id                  BIGSERIAL PRIMARY KEY,
                     propiedad_id        BIGINT NOT NULL REFERENCES %s.propiedades(id),
-                    usuario_id          BIGINT NOT NULL,
-                    monto_total         NUMERIC(12,2) NOT NULL,
+                    usuario_id          BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    monto_total         NUMERIC(12,0) NOT NULL,
                     fecha_pago          DATE NOT NULL,
                     metodo_pago         VARCHAR(20) NOT NULL,
                     referencia          VARCHAR(100),
@@ -462,6 +499,7 @@ public class TenantService {
                     actualizado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
+        log.info("Tabla abonos creada para tenant '{}'", schema);
 
         // ── 17. movimientos_abono ─────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -469,11 +507,12 @@ public class TenantService {
                     id              BIGSERIAL PRIMARY KEY,
                     abono_id        BIGINT REFERENCES %s.abonos(id),
                     cobro_id        BIGINT REFERENCES %s.cobros(id),
-                    monto_aplicado  NUMERIC(12,2) NOT NULL,
-                    descripcion     VARCHAR(200),
+                    monto_aplicado  NUMERIC(12,0) NOT NULL,
+                    descripcion     VARCHAR(100),
                     creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
+        	log.info("Tabla movimientos_abono creada para tenant '{}'", schema);
 
         // ── 18. saldos_favor ──────────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -481,18 +520,19 @@ public class TenantService {
                     id              BIGSERIAL PRIMARY KEY,
                     propiedad_id    BIGINT NOT NULL UNIQUE REFERENCES %s.propiedades(id),
                     usuario_id      BIGINT NOT NULL,
-                    saldo           NUMERIC(12,2) NOT NULL DEFAULT 0,
+                    saldo           NUMERIC(12,0) NOT NULL DEFAULT 0,
                     creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
+        	log.info("Tabla saldos_favor creada para tenant '{}'", schema);
 
         // ── 19. votaciones ────────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.votaciones (
                     id                   BIGSERIAL PRIMARY KEY,
                     titulo               VARCHAR(300) NOT NULL,
-                    descripcion          VARCHAR(2000),
+                    descripcion          VARCHAR(1000),
                     tipo_votacion        VARCHAR(30) NOT NULL,
                     estado               VARCHAR(20) NOT NULL DEFAULT 'BORRADOR',
                     escala_max           INT,
@@ -500,11 +540,12 @@ public class TenantService {
                     permite_cambiar_voto BOOLEAN NOT NULL DEFAULT FALSE,
                     fecha_inicio         TIMESTAMP,
                     fecha_fin            TIMESTAMP,
-                    creado_por           BIGINT NOT NULL,
+                    creado_por           BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     creado_en            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        	log.info("Tabla votaciones creada para tenant '{}'", schema);
 
         // ── 20. opciones_votacion ─────────────────────────────────────────
         jdbcTemplate.execute("""
@@ -515,21 +556,81 @@ public class TenantService {
                     orden       INT NOT NULL DEFAULT 0
                 )
                 """.formatted(schema, schema));
+        	log.info("Tabla opciones_votacion creada para tenant '{}'", schema);
 
         // ── 21. votos_residentes ──────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.votos_residentes (
                     id               BIGSERIAL PRIMARY KEY,
                     votacion_id      BIGINT NOT NULL REFERENCES %s.votaciones(id),
-                    residente_id     BIGINT NOT NULL,
+                    residente_id     BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     residente_nombre VARCHAR(150),
                     opcion_id        BIGINT REFERENCES %s.opciones_votacion(id),
                     valor_numerico   INT,
-                    respuesta_texto  VARCHAR(2000),
+                    respuesta_texto  VARCHAR(1000),
                     votado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
+        	log.info("Tabla votos_residentes creada para tenant '{}'", schema);
+        	
+    	// ── 21. inquilino_permisos ──────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.inquilino_permisos (
+                    id               BIGSERIAL PRIMARY KEY,
+                    inquilino_id      BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    propietario_id    BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    permiso        VARCHAR(30) NOT NULL
+                )
+                """.formatted(schema, schema, schema));
+        	log.info("Tabla inquilino_permisos creada para tenant '{}'", schema);
+        	
+    	// ── 21. publicaciones ──────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.publicaciones (
+                    id               BIGSERIAL PRIMARY KEY,
+                    vendedor_id      BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    vendedor_nombre	 VARCHAR(150) NOT NULL,
+                    propiedad_id     BIGINT NOT NULL REFERENCES %s.propiedades(id),
+                    titulo           VARCHAR(120) NOT NULL,
+                    descripcion      VARCHAR(1000),
+                    precio           NUMERIC(12,0) NOT NULL,
+                    categoria		 VARCHAR(30) NOT NULL,
+                    contacto		 VARCHAR(100),
+                    marca			 VARCHAR(50),
+                    stock			 INT NOT NULL,
+                    aceptaDomicilio  BOOLEAN NOT NULL DEFAULT FALSE,
+                    metodosPago	     VARCHAR(300),
+                    estado		     VARCHAR(20) NOT NULL DEFAULT 'ACTIVA',
+                    creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema, schema));
+        	log.info("Tabla publicaciones creada para tenant '{}'", schema);
+        	
+        	
+        	// ── 21. solicitudes ──────────────────────────────────────────
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS %s.solicitudes (
+                        id                 BIGSERIAL PRIMARY KEY,
+                        publicacion_id     BIGINT NOT NULL REFERENCES %s.publicaciones(id),
+                        publicacion_titulo VARCHAR(120) NOT NULL,
+                        publicacion_precio NUMERIC(12,0) NOT NULL,
+                        comprador_id       BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                        comprador_nombre   VARCHAR(150) NOT NULL,
+                        vendedor_id        BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                        vendedor_nombre	   VARCHAR(150) NOT NULL,
+                        tipo               VARCHAR(20) NOT NULL,
+                        cantidad		   INT NOT NULL,
+                        notas			   VARCHAR(300),
+                        estado             VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+                        creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """.formatted(schema, schema, schema));
+            	log.info("Tabla publicaciones creada para tenant '{}'", schema);
+        	
+        	
     }
 
     private void insertarTiposPropiedad(String schema, List<TipoPropiedadNodoDto> tipos,

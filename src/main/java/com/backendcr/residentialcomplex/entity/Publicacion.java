@@ -39,7 +39,7 @@ public class Publicacion {
     @Column(length = 1000)
     private String descripcion;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(nullable = false, precision = 12, scale = 0)
     private BigDecimal precio;
 
     @Enumerated(EnumType.STRING)
@@ -47,11 +47,11 @@ public class Publicacion {
     private CategoriaPublicacion categoria;
 
     /** Dato de contacto que el vendedor quiere mostrar (teléfono, nota, etc.) */
-    @Column(length = 200)
+    @Column(length = 100)
     private String contacto;
 
     /** Marca o fabricante del producto/servicio. */
-    @Column(length = 100)
+    @Column(length = 50)
     private String marca;
 
     // ── Stock y logística ─────────────────────────────────

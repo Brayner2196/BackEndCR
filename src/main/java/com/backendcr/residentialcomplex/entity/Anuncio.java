@@ -21,9 +21,6 @@ public class Anuncio {
     @Column(nullable = false, length = 4000)
     private String contenido;
 
-    @Column(name = "imagen_url", length = 500)
-    private String imagenUrl;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoAnuncio estado = EstadoAnuncio.ACTIVO;
@@ -53,9 +50,6 @@ public class Anuncio {
 
     public String getContenido() { return contenido; }
     public void setContenido(String contenido) { this.contenido = contenido; }
-
-    public String getImagenUrl() { return imagenUrl; }
-    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
 
     public EstadoAnuncio getEstado() { return estado; }
     public void setEstado(EstadoAnuncio estado) { this.estado = estado; }

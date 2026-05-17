@@ -24,10 +24,10 @@ public class MovimientoAbono {
     @Column(name = "cobro_id")
     private Long cobroId;
 
-    @Column(name = "monto_aplicado", nullable = false, precision = 12, scale = 2)
+    @Column(name = "monto_aplicado", nullable = false, precision = 12, scale = 0)
     private BigDecimal montoAplicado;
 
-    @Column(length = 200)
+    @Column(length = 100)
     private String descripcion;
 
     @CreationTimestamp

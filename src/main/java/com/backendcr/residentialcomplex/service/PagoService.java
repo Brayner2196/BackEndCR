@@ -100,7 +100,6 @@ public class PagoService {
         pago.setMetodoPago(req.metodoPago());
         pago.setReferencia(req.referencia());
         pago.setUrlComprobante(req.urlComprobante());
-        pago.setNotas(req.notas());
         pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
         return toResponse(pagoRepo.save(pago));
     }
@@ -118,7 +117,6 @@ public class PagoService {
         pago.setEstado(EstadoPago.VERIFICADO);
         pago.setVerificadoPor(adminId);
         pago.setFechaVerificacion(LocalDateTime.now());
-        if (req.notas() != null) pago.setNotas(req.notas());
         pagoRepo.save(pago);
 
         Cobro cobro = cobroRepo.findById(pago.getCobroId())
@@ -200,7 +198,6 @@ public class PagoService {
         pago.setFechaPago(LocalDate.now());
         pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
         pago.setReferencia("MP-" + paymentId);
-        pago.setNotas("Pago automático vía MercadoPago");
         pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
         Pago saved = pagoRepo.save(pago);
 

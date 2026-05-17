@@ -38,7 +38,7 @@ public class ConfiguracionCuota {
     @Column(name = "numero_hasta")
     private Integer numeroHasta;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(nullable = false, precision = 12, scale = 0)
     private BigDecimal monto;
 
     @Enumerated(EnumType.STRING)

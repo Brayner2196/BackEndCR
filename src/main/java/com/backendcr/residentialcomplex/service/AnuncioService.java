@@ -40,7 +40,6 @@ public class AnuncioService {
         Anuncio a = new Anuncio();
         a.setTitulo(req.titulo());
         a.setContenido(req.contenido());
-        a.setImagenUrl(req.imagenUrl());
         a.setCreadoPor(adminId);
         a.setEstado(EstadoAnuncio.ACTIVO);
         if (req.fechaInicio() != null) a.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
@@ -62,7 +61,6 @@ public class AnuncioService {
         Anuncio a = obtener(id);
         a.setTitulo(req.titulo());
         a.setContenido(req.contenido());
-        a.setImagenUrl(req.imagenUrl());
         if (req.fechaInicio() != null) a.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
         else a.setFechaInicio(null);
         if (req.fechaFin() != null) a.setFechaFin(LocalDateTime.parse(req.fechaFin()));

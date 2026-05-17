@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -91,8 +92,8 @@ public class AdminPagosController {
 
     @PostMapping("/cobros/periodos")
     @ResponseStatus(HttpStatus.CREATED)
-    public PeriodoCobroResponse abrirPeriodo(@Valid @RequestBody PeriodoCobroRequest req) {
-        return cobroService.abrirPeriodo(req);
+    public PeriodoCobroResponse abrirPeriodo(@Valid @RequestBody PeriodoCobroRequest req, @AuthenticationPrincipal String email) {
+        return cobroService.abrirPeriodo(req, securityUtils.resolverUsuarioId(email));
     }
 
     @PutMapping("/cobros/periodos/{id}/cerrar")
@@ -104,7 +105,7 @@ public class AdminPagosController {
 
     /** Sugiere el año/mes del siguiente período a abrir. */
     @GetMapping("/cobros/proximo-periodo")
-    public java.util.Map<String, Integer> sugerirProximoPeriodo() {
+    public Map<String, Integer> sugerirProximoPeriodo() {
         return cobroService.sugerirProximoPeriodo();
     }
 

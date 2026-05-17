@@ -17,18 +17,18 @@ public class PQR {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 12)
     private TipoPQR tipo;
 
     @Column(nullable = false, length = 200)
     private String asunto;
 
-    @Column(nullable = false, length = 2000)
+    @Column(nullable = false, length = 500)
     private String descripcion;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoPQR estado = EstadoPQR.PENDIENTE;
+    private EstadoPQR estado = EstadoPQR.RADICADA;
 
     @Column(name = "residente_id", nullable = false)
     private Long residenteId;
@@ -36,7 +36,7 @@ public class PQR {
     @Column(name = "propiedad_id")
     private Long propiedadId;
 
-    @Column(name = "respuesta_admin", length = 2000)
+    @Column(name = "respuesta_admin", length = 500)
     private String respuestaAdmin;
 
     @Column(name = "respondido_por")

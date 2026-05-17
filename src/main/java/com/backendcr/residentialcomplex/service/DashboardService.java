@@ -57,7 +57,7 @@ public class DashboardService {
 
     public PendientesHoyResponse pendientesHoy() {
         long comprobantes = pagoRepo.findAllByEstado(EstadoPago.PENDIENTE_VERIFICACION).size();
-        long pqrs = pqrRepo.countByEstado(EstadoPQR.PENDIENTE);
+        long pqrs = pqrRepo.countByEstado(EstadoPQR.RADICADA);
         long reservas = reservaRepo.countByEstado(EstadoReserva.PENDIENTE);
         return new PendientesHoyResponse(comprobantes, pqrs, reservas,
                 comprobantes + pqrs + reservas);

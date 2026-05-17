@@ -23,7 +23,7 @@ public class Abono {
     @Column(name = "usuario_id", nullable = false)
     private Long usuarioId;
 
-    @Column(name = "monto_total", nullable = false, precision = 12, scale = 2)
+    @Column(name = "monto_total", nullable = false, precision = 12, scale = 0)
     private BigDecimal montoTotal;
 
     @Column(name = "fecha_pago", nullable = false)

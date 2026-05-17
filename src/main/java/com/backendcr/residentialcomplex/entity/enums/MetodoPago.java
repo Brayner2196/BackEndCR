@@ -1,5 +1,5 @@
 package com.backendcr.residentialcomplex.entity.enums;
 
 public enum MetodoPago {
-    TRANSFERENCIA, EFECTIVO, CHEQUE, OTRO, MERCADO_PAGO
+	MERCADO_PAGO, TRANSFERENCIA, EFECTIVO, CHEQUE, OTRO
 }

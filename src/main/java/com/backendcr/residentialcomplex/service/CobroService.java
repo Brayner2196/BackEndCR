@@ -3,6 +3,7 @@ package com.backendcr.residentialcomplex.service;
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.pago.*;
 import com.backendcr.residentialcomplex.entity.*;
+import com.backendcr.residentialcomplex.entity.converter.NumMesStringConverter;
 import com.backendcr.residentialcomplex.entity.enums.*;
 import com.backendcr.residentialcomplex.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class CobroService {
     private final PagoRepository pagoRepo;
     private final MovimientoAbonoRepository movimientoAbonoRepo;
     private final NotificacionService notificacionService;
+    private final NumMesStringConverter numMesStringConverter;
 
     // ─── Períodos ──────────────────────────────────────────────
 
@@ -44,7 +46,7 @@ public class CobroService {
     }
 
     @Transactional
-    public PeriodoCobroResponse abrirPeriodo(PeriodoCobroRequest req) {
+    public PeriodoCobroResponse abrirPeriodo(PeriodoCobroRequest req, Long adminId) {
         if (periodoRepo.findByEstado(EstadoPeriodo.ABIERTO).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un período abierto");
         }
@@ -58,13 +60,14 @@ public class CobroService {
         p.setFechaFin(req.fechaFin());
         p.setFechaLimitePago(req.fechaLimitePago());
         p.setEstado(EstadoPeriodo.ABIERTO);
+        p.setCreadoPor(adminId);
         PeriodoCobroResponse response = PeriodoCobroResponse.from(periodoRepo.save(p));
 
-        String mesAnio = req.mes() + "/" + req.anio();
+        String mesAnio = numMesStringConverter.convertToDatabaseColumn(req.mes())  + "/" + req.anio();
         notificacionService.enviarATenant(
             TenantContext.getTenant(),
             "💳 Nuevo período de cobro abierto",
-            "Se abrió el período de cobro " + mesAnio + ". Pronto recibirás tu liquidación.",
+            "Se abrió el período de cobro " + mesAnio + " con límite de pago: " + req.fechaLimitePago(),
             java.util.Map.of("tipo", "COBRO_PERIODO", "periodoId", String.valueOf(response.id()))
         );
 

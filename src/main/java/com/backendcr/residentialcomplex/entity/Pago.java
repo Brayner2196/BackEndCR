@@ -23,7 +23,7 @@ public class Pago {
     @Column(name = "usuario_id", nullable = false)
     private Long usuarioId;
 
-    @Column(name = "monto_pagado", nullable = false, precision = 12, scale = 2)
+    @Column(name = "monto_pagado", nullable = false, precision = 12, scale = 0)
     private BigDecimal montoPagado;
 
     @Column(name = "fecha_pago", nullable = false)
@@ -38,9 +38,6 @@ public class Pago {
 
     @Column(name = "url_comprobante", length = 500)
     private String urlComprobante;
-
-    @Column(length = 500)
-    private String notas;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -79,8 +76,6 @@ public class Pago {
     public void setReferencia(String referencia) { this.referencia = referencia; }
     public String getUrlComprobante() { return urlComprobante; }
     public void setUrlComprobante(String url) { this.urlComprobante = url; }
-    public String getNotas() { return notas; }
-    public void setNotas(String notas) { this.notas = notas; }
     public EstadoPago getEstado() { return estado; }
     public void setEstado(EstadoPago estado) { this.estado = estado; }
     public Long getVerificadoPor() { return verificadoPor; }

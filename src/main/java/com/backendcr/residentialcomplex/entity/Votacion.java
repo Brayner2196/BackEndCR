@@ -19,7 +19,7 @@ public class Votacion {
     @Column(nullable = false, length = 300)
     private String titulo;
 
-    @Column(length = 2000)
+    @Column(length = 1000)
     private String descripcion;
 
     @Enumerated(EnumType.STRING)

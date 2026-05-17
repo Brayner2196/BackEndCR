@@ -30,7 +30,7 @@ public class Solicitud {
     private String publicacionTitulo;
 
     /** Precio unitario en el momento de la solicitud. */
-    @Column(name = "publicacion_precio", nullable = false, precision = 12, scale = 2)
+    @Column(name = "publicacion_precio", nullable = false, precision = 12, scale = 0)
     private BigDecimal publicacionPrecio;
 
     // ── Comprador ─────────────────────────────────────────
@@ -55,7 +55,7 @@ public class Solicitud {
     @Column(nullable = false)
     private int cantidad = 1;
 
-    @Column(length = 500)
+    @Column(length = 300)
     private String notas;
 
     // ── Estado ───────────────────────────────────────────

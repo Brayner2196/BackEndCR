@@ -25,7 +25,7 @@ public class ConfiguracionMora {
     @Column(name = "tipo_calculo", nullable = false, length = 20)
     private TipoCalculoMora tipoCalculo = TipoCalculoMora.PORCENTAJE;
 
-    @Column(name = "monto_fijo", precision = 12, scale = 2)
+    @Column(name = "monto_fijo", precision = 12, scale = 0)
     private BigDecimal montoFijo;
 
     private boolean activo = true;

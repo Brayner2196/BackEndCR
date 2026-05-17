@@ -2,7 +2,6 @@ package com.backendcr.residentialcomplex.entity.enums;
 
 public enum EstadoPropiedad {
     DISPONIBLE,
-    OCUPADO,
-    INACTIVO,
-    EN_MANTENIMIENTO
+    OCUPADA,
+    DESOCUPADA
 }

@@ -55,9 +55,9 @@ public class PQRService {
         pqr.setDescripcion(req.descripcion());
         pqr.setPropiedadId(req.propiedadId());
         pqr.setResidenteId(residenteId);
-        pqr.setEstado(EstadoPQR.PENDIENTE);
+        pqr.setEstado(EstadoPQR.RADICADA);
         PQR saved = pqrRepo.save(pqr);
-        registrarHistorial(saved.getId(), null, EstadoPQR.PENDIENTE, residenteId, "PQR creada");
+        registrarHistorial(saved.getId(), null, EstadoPQR.RADICADA, residenteId, "PQR creada");
         return toResponse(saved);
     }
 
@@ -71,7 +71,7 @@ public class PQRService {
         pqr.setRespuestaAdmin(req.respuesta());
         pqr.setRespondidoPor(adminId);
         pqr.setFechaRespuesta(LocalDateTime.now());
-        if (pqr.getEstado() == EstadoPQR.PENDIENTE || pqr.getEstado() == EstadoPQR.EN_PROCESO) {
+        if (pqr.getEstado() == EstadoPQR.RADICADA || pqr.getEstado() == EstadoPQR.EN_PROCESO) {
             pqr.setEstado(EstadoPQR.RESUELTO);
         }
         PQR saved = pqrRepo.save(pqr);

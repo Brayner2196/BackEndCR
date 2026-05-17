@@ -27,7 +27,7 @@ public class Propiedad {
     private Long parentId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 20)
     private EstadoPropiedad estado = EstadoPropiedad.DISPONIBLE;
 
     @CreationTimestamp

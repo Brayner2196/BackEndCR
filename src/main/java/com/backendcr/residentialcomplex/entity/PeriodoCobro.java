@@ -32,6 +32,9 @@ public class PeriodoCobro {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoPeriodo estado = EstadoPeriodo.ABIERTO;
+    
+    @Column(name = "creado_por", nullable = false)
+    private Long creadoPor;
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
@@ -52,4 +55,6 @@ public class PeriodoCobro {
     public EstadoPeriodo getEstado() { return estado; }
     public void setEstado(EstadoPeriodo estado) { this.estado = estado; }
     public LocalDateTime getCreadoEn() { return creadoEn; }
+     public Long getCreadoPor() { return creadoPor; }
+	 public void setCreadoPor(Long creadoPor) { this.creadoPor = creadoPor; }
 }

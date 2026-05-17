@@ -34,16 +34,16 @@ public class Cobro {
     @Column(length = 200)
     private String descripcion;
 
-    @Column(name = "monto_base", nullable = false, precision = 12, scale = 2)
+    @Column(name = "monto_base", nullable = false, precision = 12, scale = 0)
     private BigDecimal montoBase;
 
-    @Column(name = "monto_mora", precision = 12, scale = 2)
+    @Column(name = "monto_mora", precision = 12, scale = 0)
     private BigDecimal montoMora = BigDecimal.ZERO;
 
-    @Column(name = "monto_total", precision = 12, scale = 2)
+    @Column(name = "monto_total", precision = 12, scale = 0)
     private BigDecimal montoTotal;
 
-    @Column(name = "monto_pagado", precision = 12, scale = 2)
+    @Column(name = "monto_pagado", precision = 12, scale = 0)
     private BigDecimal montoPagado = BigDecimal.ZERO;
 
     @Column(name = "fecha_generacion", nullable = false)

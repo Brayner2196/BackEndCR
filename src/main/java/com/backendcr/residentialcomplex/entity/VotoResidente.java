@@ -39,7 +39,7 @@ public class VotoResidente {
     private Integer valorNumerico;
 
     /** Para TEXTO_LIBRE */
-    @Column(name = "respuesta_texto", length = 2000)
+    @Column(name = "respuesta_texto", length = 1000)
     private String respuestaTexto;
 
     @CreationTimestamp
