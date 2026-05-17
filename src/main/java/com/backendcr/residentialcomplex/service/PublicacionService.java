@@ -4,11 +4,13 @@ import com.backendcr.residentialcomplex.dto.publicacion.PublicacionRequest;
 import com.backendcr.residentialcomplex.dto.publicacion.PublicacionResponse;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Publicacion;
+import com.backendcr.residentialcomplex.entity.TipoPropiedad;
 import com.backendcr.residentialcomplex.entity.Usuario;
 import com.backendcr.residentialcomplex.entity.enums.CategoriaPublicacion;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPublicacion;
 import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.PublicacionRepository;
+import com.backendcr.residentialcomplex.repository.TipoPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import jakarta.validation.Valid;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class PublicacionService {
     private final UsuarioRepository usuarioRepo;
     private final PropiedadRepository propiedadRepo;
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
+    private final TipoPropiedadRepository tipoPropiedadRepo;
 
     // ─── Marketplace (listado público para residentes) ──────────
 
@@ -41,25 +45,21 @@ public class PublicacionService {
      */
     public List<PublicacionResponse> marketplace(Long compradorId, String busqueda,
                                                   CategoriaPublicacion categoria) {
-        // Pasar categoría como String para la native query (evita bytea con null)
         String categoriaStr = categoria != null ? categoria.name() : null;
         String busquedaStr  = busqueda != null && !busqueda.isBlank() ? busqueda : null;
 
         List<Publicacion> activas = publicacionRepo.buscarActivas(categoriaStr, busquedaStr);
 
-        // Obtener propiedad principal del comprador para calcular proximidad
         Long propiedadCompradorId = propiedadPrincipalId(compradorId);
-
-        // Construir cadena de ancestros del comprador una sola vez
         List<Long> cadenaComprador = construirCadena(propiedadCompradorId);
 
-        // Mapear con distancia y ordenar
         return activas.stream()
-                // Excluir las propias del comprador del marketplace
                 .filter(p -> !p.getVendedorId().equals(compradorId))
                 .map(p -> {
-                    int distancia = calcularDistancia(cadenaComprador, construirCadena(p.getPropiedadId()));
-                    return PublicacionResponse.from(p, distancia);
+                    List<Long> cadenaVendedor = construirCadena(p.getPropiedadId());
+                    int distancia = calcularDistancia(cadenaComprador, cadenaVendedor);
+                    String ubicacion = ubicacionLegible(p.getPropiedadId());
+                    return PublicacionResponse.from(p, distancia, ubicacion);
                 })
                 .sorted(Comparator
                         .comparingInt(PublicacionResponse::distanciaProximidad)
@@ -145,6 +145,10 @@ public class PublicacionService {
         p.setPrecio(req.precio());
         p.setCategoria(req.categoria());
         p.setContacto(req.contacto());
+        p.setMarca(req.marca());
+        p.setStock(req.stock());
+        p.setAceptaDomicilio(req.aceptaDomicilio());
+        p.setMetodosPago(req.metodosPago() != null ? req.metodosPago() : List.of());
     }
 
     private Publicacion obtenerPropia(Long publicacionId, Long vendedorId) {
@@ -162,13 +166,12 @@ public class PublicacionService {
      * Obtiene el ID de la propiedad principal del usuario.
      * Retorna null si no tiene ninguna asignada.
      */
-    private Long propiedadPrincipalId(Long usuarioId) {
+    Long propiedadPrincipalId(Long usuarioId) {
         if (usuarioId == null) return null;
         return usuarioPropiedadRepo.findByUsuarioId(usuarioId).stream()
                 .filter(up -> up.isEsPrincipal())
                 .findFirst()
                 .map(up -> up.getPropiedadId())
-                // Si no tiene principal, tomar la primera disponible
                 .orElseGet(() -> usuarioPropiedadRepo.findByUsuarioId(usuarioId).stream()
                         .findFirst()
                         .map(up -> up.getPropiedadId())
@@ -178,12 +181,10 @@ public class PublicacionService {
     /**
      * Construye la cadena de ancestros de una propiedad desde ella misma hasta la raíz.
      * Ej: [apartamento_id, piso_id, torre_id, conjunto_id]
-     * Si propiedadId es null, retorna lista vacía.
      */
     private List<Long> construirCadena(Long propiedadId) {
         List<Long> cadena = new ArrayList<>();
         Long actual = propiedadId;
-        // Límite de seguridad para evitar ciclos
         int limite = 20;
         while (actual != null && limite-- > 0) {
             cadena.add(actual);
@@ -197,8 +198,7 @@ public class PublicacionService {
 
     /**
      * Calcula la distancia de árbol entre dos propiedades usando sus cadenas de ancestros.
-     * Distancia 0 = misma propiedad, 1 = mismo padre (mismo piso), 2 = mismo abuelo (misma torre), etc.
-     * Si no comparten ancestros o alguna cadena está vacía, retorna Integer.MAX_VALUE.
+     * Distancia 0 = misma propiedad, Integer.MAX_VALUE = sin ancestros comunes.
      */
     private int calcularDistancia(List<Long> cadenaComprador, List<Long> cadenaVendedor) {
         if (cadenaComprador.isEmpty() || cadenaVendedor.isEmpty()) return Integer.MAX_VALUE;
@@ -209,10 +209,57 @@ public class PublicacionService {
             Long ancestro = cadenaVendedor.get(nivelVendedor);
             if (ancestrosComprador.contains(ancestro)) {
                 int nivelComprador = cadenaComprador.indexOf(ancestro);
-                // Distancia total = suma de niveles hasta el ancestro común
                 return nivelComprador + nivelVendedor;
             }
         }
         return Integer.MAX_VALUE;
+    }
+
+    /**
+     * Construye texto legible de la ubicación de una propiedad recorriendo la jerarquía.
+     * Excluye el nodo raíz (conjunto). Ej: "Torre A · Piso 3 · Apto 101"
+     * Retorna null si propiedadId es null.
+     */
+    String ubicacionLegible(Long propiedadId) {
+        if (propiedadId == null) return null;
+
+        // Construye la cadena leaf→root: [apt, piso, torre, conjunto]
+        List<Long> cadena = construirCadena(propiedadId);
+        if (cadena.isEmpty()) return null;
+
+        // Carga los nombres de tipo en una pasada
+        Map<Long, String> nombreTipo = new HashMap<>();
+        for (Long id : cadena) {
+            propiedadRepo.findById(id).ifPresent(prop ->
+                    tipoPropiedadRepo.findById(prop.getTipoId()).ifPresent(tipo ->
+                            nombreTipo.put(id, tipo.getNombre())
+                    )
+            );
+        }
+
+        // Carga identificadores en la misma pasada
+        Map<Long, String> identificadores = new HashMap<>();
+        for (Long id : cadena) {
+            propiedadRepo.findById(id).ifPresent(prop ->
+                    identificadores.put(id, prop.getIdentificador())
+            );
+        }
+
+        // Excluye el nodo raíz (sin parent = el conjunto) y construye root→leaf
+        // Cadena viene leaf→root, así que invertimos y omitimos el último (raíz)
+        List<Long> sinRaiz = new ArrayList<>(cadena);
+        if (sinRaiz.size() > 1) {
+            sinRaiz.remove(sinRaiz.size() - 1); // quita el nodo raíz
+        }
+        Collections.reverse(sinRaiz); // ahora root→leaf sin el conjunto
+
+        return sinRaiz.stream()
+                .map(id -> {
+                    String tipo = nombreTipo.getOrDefault(id, "");
+                    String valor = identificadores.getOrDefault(id, "");
+                    return tipo.isBlank() ? valor : tipo + " " + valor;
+                })
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.joining(" · "));
     }
 }

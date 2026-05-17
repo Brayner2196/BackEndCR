@@ -6,6 +6,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoPublicacion;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record PublicacionResponse(
         Long id,
@@ -20,22 +21,36 @@ public record PublicacionResponse(
         EstadoPublicacion estado,
         LocalDateTime creadoEn,
         LocalDateTime actualizadoEn,
+
+        // ── Nuevos campos ──────────────────────────────────────
+        String marca,
+        Integer stock,
+        boolean aceptaDomicilio,
+        List<String> metodosPago,
+
+        /** Texto legible de la ubicación del vendedor: "Torre A · Piso 3 · Apto 101". */
+        String ubicacionVendedor,
+
         /** Solo presente en resultados de marketplace — distancia de árbol al comprador. */
         Integer distanciaProximidad
 ) {
-    /** Para uso sin proximidad (mis publicaciones, admin). */
+    /** Para uso sin proximidad ni ubicación calculada (admin, mis publicaciones). */
     public static PublicacionResponse from(Publicacion p) {
         return new PublicacionResponse(
                 p.getId(), p.getVendedorId(), p.getVendedorNombre(), p.getPropiedadId(),
                 p.getTitulo(), p.getDescripcion(), p.getPrecio(), p.getCategoria(),
-                p.getContacto(), p.getEstado(), p.getCreadoEn(), p.getActualizadoEn(), null);
+                p.getContacto(), p.getEstado(), p.getCreadoEn(), p.getActualizadoEn(),
+                p.getMarca(), p.getStock(), p.isAceptaDomicilio(), p.getMetodosPago(),
+                null, null);
     }
 
-    /** Para uso con proximidad calculada. */
-    public static PublicacionResponse from(Publicacion p, int distancia) {
+    /** Para uso con proximidad calculada y ubicación del vendedor (marketplace). */
+    public static PublicacionResponse from(Publicacion p, int distancia, String ubicacion) {
         return new PublicacionResponse(
                 p.getId(), p.getVendedorId(), p.getVendedorNombre(), p.getPropiedadId(),
                 p.getTitulo(), p.getDescripcion(), p.getPrecio(), p.getCategoria(),
-                p.getContacto(), p.getEstado(), p.getCreadoEn(), p.getActualizadoEn(), distancia);
+                p.getContacto(), p.getEstado(), p.getCreadoEn(), p.getActualizadoEn(),
+                p.getMarca(), p.getStock(), p.isAceptaDomicilio(), p.getMetodosPago(),
+                ubicacion, distancia);
     }
 }

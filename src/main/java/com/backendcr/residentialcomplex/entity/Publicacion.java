@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.entity;
 
+import com.backendcr.residentialcomplex.entity.converter.StringListConverter;
 import com.backendcr.residentialcomplex.entity.enums.CategoriaPublicacion;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPublicacion;
 import jakarta.persistence.*;
@@ -8,6 +9,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Table(name = "publicaciones")
@@ -46,6 +49,29 @@ public class Publicacion {
     /** Dato de contacto que el vendedor quiere mostrar (teléfono, nota, etc.) */
     @Column(length = 200)
     private String contacto;
+
+    /** Marca o fabricante del producto/servicio. */
+    @Column(length = 100)
+    private String marca;
+
+    // ── Stock y logística ─────────────────────────────────
+    /**
+     * Unidades disponibles. null = no maneja stock | 0 = agotado | >0 = disponible.
+     */
+    @Column
+    private Integer stock;
+
+    /** Indica si el vendedor ofrece entrega a domicilio dentro del conjunto. */
+    @Column(name = "acepta_domicilio", nullable = false)
+    private boolean aceptaDomicilio = false;
+
+    /**
+     * Métodos de pago aceptados. Almacenados como texto CSV.
+     * Ej: "EFECTIVO,NEQUI,TRANSFERENCIA"
+     */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "metodos_pago", length = 300)
+    private List<String> metodosPago = Collections.emptyList();
 
     // ── Estado ───────────────────────────────────────────
     @Enumerated(EnumType.STRING)
@@ -89,6 +115,20 @@ public class Publicacion {
 
     public String getContacto() { return contacto; }
     public void setContacto(String contacto) { this.contacto = contacto; }
+
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
+
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
+
+    public boolean isAceptaDomicilio() { return aceptaDomicilio; }
+    public void setAceptaDomicilio(boolean aceptaDomicilio) { this.aceptaDomicilio = aceptaDomicilio; }
+
+    public List<String> getMetodosPago() { return metodosPago; }
+    public void setMetodosPago(List<String> metodosPago) {
+        this.metodosPago = metodosPago != null ? metodosPago : Collections.emptyList();
+    }
 
     public EstadoPublicacion getEstado() { return estado; }
     public void setEstado(EstadoPublicacion estado) { this.estado = estado; }
