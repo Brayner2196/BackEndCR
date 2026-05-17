@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/residente/votaciones")
-@PreAuthorize("hasAnyRole('RESIDENTE', 'PROPIETARIO', 'INQUILINO')")
+@PreAuthorize("hasAnyRole('PROPIETARIO', 'INQUILINO')")
 @RequiredArgsConstructor
 public class ResidenteVotacionController {
 
@@ -31,6 +31,7 @@ public class ResidenteVotacionController {
     }
 
     @PostMapping("/{id}/votar")
+    @PreAuthorize("hasRole('PROPIETARIO') or @permisoValidator.tienePermiso(#email, 'VOTAR')")
     public VotacionResponse votar(@PathVariable Long id,
                                   @RequestBody RegistrarVotoRequest req,
                                   @AuthenticationPrincipal String email) {

@@ -57,7 +57,7 @@ public class AuthService {
 		if (identidades.size() == 1) {
 			Identidad identidad = identidades.get(0);
 
-			if ("RESIDENTE_PENDIENTE".equals(identidad.getRol())) {
+			if ("PROPIETARIO_PENDIENTE".equals(identidad.getRol())) {
 				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
 						"Tu cuenta está pendiente de aprobación por el administrador");
 			}
@@ -87,7 +87,7 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales incorrectas");
 		}
 
-		if ("RESIDENTE_PENDIENTE".equals(identidad.getRol())) {
+		if ("PROPIETARIO_PENDIENTE".equals(identidad.getRol())) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está pendiente de aprobación");
 		}
 
@@ -116,7 +116,7 @@ public class AuthService {
 		Identidad identidad = new Identidad();
 		identidad.setEmail(request.email());
 		identidad.setPassword(passwordEncoder.encode(request.password()));
-		identidad.setRol("RESIDENTE_PENDIENTE");
+		identidad.setRol("PROPIETARIO_PENDIENTE");
 		identidad.setTenantId(tenant.getSchemaName());
 		identidad = identidadRepository.save(identidad);
 

@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/residente/anuncios")
-@PreAuthorize("hasAnyRole('RESIDENTE', 'PROPIETARIO', 'INQUILINO')")
+@PreAuthorize("hasAnyRole('PROPIETARIO', 'INQUILINO')")
 @RequiredArgsConstructor
 public class ResidenteAnuncioController {
 

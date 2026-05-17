@@ -6,9 +6,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.backendcr.residentialcomplex.dto.inquilino.CrearInquilinoRequest;
 import com.backendcr.residentialcomplex.dto.usuario.ActualizarUsuarioRequest;
 import com.backendcr.residentialcomplex.dto.usuario.CrearUsuarioRequest;
 import com.backendcr.residentialcomplex.dto.usuario.UsuarioResponse;
+import com.backendcr.residentialcomplex.service.PropietarioService;
 import com.backendcr.residentialcomplex.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final PropietarioService propietarioService;
 
     @GetMapping
     @PreAuthorize("hasRole('TENANT_ADMIN')")
@@ -54,13 +57,13 @@ public class UsuarioController {
 
     /**
      * Aprueba un usuario pendiente.
-     * @param rolDestino  Rol a asignar: "PROPIETARIO" o "RESIDENTE" (default: RESIDENTE)
+     * @param rolDestino  Rol a asignar: "PROPIETARIO" o "INQUILINO" (default: PROPIETARIO)
      */
     @PutMapping("/{id}/aprobar")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public UsuarioResponse aprobar(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "RESIDENTE") String rolDestino) {
+            @RequestParam(defaultValue = "PROPIETARIO") String rolDestino) {
         return usuarioService.aprobar(id, rolDestino);
     }
 
@@ -68,5 +71,18 @@ public class UsuarioController {
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public UsuarioResponse rechazar(@PathVariable Long id) {
         return usuarioService.rechazar(id);
+    }
+
+    /**
+     * El admin crea un inquilino para un propietario específico.
+     * El inquilino hereda la unidad del propietario indicado.
+     */
+    @PostMapping("/{propietarioId}/inquilinos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public UsuarioResponse crearInquilinoParaPropietario(
+            @PathVariable Long propietarioId,
+            @Valid @RequestBody CrearInquilinoRequest request) {
+        return propietarioService.crearInquilinoComoAdmin(propietarioId, request);
     }
 }

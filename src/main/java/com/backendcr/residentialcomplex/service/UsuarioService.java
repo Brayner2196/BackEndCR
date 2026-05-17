@@ -60,7 +60,7 @@ public class UsuarioService {
                     "Ya existe un usuario con ese correo en este conjunto");
         }
 
-        EstadoUsuario estadoInicial = "RESIDENTE_PENDIENTE".equals(request.rol())
+        EstadoUsuario estadoInicial = "PROPIETARIO_PENDIENTE".equals(request.rol())
                 ? EstadoUsuario.PENDIENTE
                 : EstadoUsuario.ACTIVO;
 
@@ -117,9 +117,9 @@ public class UsuarioService {
                     "Solo se pueden aprobar usuarios con estado PENDIENTE");
         }
 
-        if (!"RESIDENTE".equals(rolDestino) && !"PROPIETARIO".equals(rolDestino)) {
+        if (!"PROPIETARIO".equals(rolDestino) && !"INQUILINO".equals(rolDestino)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "rolDestino debe ser RESIDENTE o PROPIETARIO");
+                    "rolDestino debe ser PROPIETARIO o INQUILINO");
         }
 
         usuario.setEstado(EstadoUsuario.ACTIVO);
