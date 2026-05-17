@@ -1,6 +1,8 @@
 package com.backendcr.residentialcomplex.entity.converter;
 
+import org.springframework.stereotype.Component;
 
+@Component
 public class NumMesStringConverter {
 
 	private static final String[] MESES = {
