@@ -4,7 +4,6 @@ import com.backendcr.residentialcomplex.dto.publicacion.PublicacionRequest;
 import com.backendcr.residentialcomplex.dto.publicacion.PublicacionResponse;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Publicacion;
-import com.backendcr.residentialcomplex.entity.TipoPropiedad;
 import com.backendcr.residentialcomplex.entity.Usuario;
 import com.backendcr.residentialcomplex.entity.enums.CategoriaPublicacion;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPublicacion;
