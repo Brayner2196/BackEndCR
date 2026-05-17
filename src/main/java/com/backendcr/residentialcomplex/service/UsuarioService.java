@@ -108,7 +108,7 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioResponse aprobar(Long id) {
+    public UsuarioResponse aprobar(Long id, String rolDestino) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -117,11 +117,16 @@ public class UsuarioService {
                     "Solo se pueden aprobar usuarios con estado PENDIENTE");
         }
 
+        if (!"RESIDENTE".equals(rolDestino) && !"PROPIETARIO".equals(rolDestino)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "rolDestino debe ser RESIDENTE o PROPIETARIO");
+        }
+
         usuario.setEstado(EstadoUsuario.ACTIVO);
         usuario = usuarioRepository.save(usuario);
 
         Identidad identidad = obtenerIdentidad(usuario.getIdentidadId());
-        identidad.setRol("RESIDENTE");
+        identidad.setRol(rolDestino);
         identidadRepository.save(identidad);
 
         return UsuarioResponse.from(usuario, identidad.getEmail(), identidad.getRol());

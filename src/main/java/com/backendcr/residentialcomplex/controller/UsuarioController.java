@@ -52,10 +52,16 @@ public class UsuarioController {
         return usuarioService.actualizar(id, request);
     }
 
+    /**
+     * Aprueba un usuario pendiente.
+     * @param rolDestino  Rol a asignar: "PROPIETARIO" o "RESIDENTE" (default: RESIDENTE)
+     */
     @PutMapping("/{id}/aprobar")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
-    public UsuarioResponse aprobar(@PathVariable Long id) {
-        return usuarioService.aprobar(id);
+    public UsuarioResponse aprobar(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "RESIDENTE") String rolDestino) {
+        return usuarioService.aprobar(id, rolDestino);
     }
 
     @PutMapping("/{id}/rechazar")

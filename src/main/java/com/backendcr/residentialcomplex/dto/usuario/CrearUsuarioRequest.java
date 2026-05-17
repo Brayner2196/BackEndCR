@@ -23,7 +23,7 @@ public record CrearUsuarioRequest(
         String password,
 
         @NotBlank
-        @Pattern(regexp = "TENANT_ADMIN|RESIDENTE|RESIDENTE_PENDIENTE|VIGILANTE|PORTERO|PISCINERO|CONTADOR",
+        @Pattern(regexp = "TENANT_ADMIN|RESIDENTE|RESIDENTE_PENDIENTE|PROPIETARIO|VIGILANTE|PORTERO|PISCINERO|CONTADOR",
                  message = "Rol no válido")
         String rol,
 

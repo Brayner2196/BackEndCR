@@ -16,4 +16,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     boolean existsByIdentidadId(Long identidadId);
 
     List<Usuario> findAllByEstado(EstadoUsuario estado);
+
+    List<Usuario> findByAptoAndTorre(String apto, String torre);
 }

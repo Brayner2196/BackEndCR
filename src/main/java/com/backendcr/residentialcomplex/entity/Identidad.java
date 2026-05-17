@@ -17,8 +17,8 @@ public class Identidad {
 	private String password;
 
 	@Column(nullable = false)
-	private String rol; // SUPER_ADMIN, TENANT_ADMIN, RESIDENTE, RESIDENTE_PENDIENTE, VIGILANTE,
-						// PORTERO, PISCINERO, CONTADOR
+	private String rol; // SUPER_ADMIN, TENANT_ADMIN, RESIDENTE, RESIDENTE_PENDIENTE, PROPIETARIO,
+						// INQUILINO, VIGILANTE, PORTERO, PISCINERO, CONTADOR
 
 	@Column(name = "tenant_id")
 	private String tenantId; // NULL si es SUPER_ADMIN
