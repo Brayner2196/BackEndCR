@@ -1,10 +1,8 @@
 package com.backendcr.residentialcomplex.controller;
 
-import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
+import com.backendcr.residentialcomplex.config.SecurityUtils;
 import com.backendcr.residentialcomplex.dto.anuncio.*;
 import com.backendcr.residentialcomplex.entity.enums.EstadoAnuncio;
-import com.backendcr.residentialcomplex.repository.IdentidadRepository;
-import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.AnuncioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,8 +20,7 @@ import java.util.List;
 public class AdminAnuncioController {
 
     private final AnuncioService anuncioService;
-    private final IdentidadRepository identidadRepo;
-    private final UsuarioRepository usuarioRepo;
+    private final SecurityUtils securityUtils;
 
     @GetMapping
     public List<AnuncioResponse> listar(@RequestParam(required = false) EstadoAnuncio estado) {
@@ -35,7 +31,7 @@ public class AdminAnuncioController {
     @ResponseStatus(HttpStatus.CREATED)
     public AnuncioResponse crear(@Valid @RequestBody AnuncioRequest req,
                                  @AuthenticationPrincipal String email) {
-        return anuncioService.crear(req, resolverAdminId(email));
+        return anuncioService.crear(req, securityUtils.resolverUsuarioId(email));
     }
 
     @PutMapping("/{id}")
@@ -59,14 +55,5 @@ public class AdminAnuncioController {
     @GetMapping("/{id}/vistas")
     public List<AnuncioVistaResponse> vistas(@PathVariable Long id) {
         return anuncioService.listarVistas(id);
-    }
-
-    private Long resolverAdminId(String email) {
-        String tenantId = TenantContext.getTenant();
-        return identidadRepo.findByEmailAndTenantId(email, tenantId)
-                .flatMap(i -> usuarioRepo.findByIdentidadId(i.getId()))
-                .map(u -> u.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                        "Admin no encontrado: " + email));
     }
 }

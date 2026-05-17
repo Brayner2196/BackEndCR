@@ -16,6 +16,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,11 +56,18 @@ public class PagoService {
             result.add(MovimientoCobroDto.fromPago(pago));
         }
 
-        // 2. Movimientos de abonos distribuidos a este cobro
-        for (MovimientoAbono mov : movimientoRepo.findAllByCobroId(cobroId)) {
+        // 2. Movimientos de abonos distribuidos a este cobro — pre-carga en batch (evita N+1)
+        List<MovimientoAbono> movimientos = movimientoRepo.findAllByCobroId(cobroId);
+        Set<Long> abonoIds = movimientos.stream()
+                .map(MovimientoAbono::getAbonoId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Abono> abonosById = abonoRepo.findAllById(abonoIds).stream()
+                .collect(Collectors.toMap(Abono::getId, a -> a));
+        for (MovimientoAbono mov : movimientos) {
             if (mov.getAbonoId() != null) {
-                abonoRepo.findById(mov.getAbonoId())
-                        .ifPresent(abono -> result.add(MovimientoCobroDto.fromAbono(mov, abono)));
+                Abono abono = abonosById.get(mov.getAbonoId());
+                if (abono != null) result.add(MovimientoCobroDto.fromAbono(mov, abono));
             }
         }
 

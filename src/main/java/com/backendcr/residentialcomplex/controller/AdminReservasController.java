@@ -1,10 +1,8 @@
 package com.backendcr.residentialcomplex.controller;
 
-import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
+import com.backendcr.residentialcomplex.config.SecurityUtils;
 import com.backendcr.residentialcomplex.dto.reserva.*;
 import com.backendcr.residentialcomplex.entity.enums.EstadoReserva;
-import com.backendcr.residentialcomplex.repository.IdentidadRepository;
-import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.ReservaService;
 import com.backendcr.residentialcomplex.service.ZonaComunService;
 import jakarta.validation.Valid;
@@ -13,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -26,8 +23,7 @@ public class AdminReservasController {
 
     private final ReservaService reservaService;
     private final ZonaComunService zonaService;
-    private final IdentidadRepository identidadRepo;
-    private final UsuarioRepository usuarioRepo;
+    private final SecurityUtils securityUtils;
 
     // ─── Reservas ─────────────────────────────────────────────
 
@@ -43,14 +39,14 @@ public class AdminReservasController {
     public ReservaResponse aprobar(@PathVariable Long id,
                                    @RequestBody(required = false) ReservaDecisionRequest req,
                                    @AuthenticationPrincipal String email) {
-        return reservaService.aprobar(id, req, resolverAdminId(email));
+        return reservaService.aprobar(id, req, securityUtils.resolverUsuarioId(email));
     }
 
     @PutMapping("/reservas/{id}/rechazar")
     public ReservaResponse rechazar(@PathVariable Long id,
                                     @Valid @RequestBody ReservaDecisionRequest req,
                                     @AuthenticationPrincipal String email) {
-        return reservaService.rechazar(id, req, resolverAdminId(email));
+        return reservaService.rechazar(id, req, securityUtils.resolverUsuarioId(email));
     }
 
     // ─── Zonas comunes — CRUD ──────────────────────────────────
@@ -106,14 +102,4 @@ public class AdminReservasController {
         zonaService.eliminarExcepcion(id, excId);
     }
 
-    // ─── Helper ───────────────────────────────────────────────
-
-    private Long resolverAdminId(String email) {
-        String tenantId = TenantContext.getTenant();
-        return identidadRepo.findByEmailAndTenantId(email, tenantId)
-                .flatMap(i -> usuarioRepo.findByIdentidadId(i.getId()))
-                .map(u -> u.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                        "Usuario no encontrado para email=" + email + " tenant=" + tenantId));
-    }
 }

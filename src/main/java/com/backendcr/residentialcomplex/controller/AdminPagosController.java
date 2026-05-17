@@ -1,13 +1,11 @@
 package com.backendcr.residentialcomplex.controller;
 
-import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
+import com.backendcr.residentialcomplex.config.SecurityUtils;
 import com.backendcr.residentialcomplex.dto.pago.*;
 import com.backendcr.residentialcomplex.dto.pago.ConfiguracionMoraRequest;
 import com.backendcr.residentialcomplex.dto.pago.ConfiguracionMoraResponse;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
-import com.backendcr.residentialcomplex.repository.IdentidadRepository;
-import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.AbonoService;
 import com.backendcr.residentialcomplex.service.CobroService;
 import com.backendcr.residentialcomplex.service.ConfiguracionCuotaService;
@@ -17,9 +15,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @RestController
@@ -33,8 +31,7 @@ public class AdminPagosController {
     private final AbonoService abonoService;
     private final ConfiguracionCuotaService cuotaService;
     private final ConfiguracionMoraService moraService;
-    private final IdentidadRepository identidadRepo;
-    private final UsuarioRepository usuarioRepo;
+    private final SecurityUtils securityUtils;
 
     // ─── Mora ──────────────────────────────
 
@@ -146,14 +143,14 @@ public class AdminPagosController {
     @ResponseStatus(HttpStatus.CREATED)
     public CobroResponse crearCobroEspecial(@Valid @RequestBody CobroEspecialRequest req,
                                              @AuthenticationPrincipal String email) {
-        return cobroService.crearCobroEspecial(req, resolverAdminId(email));
+        return cobroService.crearCobroEspecial(req, securityUtils.resolverUsuarioId(email));
     }
 
     @PutMapping("/cobros/{id}/exonerar")
     public CobroResponse exonerar(@PathVariable Long id,
                                   @Valid @RequestBody ExonerarCobroRequest req,
                                   @AuthenticationPrincipal String email) {
-        return cobroService.exonerar(id, req, resolverAdminId(email));
+        return cobroService.exonerar(id, req, securityUtils.resolverUsuarioId(email));
     }
 
     // ─── Pagos ────────────────────────────
@@ -168,14 +165,14 @@ public class AdminPagosController {
     public PagoResponse verificar(@PathVariable Long id,
                                   @RequestBody VerificarPagoRequest req,
                                   @AuthenticationPrincipal String email) {
-        return pagoService.verificar(id, req, resolverAdminId(email));
+        return pagoService.verificar(id, req, securityUtils.resolverUsuarioId(email));
     }
 
     @PutMapping("/pagos/{id}/rechazar")
     public PagoResponse rechazar(@PathVariable Long id,
                                  @Valid @RequestBody RechazarPagoRequest req,
                                  @AuthenticationPrincipal String email) {
-        return pagoService.rechazar(id, req, resolverAdminId(email));
+        return pagoService.rechazar(id, req, securityUtils.resolverUsuarioId(email));
     }
 
     // ─── Vista Admin: cobros y estado de cuenta de un residente ───
@@ -203,22 +200,13 @@ public class AdminPagosController {
     public AbonoResponse verificarAbono(@PathVariable Long id,
                                         @RequestBody VerificarPagoRequest req,
                                         @AuthenticationPrincipal String email) {
-        return abonoService.verificar(id, req, resolverAdminId(email));
+        return abonoService.verificar(id, req, securityUtils.resolverUsuarioId(email));
     }
 
     @PutMapping("/abonos/{id}/rechazar")
     public AbonoResponse rechazarAbono(@PathVariable Long id,
                                        @Valid @RequestBody RechazarPagoRequest req,
                                        @AuthenticationPrincipal String email) {
-        return abonoService.rechazar(id, req, resolverAdminId(email));
-    }
-
-    private Long resolverAdminId(String email) {
-        String tenantId = TenantContext.getTenant();
-        return identidadRepo.findByEmailAndTenantId(email, tenantId)
-                .flatMap(i -> usuarioRepo.findByIdentidadId(i.getId()))
-                .map(u -> u.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                        "Usuario no encontrado para email=" + email + " tenant=" + tenantId));
+        return abonoService.rechazar(id, req, securityUtils.resolverUsuarioId(email));
     }
 }
