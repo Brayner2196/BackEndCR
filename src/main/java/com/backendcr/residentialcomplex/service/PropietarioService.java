@@ -15,6 +15,7 @@ import com.backendcr.residentialcomplex.dto.usuario.UsuarioResponse;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.InquilinoPermiso;
 import com.backendcr.residentialcomplex.entity.Usuario;
+import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.entity.enums.EstadoUsuario;
 import com.backendcr.residentialcomplex.entity.enums.PermisoInquilino;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
@@ -34,20 +35,15 @@ public class PropietarioService {
     private final InquilinoPermisoRepository inquilinoPermisoRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /** Lista los inquilinos que pertenecen a la misma unidad (apto+torre) del propietario. */
+    /** Lista los inquilinos que pertenecen a la misma propiedad del propietario. */
     public List<UsuarioResponse> listarInquilinos() {
         Usuario propietario = obtenerPropietarioActual();
+        Long propiedadId = obtenerPropiedadIdPrincipal(propietario.getId());
 
-        if (propietario.getApto() == null || propietario.getTorre() == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Tu unidad no tiene apto o torre registrados");
-        }
-
-        List<Usuario> mismoUnidad = usuarioRepository.findByAptoAndTorre(
-                propietario.getApto(), propietario.getTorre());
-
-        return mismoUnidad.stream()
-                .filter(u -> !u.getId().equals(propietario.getId()))
+        return usuarioPropiedadRepository.findByPropiedadId(propiedadId).stream()
+                .filter(up -> !up.getUsuarioId().equals(propietario.getId()))
+                .map(up -> usuarioRepository.findById(up.getUsuarioId()).orElse(null))
+                .filter(u -> u != null)
                 .map(u -> {
                     Identidad id = identidadRepository.findById(u.getIdentidadId()).orElse(null);
                     return (id != null && "INQUILINO".equals(id.getRol()))
@@ -58,17 +54,14 @@ public class PropietarioService {
                 .toList();
     }
 
-    /** Crea un inquilino con la misma unidad del propietario. */
+    /** Crea un inquilino vinculado a la misma propiedad del propietario. */
     @Transactional
     public UsuarioResponse crearInquilino(CrearInquilinoRequest request) {
         Usuario propietario = obtenerPropietarioActual();
         String tenantId = TenantContext.getTenant();
         String emailNormalizado = request.email().trim().toLowerCase();
 
-        if (propietario.getApto() == null || propietario.getTorre() == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Tu unidad no tiene apto o torre registrados");
-        }
+        Long propiedadId = obtenerPropiedadIdPrincipal(propietario.getId());
 
         if (identidadRepository.existsByEmailAndTenantId(emailNormalizado, tenantId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -85,18 +78,22 @@ public class PropietarioService {
         Usuario inquilino = new Usuario();
         inquilino.setNombre(request.nombre().trim());
         inquilino.setIdentidadId(identidad.getId());
-        inquilino.setApto(propietario.getApto());
-        inquilino.setTorre(propietario.getTorre());
         inquilino.setTelefono(request.telefono());
         inquilino.setEstado(EstadoUsuario.ACTIVO);
         inquilino = usuarioRepository.save(inquilino);
+
+        UsuarioPropiedad up = new UsuarioPropiedad();
+        up.setUsuarioId(inquilino.getId());
+        up.setPropiedadId(propiedadId);
+        up.setEsPrincipal(true);
+        usuarioPropiedadRepository.save(up);
 
         return UsuarioResponse.from(inquilino, identidad.getEmail(), identidad.getRol());
     }
 
     /**
      * Crea un inquilino para un propietario específico (uso por TENANT_ADMIN).
-     * El inquilino hereda la unidad (apto + torre) del propietario indicado.
+     * El inquilino hereda la propiedad del propietario indicado.
      */
     @Transactional
     public UsuarioResponse crearInquilinoComoAdmin(Long propietarioId, CrearInquilinoRequest request) {
@@ -115,10 +112,7 @@ public class PropietarioService {
                     "El usuario indicado no es un propietario");
         }
 
-        if (propietario.getApto() == null || propietario.getTorre() == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "El propietario no tiene apto o torre registrados");
-        }
+        Long propiedadId = obtenerPropiedadIdPrincipal(propietario.getId());
 
         String emailNormalizado = request.email().trim().toLowerCase();
         if (identidadRepository.existsByEmailAndTenantId(emailNormalizado, tenantId)) {
@@ -136,19 +130,24 @@ public class PropietarioService {
         Usuario inquilino = new Usuario();
         inquilino.setNombre(request.nombre().trim());
         inquilino.setIdentidadId(identidad.getId());
-        inquilino.setApto(propietario.getApto());
-        inquilino.setTorre(propietario.getTorre());
         inquilino.setTelefono(request.telefono());
         inquilino.setEstado(EstadoUsuario.ACTIVO);
         inquilino = usuarioRepository.save(inquilino);
 
+        UsuarioPropiedad up = new UsuarioPropiedad();
+        up.setUsuarioId(inquilino.getId());
+        up.setPropiedadId(propiedadId);
+        up.setEsPrincipal(true);
+        usuarioPropiedadRepository.save(up);
+
         return UsuarioResponse.from(inquilino, identidad.getEmail(), identidad.getRol());
     }
 
-    /** Elimina un inquilino validando que pertenezca a la misma unidad del propietario. */
+    /** Elimina un inquilino validando que pertenezca a la misma propiedad del propietario. */
     @Transactional
     public void eliminarInquilino(Long inquilinoId) {
         Usuario propietario = obtenerPropietarioActual();
+        Long propiedadId = obtenerPropiedadIdPrincipal(propietario.getId());
 
         Usuario inquilino = usuarioRepository.findById(inquilinoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inquilino no encontrado"));
@@ -160,8 +159,10 @@ public class PropietarioService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El usuario no es un inquilino");
         }
 
-        if (!propietario.getApto().equals(inquilino.getApto())
-                || !propietario.getTorre().equals(inquilino.getTorre())) {
+        boolean mismaPropiedad = usuarioPropiedadRepository.findByUsuarioId(inquilinoId)
+                .stream().anyMatch(up -> up.getPropiedadId().equals(propiedadId));
+
+        if (!mismaPropiedad) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "No tienes permiso para eliminar este inquilino");
         }
@@ -233,11 +234,27 @@ public class PropietarioService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario no es un inquilino");
         }
 
-        if (!propietario.getApto().equals(inquilino.getApto())
-                || !propietario.getTorre().equals(inquilino.getTorre())) {
+        Long propiedadId = obtenerPropiedadIdPrincipal(propietario.getId());
+        boolean mismaPropiedad = usuarioPropiedadRepository.findByUsuarioId(inquilinoId)
+                .stream().anyMatch(up -> up.getPropiedadId().equals(propiedadId));
+
+        if (!mismaPropiedad) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "No tienes permiso sobre este inquilino");
         }
+    }
+
+    private Long obtenerPropiedadIdPrincipal(Long usuarioId) {
+        List<UsuarioPropiedad> propiedades = usuarioPropiedadRepository.findByUsuarioId(usuarioId);
+        if (propiedades.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No tienes una propiedad asignada a tu cuenta");
+        }
+        return propiedades.stream()
+                .filter(UsuarioPropiedad::isEsPrincipal)
+                .findFirst()
+                .orElse(propiedades.get(0))
+                .getPropiedadId();
     }
 
     private Usuario obtenerPropietarioActual() {

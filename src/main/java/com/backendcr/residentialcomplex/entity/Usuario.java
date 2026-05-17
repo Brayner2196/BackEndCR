@@ -26,12 +26,6 @@ public class Usuario {
     private Long identidadId;
 
     @Column(length = 20)
-    private String apto;
-
-    @Column(length = 20)
-    private String torre;
-
-    @Column(length = 20)
     private String telefono;
 
     @Enumerated(EnumType.STRING)
@@ -54,12 +48,6 @@ public class Usuario {
 
     public Long getIdentidadId() { return identidadId; }
     public void setIdentidadId(Long identidadId) { this.identidadId = identidadId; }
-
-    public String getApto() { return apto; }
-    public void setApto(String apto) { this.apto = apto; }
-
-    public String getTorre() { return torre; }
-    public void setTorre(String torre) { this.torre = torre; }
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }

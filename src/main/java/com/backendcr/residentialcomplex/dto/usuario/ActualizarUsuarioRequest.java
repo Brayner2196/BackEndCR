@@ -10,10 +10,6 @@ public record ActualizarUsuarioRequest(
         @NotBlank
         String nombre,
 
-        String apto,
-
-        String torre,
-
         String telefono,
 
         @NotNull

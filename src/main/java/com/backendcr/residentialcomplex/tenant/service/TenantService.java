@@ -183,8 +183,6 @@ public class TenantService {
                     id             BIGSERIAL PRIMARY KEY,
                     nombre         VARCHAR(100) NOT NULL,
                     identidad_id   BIGINT NOT NULL,
-                    apto           VARCHAR(20),
-                    torre          VARCHAR(20),
                     telefono       VARCHAR(20),
                     estado         VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
                     creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

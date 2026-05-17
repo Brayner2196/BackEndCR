@@ -96,8 +96,6 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         usuario.setNombre(request.nombre());
-        usuario.setApto(request.apto());
-        usuario.setTorre(request.torre());
         usuario.setTelefono(request.telefono());
         if (request.estado() != null) {
             usuario.setEstado(request.estado());

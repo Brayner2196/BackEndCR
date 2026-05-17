@@ -10,22 +10,18 @@ public record UsuarioResponse(
         String nombre,
         String email,
         String rol,
-        String apto,
-        String torre,
         String telefono,
         EstadoUsuario estado,
         String creadoEn
 ) {
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-	 
+
     public static UsuarioResponse from(Usuario usuario, String email, String rol) {
         return new UsuarioResponse(
                 usuario.getId(),
                 usuario.getNombre(),
                 email,
                 rol,
-                usuario.getApto(),
-                usuario.getTorre(),
                 usuario.getTelefono(),
                 usuario.getEstado(),
                 usuario.getCreadoEn().format(FORMATTER)

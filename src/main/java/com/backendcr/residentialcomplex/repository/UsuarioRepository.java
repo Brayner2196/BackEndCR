@@ -17,5 +17,4 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     List<Usuario> findAllByEstado(EstadoUsuario estado);
 
-    List<Usuario> findByAptoAndTorre(String apto, String torre);
 }

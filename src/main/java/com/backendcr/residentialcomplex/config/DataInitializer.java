@@ -48,7 +48,8 @@ public class DataInitializer implements CommandLineRunner {
 
 		crearTablasPublicas();
 		crearSuperAdmin();
-		crearConjuntoPrueba();
+		
+		//crearConjuntoPrueba();
 
 		log.info("Datos de prueba cargados correctamente");
 		imprimirCredenciales();
@@ -139,13 +140,8 @@ public class DataInitializer implements CommandLineRunner {
 
 		crearTiposPropiedad();
 
-		crearUsuarioConjunto("tenantadmin@prado.com", "admin123", "TENANT_ADMIN", "Carlos Admin", null, null, "ACTIVO");
-		Long juanId = crearUsuarioConjunto("residente@prado.com", "res123", "RESIDENTE", "Juan Residente", "101", "A", "ACTIVO");
-		crearUsuarioConjunto("vigilante@prado.com", "vig123", "VIGILANTE", "Luis Vigilante", null, null, "ACTIVO");
-		crearUsuarioConjunto("pendiente@prado.com", "pen123", "RESIDENTE_PENDIENTE", "Pedro Pendiente", "202", "B", "PENDIENTE");
-		crearUsuarioConjunto("portero@prado.com", "por123", "PORTERO", "Ana Portera", null, null, "ACTIVO");
-		crearUsuarioConjunto("piscinero@prado.com", "pis123", "PISCINERO", "Mario Piscina", null, null, "ACTIVO");
-		crearUsuarioConjunto("contador@prado.com", "con123", "CONTADOR", "Sofia Contadora", null, null, "ACTIVO");
+		crearUsuarioConjunto("tenantadmin@prado.com", "admin123", "TENANT_ADMIN", "Carlos Admin", "ACTIVO");
+		Long juanId = crearUsuarioConjunto("residente1@prado.com", "admin123", "RESIDENTE", "Juan Residente", "ACTIVO");
 
 		try {
 			crearDatosDashboard(juanId);
@@ -176,8 +172,7 @@ public class DataInitializer implements CommandLineRunner {
 		log.info("Tipos de propiedad de prueba creados (Torre->Apto, Parqueadero)");
 	}
 
-	private Long crearUsuarioConjunto(String email, String password, String rol, String nombre, String apto,
-			String torre, String estado) {
+	private Long crearUsuarioConjunto(String email, String password, String rol, String nombre, String estado) {
 		Identidad identidad = new Identidad();
 		identidad.setEmail(email);
 		identidad.setPassword(passwordEncoder.encode(password));
@@ -186,9 +181,9 @@ public class DataInitializer implements CommandLineRunner {
 		identidadRepository.save(identidad);
 
 		Long usuarioId = jdbcTemplate.queryForObject("""
-				INSERT INTO %s.usuarios (nombre, identidad_id, apto, torre, estado)
-				VALUES (?, ?, ?, ?, ?) RETURNING id
-				""".formatted(SCHEMA), Long.class, nombre, identidad.getId(), apto, torre, estado);
+				INSERT INTO %s.usuarios (nombre, identidad_id, estado)
+				VALUES (?, ?, ?) RETURNING id
+				""".formatted(SCHEMA), Long.class, nombre, identidad.getId(), estado);
 
 		log.info("{} creado: {} / {}", rol, email, password);
 		return usuarioId;
@@ -231,7 +226,7 @@ public class DataInitializer implements CommandLineRunner {
 				"INSERT INTO " + SCHEMA + ".usuario_propiedades (usuario_id, propiedad_id, es_principal) VALUES (?, ?, TRUE)",
 				residenteId, juanAptoId);
 
-		BigDecimal montoAdmin = new BigDecimal("350000");
+		BigDecimal montoAdmin = new BigDecimal("194014");
 		jdbcTemplate.update(
 				"INSERT INTO " + SCHEMA + ".configuracion_cuotas (tipo_propiedad_id, monto, periodicidad, fecha_vigencia_desde, fecha_vigencia_hasta, activo) VALUES (?, ?, 'MENSUAL', ?, NULL, TRUE)",
 				idTipoApto, montoAdmin, LocalDate.now().minusYears(1));
@@ -339,15 +334,12 @@ public class DataInitializer implements CommandLineRunner {
 		log.info("""
 
 		    CREDENCIALES DE PRUEBA
+		    
 		    SUPER ADMIN:    admin@app.com / admin123
+		    
 		    CONJUNTO: El Prado  (codigo: EL-PRADO-01)
 		    TENANT_ADMIN:   tenantadmin@prado.com / admin123
-		    RESIDENTE:      residente@prado.com   / res123
-		    VIGILANTE:      vigilante@prado.com   / vig123
-		    PORTERO:        portero@prado.com     / por123
-		    PISCINERO:      piscinero@prado.com   / pis123
-		    CONTADOR:       contador@prado.com    / con123
-		    PEND.APROB.:    pendiente@prado.com   / pen123
+		    RESIDENTE:      residente1@prado.com   / admin123
 		    """);
 	}
 
