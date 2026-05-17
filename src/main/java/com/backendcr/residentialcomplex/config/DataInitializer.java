@@ -49,7 +49,7 @@ public class DataInitializer implements CommandLineRunner {
 		crearTablasPublicas();
 		crearSuperAdmin();
 		
-		//crearConjuntoPrueba();
+		crearConjuntoPrueba();
 
 		log.info("Datos de prueba cargados correctamente");
 		imprimirCredenciales();
