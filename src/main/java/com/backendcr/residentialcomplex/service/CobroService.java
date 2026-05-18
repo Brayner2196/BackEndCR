@@ -365,7 +365,7 @@ public class CobroService {
                 (int) activos.stream().filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
                                                 || c.getEstado() == EstadoCobro.PARCIAL).count(),
                 null,
-                toResponseList(activos));
+                toResponseList(activos)); 
     }
 
     // ─── Helpers de resolución de cuota ──────────────────────────────
