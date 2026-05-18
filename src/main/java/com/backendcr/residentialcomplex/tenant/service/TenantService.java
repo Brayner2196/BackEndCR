@@ -285,7 +285,7 @@ public class TenantService {
                     creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema));
+                """.formatted(schema, schema));
         log.info("Tabla anuncios creada para tenant '{}'", schema);
 
         // ── 8. anuncio_vistas ─────────────────────────────────────────────
@@ -298,7 +298,7 @@ public class TenantService {
                     visto_en         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(anuncio_id, residente_id)
                 )
-                """.formatted(schema, schema));
+                """.formatted(schema, schema, schema));
         log.info("Tabla anuncio_vistas creada para tenant '{}'", schema);
 
         // ── 9. zonas_comunes ──────────────────────────────────────────────
@@ -375,7 +375,7 @@ public class TenantService {
                     creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema, schema));
+                """.formatted(schema, schema, schema, schema, schema));
         log.info("Tabla reservas creada para tenant '{}'", schema);
 
         // ── 11. periodos_cobro ────────────────────────────────────────────
@@ -388,11 +388,11 @@ public class TenantService {
                     fecha_fin           DATE NOT NULL,
                     fecha_limite_pago   DATE NOT NULL,
                     estado              VARCHAR(20) NOT NULL DEFAULT 'ABIERTO',
-                    creado_por     BIGINT NOT NULL REFERENCES %s.usuarios(id),
+                    creado_por          BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(anio, mes)
                 )
-                """.formatted(schema));
+                """.formatted(schema, schema));
         log.info("Tabla periodos_cobro creada para tenant '{}'", schema);
 
         // ── 12. configuracion_cuotas ──────────────────────────────────────
@@ -476,7 +476,7 @@ public class TenantService {
                     creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema, schema));
+                """.formatted(schema, schema, schema, schema));
         	log.info("Tabla pagos creada para tenant '{}'", schema);
 
         // ── 16. abonos ────────────────────────────────────────────────────
@@ -498,7 +498,7 @@ public class TenantService {
                     creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema, schema));
+                """.formatted(schema, schema, schema));
         log.info("Tabla abonos creada para tenant '{}'", schema);
 
         // ── 17. movimientos_abono ─────────────────────────────────────────
@@ -544,7 +544,7 @@ public class TenantService {
                     creado_en            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema));
+                """.formatted(schema, schema));
         	log.info("Tabla votaciones creada para tenant '{}'", schema);
 
         // ── 20. opciones_votacion ─────────────────────────────────────────
@@ -571,7 +571,7 @@ public class TenantService {
                     votado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """.formatted(schema, schema, schema));
+                """.formatted(schema, schema, schema,schema));
         	log.info("Tabla votos_residentes creada para tenant '{}'", schema);
         	
     	// ── 21. inquilino_permisos ──────────────────────────────────────────
@@ -627,7 +627,7 @@ public class TenantService {
                         creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
-                    """.formatted(schema, schema, schema));
+                    """.formatted(schema, schema, schema, schema));
             	log.info("Tabla publicaciones creada para tenant '{}'", schema);
         	
         	
