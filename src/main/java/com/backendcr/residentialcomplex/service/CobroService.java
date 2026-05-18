@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -125,14 +126,11 @@ public class CobroService {
         if (periodo.getEstado() != EstadoPeriodo.ABIERTO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El período no está abierto");
         }
-        System.out.println(" aqui 1");
-
         // Fecha de referencia para resolver cuotas vigentes: inicio del período
         LocalDate fechaRef = periodo.getFechaInicio() != null
                 ? periodo.getFechaInicio()
                 : LocalDate.of(anio, mes, 1);
 
-        System.out.println(" aqui 2");
         for (Propiedad prop : propiedadRepo.findByTipoIdIsFacturable()) {
             if (cobroRepo.existsByPeriodoIdAndPropiedadId(periodo.getId(), prop.getId())) continue;
 
@@ -143,14 +141,10 @@ public class CobroService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No se encontró configuración de cuota para el tipo de propiedad: " + tipoPropiedad);
             }
-            System.out.println(" aqui 3");
-            //Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(prop.getId())
-                    //.map(UsuarioPropiedad::getUsuarioId).orElse(null);
-
             Cobro cobro = new Cobro();
             cobro.setPeriodoId(periodo.getId());
             cobro.setPropiedadId(prop.getId());
-            cobro.setUsuarioId(null);
+            cobro.setUsuarioId(null); // cobro de administración: pertenece a la propiedad, no a un usuario específico
             cobro.setConcepto(ConceptoCobro.ADMINISTRACION);
             cobro.setMontoBase(monto);
             cobro.setMontoMora(BigDecimal.ZERO);
@@ -159,21 +153,25 @@ public class CobroService {
             cobro.setFechaLimitePago(periodo.getFechaLimitePago());
             cobro.setEstado(EstadoCobro.PENDIENTE);
             cobroRepo.save(cobro);
-            System.out.println(" aqui 4");
         }
         List<CobroResponse> cobros = listarPorPeriodo(periodo.getId());
-        System.out.println(" aqui 5");
 
-        // Notificar a cada residente con su monto específico
-        cobros.stream()
-            .filter(c -> c.usuarioId() != null)
-            .forEach(c -> notificacionService.enviarAUsuario(
-                c.usuarioId(),
-                "💳 Tu cobro de administración está listo",
-                "Tienes un cobro pendiente de $" + c.montoTotal() + " con límite " + c.fechaLimitePago(),
-                java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()))
-            ));
-        System.out.println(" aqui 6");
+        // Notificar a todos los usuarios vinculados a cada propiedad con su cobro específico
+        cobros.forEach(c -> {
+            List<Long> usuariosDePropiedad = usuarioPropiedadRepo
+                    .findByPropiedadId(c.propiedadId())
+                    .stream()
+                    .map(UsuarioPropiedad::getUsuarioId)
+                    .toList();
+            if (!usuariosDePropiedad.isEmpty()) {
+                notificacionService.enviarAUsuarios(
+                    usuariosDePropiedad,
+                    "💳 Tu cobro de administración está listo",
+                    "Tienes un cobro pendiente de $" + c.montoTotal() + " con límite " + c.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
+                    java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()))
+                );
+            }
+        });
         return cobros;
     }
 
@@ -186,8 +184,11 @@ public class CobroService {
         Propiedad propiedad = propiedadRepo.findById(req.propiedadId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Propiedad no encontrada"));
 
-        Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(propiedad.getId())
-                .map(UsuarioPropiedad::getUsuarioId).orElse(null);
+        // Tomar el propietario principal de la propiedad (esPrincipal = true), o el primero si no hay principal
+        Long usuarioId = usuarioPropiedadRepo.findByPropiedadIdAndEsPrincipalTrue(propiedad.getId())
+                .map(UsuarioPropiedad::getUsuarioId)
+                .orElseGet(() -> usuarioPropiedadRepo.findByPropiedadId(propiedad.getId())
+                        .stream().findFirst().map(UsuarioPropiedad::getUsuarioId).orElse(null));
 
         Cobro cobro = new Cobro();
         cobro.setPeriodoId(null); // cobro especial, sin período
