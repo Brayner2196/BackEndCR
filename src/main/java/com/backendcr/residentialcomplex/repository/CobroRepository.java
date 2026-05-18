@@ -11,6 +11,7 @@ public interface CobroRepository extends JpaRepository<Cobro, Long> {
     List<Cobro> findAllByUsuarioId(Long usuarioId);
     List<Cobro> findAllByPropiedadId(Long propiedadId);
     List<Cobro> findAllByPropiedadIdIn(List<Long> propiedadIds);
+    List<Cobro> findAllByPropiedadIdInAndEstado(List<Long> propiedadIds, EstadoCobro estado);
     List<Cobro> findAllByUsuarioIdAndEstado(Long usuarioId, EstadoCobro estado);
     List<Cobro> findAllByEstado(EstadoCobro estado);
     boolean existsByPeriodoIdAndPropiedadId(Long periodoId, Long propiedadId);
