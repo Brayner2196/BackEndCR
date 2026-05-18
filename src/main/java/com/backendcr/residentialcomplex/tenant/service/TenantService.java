@@ -599,7 +599,7 @@ public class TenantService {
                     contacto		 VARCHAR(100),
                     marca			 VARCHAR(50),
                     stock			 INT NOT NULL,
-                    aceptaDomicilio  BOOLEAN NOT NULL DEFAULT FALSE,
+                    acepta_domicilio  BOOLEAN NOT NULL DEFAULT FALSE,
                     metodosPago	     VARCHAR(300),
                     estado		     VARCHAR(20) NOT NULL DEFAULT 'ACTIVA',
                     creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
