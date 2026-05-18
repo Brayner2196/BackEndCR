@@ -144,13 +144,13 @@ public class CobroService {
                         "No se encontró configuración de cuota para el tipo de propiedad: " + tipoPropiedad);
             }
             System.out.println(" aqui 3");
-            Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(prop.getId())
-                    .map(UsuarioPropiedad::getUsuarioId).orElse(null);
+            //Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(prop.getId())
+                    //.map(UsuarioPropiedad::getUsuarioId).orElse(null);
 
             Cobro cobro = new Cobro();
             cobro.setPeriodoId(periodo.getId());
             cobro.setPropiedadId(prop.getId());
-            cobro.setUsuarioId(usuarioId);
+            cobro.setUsuarioId(null);
             cobro.setConcepto(ConceptoCobro.ADMINISTRACION);
             cobro.setMontoBase(monto);
             cobro.setMontoMora(BigDecimal.ZERO);
