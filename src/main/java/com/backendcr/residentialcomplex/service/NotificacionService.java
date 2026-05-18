@@ -3,6 +3,8 @@ package com.backendcr.residentialcomplex.service;
 import com.backendcr.residentialcomplex.dto.FcmTokenRequest;
 import com.backendcr.residentialcomplex.entity.DeviceToken;
 import com.backendcr.residentialcomplex.repository.DeviceTokenRepository;
+import com.backendcr.residentialcomplex.repository.IdentidadRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.*;
 import org.slf4j.Logger;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class NotificacionService {
@@ -19,9 +22,15 @@ public class NotificacionService {
     private static final Logger log = LoggerFactory.getLogger(NotificacionService.class);
 
     private final DeviceTokenRepository deviceTokenRepository;
+    private final IdentidadRepository identidadRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public NotificacionService(DeviceTokenRepository deviceTokenRepository) {
+    public NotificacionService(DeviceTokenRepository deviceTokenRepository,
+                               IdentidadRepository identidadRepository,
+                               UsuarioRepository usuarioRepository) {
         this.deviceTokenRepository = deviceTokenRepository;
+        this.identidadRepository = identidadRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     // ─── Gestión de tokens ────────────────────────────────────────────────────
@@ -71,6 +80,32 @@ public class NotificacionService {
         if (!firebaseDisponible()) return;
 
         List<DeviceToken> tokens = deviceTokenRepository.findByTenantId(tenantId);
+        enviarATokens(tokens, titulo, cuerpo, datos);
+    }
+    
+    
+    /**
+     * Envía a todos los admins activos de un tenant.
+     * Busca las identidades con rol TENANT_ADMIN en ese tenant (esquema public),
+     * resuelve sus usuarioIds en el esquema del tenant y envía a sus dispositivos.
+     */
+    public void enviarAAdminsTenant(String tenantId, String titulo, String cuerpo, Map<String, String> datos) {
+        if (!firebaseDisponible()) return;
+
+        List<Long> usuarioAdminIds = identidadRepository
+                .findByRolAndTenantId("TENANT_ADMIN", tenantId)
+                .stream()
+                .map(identidad -> usuarioRepository.findByIdentidadId(identidad.getId()).orElse(null))
+                .filter(Objects::nonNull)
+                .map(usuario -> usuario.getId())
+                .toList();
+
+        if (usuarioAdminIds.isEmpty()) {
+            log.warn("FCM: no se encontraron admins activos para el tenant '{}'", tenantId);
+            return;
+        }
+
+        List<DeviceToken> tokens = deviceTokenRepository.findByUsuarioIdIn(usuarioAdminIds);
         enviarATokens(tokens, titulo, cuerpo, datos);
     }
 

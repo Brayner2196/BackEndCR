@@ -24,4 +24,7 @@ public interface IdentidadRepository extends JpaRepository<Identidad, Long>{
     Optional<Identidad> findByEmailAndTenantIdIsNull(String email);
 
     boolean existsByEmailAndTenantId(String email, String tenantId);
+
+    @Query(value = "SELECT * FROM public.identidades WHERE rol = :rol AND tenant_id = :tenantId", nativeQuery = true)
+    List<Identidad> findByRolAndTenantId(@Param("rol") String rol, @Param("tenantId") String tenantId);
 }
