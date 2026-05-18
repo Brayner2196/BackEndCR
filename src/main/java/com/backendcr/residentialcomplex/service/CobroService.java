@@ -96,13 +96,13 @@ public class CobroService {
     }
 
     public List<CobroResponse> listarPorUsuario(Long usuarioId) {
-    	List<Long> propiedadIds = usuarioPropiedadRepo.findPropiedadIdsByUsuarioId(usuarioId);
-        return toResponseList(cobroRepo.findAllByPropiedadIdIn(propiedadIds));
+    	List<UsuarioPropiedad> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId);
+        return toResponseList(cobroRepo.findAllByPropiedadIdIn(propiedadIds.stream().map(UsuarioPropiedad::getPropiedadId).toList()));
     }
 
     public List<CobroResponse> listarPorUsuarioYEstado(Long usuarioId, EstadoCobro estado) {
-    	List<Long> propiedadIds = usuarioPropiedadRepo.findPropiedadIdsByUsuarioId(usuarioId);
-        return toResponseList(cobroRepo.findAllByPropiedadIdInAndEstado(propiedadIds, estado));
+    	List<UsuarioPropiedad> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId);
+        return toResponseList(cobroRepo.findAllByPropiedadIdInAndEstado(propiedadIds.stream().map(UsuarioPropiedad::getPropiedadId).toList(), estado));
     }
 
     /** Obtiene un único cobro validando que pertenece al usuario. */

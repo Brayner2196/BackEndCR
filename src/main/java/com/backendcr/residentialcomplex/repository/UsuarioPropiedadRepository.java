@@ -10,8 +10,6 @@ import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 public interface UsuarioPropiedadRepository extends JpaRepository<UsuarioPropiedad, Long> {
 
     List<UsuarioPropiedad> findByUsuarioId(Long usuarioId);
-    
-    List<Long> findPropiedadIdsByUsuarioId(Long usuarioId);
 
     List<UsuarioPropiedad> findByPropiedadId(Long propiedadId);
 
