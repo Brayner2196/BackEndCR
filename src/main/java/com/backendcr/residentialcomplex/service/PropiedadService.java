@@ -55,6 +55,7 @@ public class PropiedadService {
         tipo.setParentId(request.parentId());
         tipo.setOrden(request.orden());
         tipo.setActivo(true);
+        tipo.setEsFacturable(request.esFacturable());
         return toNodoDto(tipoRepo.save(tipo));
     }
 
@@ -64,6 +65,7 @@ public class PropiedadService {
         tipo.setNombre(request.nombre());
         tipo.setDescripcion(request.descripcion());
         tipo.setOrden(request.orden());
+        tipo.setEsFacturable(request.esFacturable());
         return toNodoDto(tipoRepo.save(tipo));
     }
 
@@ -229,7 +231,7 @@ public class PropiedadService {
                 .toList();
         return new TipoPropiedadNodoDto(
                 tipo.getId(), tipo.getNombre(), tipo.getDescripcion(),
-                tipo.getParentId(), tipo.getOrden(), tipo.isActivo(), hijosDto);
+                tipo.getParentId(), tipo.getOrden(), tipo.isActivo(), tipo.isEsFacturable(), hijosDto);
     }
 
     private PropiedadResponse toPropiedadResponse(Propiedad p, boolean incluirResidentes) {

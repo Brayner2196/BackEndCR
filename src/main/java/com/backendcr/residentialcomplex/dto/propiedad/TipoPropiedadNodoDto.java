@@ -18,5 +18,7 @@ public record TipoPropiedadNodoDto(
 
         boolean activo,
 
+        boolean esFacturable,
+
         List<TipoPropiedadNodoDto> hijos
 ) {}

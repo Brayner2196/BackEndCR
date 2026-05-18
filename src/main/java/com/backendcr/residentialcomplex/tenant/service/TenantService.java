@@ -638,10 +638,10 @@ public class TenantService {
         for (int i = 0; i < tipos.size(); i++) {
             TipoPropiedadNodoDto nodo = tipos.get(i);
             Long nuevoId = jdbcTemplate.queryForObject(
-                    "INSERT INTO " + schema + ".tipos_propiedad (nombre, descripcion, parent_id, orden) " +
-                    "VALUES (?, ?, ?, ?) RETURNING id",
+                    "INSERT INTO " + schema + ".tipos_propiedad (nombre, descripcion, parent_id, orden, es_facturable) " +
+                    "VALUES (?, ?, ?, ?, ?) RETURNING id",
                     Long.class,
-                    nodo.nombre(), nodo.descripcion(), parentId, ordenBase + i);
+                    nodo.nombre(), nodo.descripcion(), parentId, ordenBase + i, nodo.esFacturable());
 
             if (nodo.hijos() != null && !nodo.hijos().isEmpty()) {
                 insertarTiposPropiedad(schema, nodo.hijos(), nuevoId, 0);
