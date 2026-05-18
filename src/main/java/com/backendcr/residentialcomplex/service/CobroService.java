@@ -346,7 +346,7 @@ public class CobroService {
     public EstadoCuentaResponse estadoCuenta(Long usuarioId) {
     	List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
 				.stream().map(UsuarioPropiedad::getPropiedadId).toList();
-        List<Cobro> activos = cobroRepo.findAllByInPropiedadId(propiedadIds).stream()
+        List<Cobro> activos = cobroRepo.findAllByPropiedadIdIn(propiedadIds).stream()
                 .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
                           || c.getEstado() == EstadoCobro.PARCIAL
                           || c.getEstado() == EstadoCobro.VENCIDO)
