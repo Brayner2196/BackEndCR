@@ -9,6 +9,8 @@ import java.util.List;
 public interface CobroRepository extends JpaRepository<Cobro, Long> {
     List<Cobro> findAllByPeriodoId(Long periodoId);
     List<Cobro> findAllByUsuarioId(Long usuarioId);
+    List<Cobro> findAllByPropiedadId(Long propiedadId);
+    List<Cobro> findAllByInPropiedadId(List<Long> propiedadIds);
     List<Cobro> findAllByUsuarioIdAndEstado(Long usuarioId, EstadoCobro estado);
     List<Cobro> findAllByEstado(EstadoCobro estado);
     boolean existsByPeriodoIdAndPropiedadId(Long periodoId, Long propiedadId);

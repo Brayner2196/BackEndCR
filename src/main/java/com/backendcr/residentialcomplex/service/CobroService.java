@@ -71,7 +71,6 @@ public class CobroService {
             "Se abrió el período de cobro " + mesAnio + " con límite de pago: " + req.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
             java.util.Map.of("tipo", "COBRO_PERIODO", "periodoId", String.valueOf(response.id()))
         );
-
         return response;
     }
 
@@ -345,7 +344,9 @@ public class CobroService {
     // ─── Estado de cuenta del residente ───────────────────────────
 
     public EstadoCuentaResponse estadoCuenta(Long usuarioId) {
-        List<Cobro> activos = cobroRepo.findAllByUsuarioId(usuarioId).stream()
+    	List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+				.stream().map(UsuarioPropiedad::getPropiedadId).toList();
+        List<Cobro> activos = cobroRepo.findAllByInPropiedadId(propiedadIds).stream()
                 .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
                           || c.getEstado() == EstadoCobro.PARCIAL
                           || c.getEstado() == EstadoCobro.VENCIDO)
