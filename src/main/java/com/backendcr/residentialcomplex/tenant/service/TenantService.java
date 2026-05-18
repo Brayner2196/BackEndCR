@@ -628,7 +628,7 @@ public class TenantService {
                         actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                     """.formatted(schema, schema, schema, schema));
-            	log.info("Tabla publicaciones creada para tenant '{}'", schema);
+            	log.info("Tabla solicitudes creada para tenant '{}'", schema);
         	
         	
     }
