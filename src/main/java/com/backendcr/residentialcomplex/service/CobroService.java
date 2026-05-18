@@ -125,12 +125,14 @@ public class CobroService {
         if (periodo.getEstado() != EstadoPeriodo.ABIERTO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El período no está abierto");
         }
+        System.out.println(" aqui 1");
 
         // Fecha de referencia para resolver cuotas vigentes: inicio del período
         LocalDate fechaRef = periodo.getFechaInicio() != null
                 ? periodo.getFechaInicio()
                 : LocalDate.of(anio, mes, 1);
 
+        System.out.println(" aqui 2");
         for (Propiedad prop : propiedadRepo.findByTipoIdIsFacturable()) {
             if (cobroRepo.existsByPeriodoIdAndPropiedadId(periodo.getId(), prop.getId())) continue;
 
@@ -141,7 +143,7 @@ public class CobroService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No se encontró configuración de cuota para el tipo de propiedad: " + tipoPropiedad);
             }
-
+            System.out.println(" aqui 3");
             Long usuarioId = usuarioPropiedadRepo.findOptionalByPropiedadId(prop.getId())
                     .map(UsuarioPropiedad::getUsuarioId).orElse(null);
 
@@ -157,8 +159,10 @@ public class CobroService {
             cobro.setFechaLimitePago(periodo.getFechaLimitePago());
             cobro.setEstado(EstadoCobro.PENDIENTE);
             cobroRepo.save(cobro);
+            System.out.println(" aqui 4");
         }
         List<CobroResponse> cobros = listarPorPeriodo(periodo.getId());
+        System.out.println(" aqui 5");
 
         // Notificar a cada residente con su monto específico
         cobros.stream()
@@ -169,7 +173,7 @@ public class CobroService {
                 "Tienes un cobro pendiente de $" + c.montoTotal() + " con límite " + c.fechaLimitePago(),
                 java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()))
             ));
-
+        System.out.println(" aqui 6");
         return cobros;
     }
 
