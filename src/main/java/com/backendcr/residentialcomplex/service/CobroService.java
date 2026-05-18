@@ -96,7 +96,8 @@ public class CobroService {
     }
 
     public List<CobroResponse> listarPorUsuario(Long usuarioId) {
-        return toResponseList(cobroRepo.findAllByUsuarioId(usuarioId));
+    	List<Long> propiedadIds = usuarioPropiedadRepo.findPropiedadIdsByUsuarioId(usuarioId);
+        return toResponseList(cobroRepo.findAllByPropiedadIdIn(propiedadIds));
     }
 
     public List<CobroResponse> listarPorUsuarioYEstado(Long usuarioId, EstadoCobro estado) {
