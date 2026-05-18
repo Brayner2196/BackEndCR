@@ -193,6 +193,32 @@ public class PropiedadService {
         return actual != null?actual.getId():null;
     }
 
+    /**
+     * Igual que resolverOCrearPath pero sin crear nada: solo busca.
+     * Lanza 404 si algún nivel del path no existe.
+     * Usar cuando el path debe referenciar una propiedad ya existente (ej: asignar un inquilino).
+     */
+    public Long resolverPathSoloExistente(List<PropiedadPathItemDto> path) {
+        if (path == null || path.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El path de propiedad no puede estar vacío");
+        }
+
+        Long parentPropiedadId = null;
+        Propiedad actual = null;
+
+        for (PropiedadPathItemDto item : path) {
+            String valorNormalizado = item.valor().trim().toUpperCase();
+            Long finalParent = parentPropiedadId;
+            actual = propiedadRepo
+                    .findByTipoIdAndIdentificadorAndParentId(item.tipoId(), valorNormalizado, finalParent)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "No existe la propiedad '" + item.valor().trim() + "'. Verifique el path ingresado."));
+            parentPropiedadId = actual.getId();
+        }
+
+        return actual != null ? actual.getId() : null;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private TipoPropiedadNodoDto toNodoDto(TipoPropiedad tipo) {

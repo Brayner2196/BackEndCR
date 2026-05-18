@@ -79,7 +79,12 @@ public class UsuarioService {
         usuario = usuarioRepository.save(usuario);
 
         if (request.propiedadPath() != null && !request.propiedadPath().isEmpty()) {
-            Long propiedadId = propiedadService.resolverOCrearPath(request.propiedadPath());
+            // Los inquilinos NO crean nuevas propiedades: deben asociarse a una ya existente.
+            // Para otros roles (PROPIETARIO, etc.) se permite crear el path si no existe.
+            Long propiedadId = "INQUILINO".equals(request.rol())
+                    ? propiedadService.resolverPathSoloExistente(request.propiedadPath())
+                    : propiedadService.resolverOCrearPath(request.propiedadPath());
+
             UsuarioPropiedad up = new UsuarioPropiedad();
             up.setUsuarioId(usuario.getId());
             up.setPropiedadId(propiedadId);
