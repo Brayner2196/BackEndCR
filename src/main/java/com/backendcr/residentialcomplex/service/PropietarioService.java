@@ -47,7 +47,7 @@ public class PropietarioService {
                 .map(u -> {
                     Identidad id = identidadRepository.findById(u.getIdentidadId()).orElse(null);
                     return (id != null && "INQUILINO".equals(id.getRol()))
-                            ? UsuarioResponse.from(u, id.getEmail(), id.getRol())
+                            ? UsuarioResponse.from(u, id.getEmail(), id.getRol(), id.isActivo())
                             : null;
                 })
                 .filter(r -> r != null)
@@ -88,7 +88,7 @@ public class PropietarioService {
         up.setEsPrincipal(true);
         usuarioPropiedadRepository.save(up);
 
-        return UsuarioResponse.from(inquilino, identidad.getEmail(), identidad.getRol());
+        return UsuarioResponse.from(inquilino, identidad.getEmail(), identidad.getRol(), identidad.isActivo());
     }
 
     /**
@@ -140,7 +140,7 @@ public class PropietarioService {
         up.setEsPrincipal(true);
         usuarioPropiedadRepository.save(up);
 
-        return UsuarioResponse.from(inquilino, identidad.getEmail(), identidad.getRol());
+        return UsuarioResponse.from(inquilino, identidad.getEmail(), identidad.getRol(), identidad.isActivo());
     }
 
     /** Elimina un inquilino validando que pertenezca a la misma propiedad del propietario. */
