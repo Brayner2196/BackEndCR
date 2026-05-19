@@ -20,5 +20,11 @@ public record PublicacionRequest(
         boolean                     aceptaDomicilio,
 
         /** Métodos de pago aceptados (máx 10 valores, cada uno máx 30 chars). */
-        @Size(max = 10)             List<@Size(max = 30) String> metodosPago
+        @Size(max = 10)             List<@Size(max = 30) String> metodosPago,
+
+        /**
+         * ID de la propiedad del vendedor enviado desde el cliente al crear.
+         * null en ediciones (el backend mantiene el valor original).
+         */
+                                    Long propiedadId
 ) {}

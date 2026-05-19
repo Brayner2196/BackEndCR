@@ -29,7 +29,7 @@ public class Publicacion {
     private String vendedorNombre;
 
     /** Propiedad principal del vendedor: usada para calcular proximidad. */
-    @Column(name = "propiedad_id")
+    @Column(name = "propiedad_id", nullable = false)
     private Long propiedadId;
 
     // ── Contenido ────────────────────────────────────────

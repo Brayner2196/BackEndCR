@@ -81,10 +81,20 @@ public class PublicacionService {
         Usuario vendedor = usuarioRepo.findById(vendedorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vendedor no encontrado"));
 
+        // El cliente envía propiedadId directamente; si no viene, calculamos como fallback
+        Long propiedadId = req.propiedadId() != null
+                ? req.propiedadId()
+                : propiedadPrincipalId(vendedorId);
+
+        if (propiedadId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Necesitas tener una propiedad asignada para crear una publicación.");
+        }
+
         Publicacion p = new Publicacion();
         p.setVendedorId(vendedorId);
         p.setVendedorNombre(vendedor.getNombre());
-        p.setPropiedadId(propiedadPrincipalId(vendedorId));
+        p.setPropiedadId(propiedadId);
         aplicarCampos(p, req);
         return PublicacionResponse.from(publicacionRepo.save(p));
     }
