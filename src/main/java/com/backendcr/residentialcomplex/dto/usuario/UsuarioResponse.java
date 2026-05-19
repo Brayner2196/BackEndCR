@@ -12,11 +12,12 @@ public record UsuarioResponse(
         String rol,
         String telefono,
         EstadoUsuario estado,
+        boolean activo,
         String creadoEn
 ) {
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
-    public static UsuarioResponse from(Usuario usuario, String email, String rol) {
+    public static UsuarioResponse from(Usuario usuario, String email, String rol, boolean activo) {
         return new UsuarioResponse(
                 usuario.getId(),
                 usuario.getNombre(),
@@ -24,6 +25,7 @@ public record UsuarioResponse(
                 rol,
                 usuario.getTelefono(),
                 usuario.getEstado(),
+                activo,
                 usuario.getCreadoEn().format(FORMATTER)
         );
     }

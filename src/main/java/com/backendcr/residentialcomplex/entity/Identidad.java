@@ -23,6 +23,9 @@ public class Identidad {
 	@Column(name = "tenant_id")
 	private String tenantId; // NULL si es SUPER_ADMIN
 
+	@Column(nullable = false)
+	private boolean activo = true;
+
 	public Long getId() {
 		return id;
 	}
@@ -61,6 +64,14 @@ public class Identidad {
 
 	public void setTenantId(String tenantId) {
 		this.tenantId = tenantId;
+	}
+
+	public boolean isActivo() {
+		return activo;
+	}
+
+	public void setActivo(boolean activo) {
+		this.activo = activo;
 	}
 
 }

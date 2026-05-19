@@ -51,11 +51,31 @@ public class AuthService {
 		Identidad superAdmin = identidades.stream().filter(i -> i.getTenantId() == null).findFirst().orElse(null);
 
 		if (superAdmin != null) {
+			if (!superAdmin.isActivo()) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está inactiva");
+			}
 			return generarLoginResponse(superAdmin, "public", null);
 		}
 
-		if (identidades.size() == 1) {
-			Identidad identidad = identidades.get(0);
+		// Filtrar solo identidades activas con tenants activos
+		List<Identidad> activas = identidades.stream().filter(i -> {
+			if (!i.isActivo()) return false;
+			return tenantRepository.findBySchemaName(i.getTenantId())
+					.map(Tenant::isActivo).orElse(false);
+		}).toList();
+
+		// Si todas están inactivas, determinar el motivo más específico
+		if (activas.isEmpty()) {
+			boolean hayUsuarioInactivo = identidades.stream().anyMatch(i -> !i.isActivo());
+			if (hayUsuarioInactivo) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está inactiva");
+			}
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"El conjunto al que perteneces está inactivo");
+		}
+
+		if (activas.size() == 1) {
+			Identidad identidad = activas.get(0);
 
 			if ("PROPIETARIO_PENDIENTE".equals(identidad.getRol())) {
 				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -68,7 +88,7 @@ public class AuthService {
 			return generarLoginResponse(identidad, identidad.getTenantId(), tenant.getNombre());
 		}
 
-		List<MultiTenantLoginResponse.OpcionTenant> opciones = identidades.stream().map(i -> {
+		List<MultiTenantLoginResponse.OpcionTenant> opciones = activas.stream().map(i -> {
 			java.util.Optional<Tenant> tenant = tenantRepository.findBySchemaName(i.getTenantId());
 			String nombre = tenant.map(Tenant::getNombre).orElse(i.getTenantId());
 			String direccion = tenant.map(Tenant::getDireccion).orElse(null);
@@ -87,12 +107,21 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales incorrectas");
 		}
 
+		if (!identidad.isActivo()) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está inactiva");
+		}
+
 		if ("PROPIETARIO_PENDIENTE".equals(identidad.getRol())) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está pendiente de aprobación");
 		}
 
 		Tenant tenant = tenantRepository.findBySchemaName(request.tenantId()).orElseThrow(
 				() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Tenant no encontrado"));
+
+		if (!tenant.isActivo()) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"El conjunto al que perteneces está inactivo");
+		}
 
 		return generarLoginResponse(identidad, request.tenantId(), tenant.getNombre());
 	}

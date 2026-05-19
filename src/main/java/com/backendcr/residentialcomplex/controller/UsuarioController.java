@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.backendcr.residentialcomplex.dto.inquilino.CrearInquilinoRequest;
@@ -71,6 +72,32 @@ public class UsuarioController {
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public UsuarioResponse rechazar(@PathVariable Long id) {
         return usuarioService.rechazar(id);
+    }
+
+    // ── Activar / Desactivar acceso ───────────────────────────────────────────
+
+    @PatchMapping("/{id}/activar")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public UsuarioResponse activar(@PathVariable Long id,
+                                   @AuthenticationPrincipal String email) {
+        return usuarioService.activar(id, email);
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public UsuarioResponse desactivar(@PathVariable Long id,
+                                      @AuthenticationPrincipal String email) {
+        return usuarioService.desactivar(id, email);
+    }
+
+    // ── Cambiar rol ───────────────────────────────────────────────────────────
+
+    @PatchMapping("/{id}/rol")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public UsuarioResponse cambiarRol(@PathVariable Long id,
+                                      @RequestParam String rol,
+                                      @AuthenticationPrincipal String email) {
+        return usuarioService.cambiarRol(id, rol, email);
     }
 
     /**
