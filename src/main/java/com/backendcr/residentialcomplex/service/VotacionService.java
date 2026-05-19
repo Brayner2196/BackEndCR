@@ -72,7 +72,7 @@ public class VotacionService {
                 TenantContext.getTenant(),
                 "🗳️ Nueva votación disponible",
                 v.getTitulo(),
-                java.util.Map.of("tipo", "VOTACION", "votacionId", String.valueOf(id))
+                java.util.Map.of("tipo", "VOTACION", "votacionId", String.valueOf(id), "route", "votaciones")
             );
         }
 

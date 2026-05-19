@@ -50,7 +50,7 @@ public class AnuncioService {
             TenantContext.getTenant(),
             "📢 Nuevo anuncio",
             req.titulo(),
-            java.util.Map.of("tipo", "ANUNCIO", "anuncioId", String.valueOf(response.id()))
+            java.util.Map.of("tipo", "ANUNCIO", "anuncioId", String.valueOf(response.id()), "route", "anuncios")
         );
 
         return response;

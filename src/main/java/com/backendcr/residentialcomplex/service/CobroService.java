@@ -69,7 +69,7 @@ public class CobroService {
             TenantContext.getTenant(),
             "💳 Nuevo período de cobro abierto",
             "Se abrió el período de cobro " + mesAnio + " con límite de pago: " + req.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
-            java.util.Map.of("tipo", "COBRO_PERIODO", "periodoId", String.valueOf(response.id()))
+            java.util.Map.of("tipo", "COBRO_PERIODO", "periodoId", String.valueOf(response.id()), "route", "pagos")
         );
         return response;
     }
@@ -169,7 +169,7 @@ public class CobroService {
                     usuariosDePropiedad,
                     "💳 Tu cobro de administración está listo",
                     "Tienes un cobro pendiente de $" + c.montoTotal() + " con límite " + c.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
-                    java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()))
+                    java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()), "route", "pagos")
                 );
             }
         });

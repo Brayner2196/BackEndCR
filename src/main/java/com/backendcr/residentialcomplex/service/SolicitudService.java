@@ -164,7 +164,8 @@ public class SolicitudService {
                 Map.of(
                         "tipo",         "SOLICITUD_RECIBIDA",
                         "solicitudId",  s.getId().toString(),
-                        "compradorId",  s.getCompradorId().toString()
+                        "compradorId",  s.getCompradorId().toString(),
+                        "route",        "marketplace"
                 )
         );
     }
@@ -196,7 +197,8 @@ public class SolicitudService {
                 Map.of(
                         "tipo",         "SOLICITUD_ACTUALIZADA",
                         "solicitudId",  s.getId().toString(),
-                        "estado",       s.getEstado().name()
+                        "estado",       s.getEstado().name(),
+                        "route",        "marketplace"
                 )
         );
     }
