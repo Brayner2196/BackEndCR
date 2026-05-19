@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Entity
-@Table(name = "publicaciones")
+@Table(name = "publicaciones", schema = "solemio")
 public class Publicacion {
 
     @Id
@@ -54,7 +54,7 @@ public class Publicacion {
     @Column(length = 50)
     private String marca;
 
-    // ── Stock y logística ─────────────────────────────────
+    // ── Stock y logística ──────────────────────────────────
     /**
      * Unidades disponibles. null = no maneja stock | 0 = agotado | >0 = disponible.
      */
@@ -136,3 +136,4 @@ public class Publicacion {
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public LocalDateTime getActualizadoEn() { return actualizadoEn; }
 }
+
