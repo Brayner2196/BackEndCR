@@ -598,7 +598,7 @@ public class TenantService {
                     categoria		 VARCHAR(30) NOT NULL,
                     contacto		 VARCHAR(100),
                     marca			 VARCHAR(50),
-                    stock			 INT NOT NULL,
+                    stock			 INT,
                     acepta_domicilio BOOLEAN NOT NULL DEFAULT FALSE,
                     metodos_pago	 VARCHAR(300),
                     estado		     VARCHAR(20) NOT NULL DEFAULT 'ACTIVA',
