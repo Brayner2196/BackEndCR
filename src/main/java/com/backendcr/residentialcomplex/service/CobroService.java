@@ -33,7 +33,6 @@ public class CobroService {
     private final ConfiguracionMoraRepository moraRepo;
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
     private final PropiedadRepository propiedadRepo;
-    private final UsuarioRepository usuarioRepo;
     private final PagoRepository pagoRepo;
     private final MovimientoAbonoRepository movimientoAbonoRepo;
     private final NotificacionService notificacionService;
@@ -105,11 +104,14 @@ public class CobroService {
         return toResponseList(cobroRepo.findAllByPropiedadIdInAndEstado(propiedadIds.stream().map(UsuarioPropiedad::getPropiedadId).toList(), estado));
     }
 
-    /** Obtiene un único cobro validando que pertenece al usuario. */
+    /** Obtiene un único cobro validando que el usuario tenga acceso a la propiedad del cobro. */
     public CobroResponse getCobroPorIdYUsuario(Long id, Long usuarioId) {
         Cobro cobro = cobroRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobro no encontrado"));
-        if (!cobro.getUsuarioId().equals(usuarioId)) {
+        boolean tieneAcceso = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+                .stream()
+                .anyMatch(up -> up.getPropiedadId().equals(cobro.getPropiedadId()));
+        if (!tieneAcceso) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este cobro");
         }
         return toResponse(cobro);
@@ -145,7 +147,6 @@ public class CobroService {
             Cobro cobro = new Cobro();
             cobro.setPeriodoId(periodo.getId());
             cobro.setPropiedadId(prop.getId());
-            cobro.setUsuarioId(null); // cobro de administración: pertenece a la propiedad, no a un usuario específico
             cobro.setConcepto(ConceptoCobro.ADMINISTRACION);
             cobro.setMontoBase(monto);
             cobro.setMontoMora(BigDecimal.ZERO);
@@ -185,16 +186,9 @@ public class CobroService {
         Propiedad propiedad = propiedadRepo.findById(req.propiedadId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Propiedad no encontrada"));
 
-        // Tomar el propietario principal de la propiedad (esPrincipal = true), o el primero si no hay principal
-        Long usuarioId = usuarioPropiedadRepo.findByPropiedadIdAndEsPrincipalTrue(propiedad.getId())
-                .map(UsuarioPropiedad::getUsuarioId)
-                .orElseGet(() -> usuarioPropiedadRepo.findByPropiedadId(propiedad.getId())
-                        .stream().findFirst().map(UsuarioPropiedad::getUsuarioId).orElse(null));
-
         Cobro cobro = new Cobro();
         cobro.setPeriodoId(null); // cobro especial, sin período
         cobro.setPropiedadId(propiedad.getId());
-        cobro.setUsuarioId(usuarioId);
         cobro.setConcepto(req.concepto());
         cobro.setDescripcion(req.descripcion());
         cobro.setMontoBase(req.monto());
@@ -458,8 +452,6 @@ public class CobroService {
         // periodoId puede ser null en cobros especiales — filtramos
         Set<Long> periodoIds = cobros.stream().map(Cobro::getPeriodoId)
                 .filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> usuarioIds = cobros.stream().map(Cobro::getUsuarioId)
-                .filter(Objects::nonNull).collect(Collectors.toSet());
 
         // Jerarquía de propiedades (múltiples pasadas para subir niveles)
         Map<Long, Propiedad> propMap = new HashMap<>();
@@ -479,8 +471,6 @@ public class CobroService {
         Map<Long, TipoPropiedad> tipoMap = tipoPropiedadRepository.findAllById(tipoIds)
                 .stream().collect(Collectors.toMap(TipoPropiedad::getId, t -> t));
 
-        Map<Long, Usuario> usuarioMap = usuarioRepo.findAllById(usuarioIds)
-                .stream().collect(Collectors.toMap(Usuario::getId, u -> u));
         Map<Long, PeriodoCobro> periodoMap = periodoIds.isEmpty()
                 ? Map.of()
                 : periodoRepo.findAllById(periodoIds)
@@ -493,10 +483,6 @@ public class CobroService {
             Propiedad prop = propMap.get(c.getPropiedadId());
             String descripcion = prop != null
                     ? construirPathTextoDesdeMap(prop, propMap, tipoMap) : "N/A";
-            String nombreUsuario = c.getUsuarioId() != null
-                    ? Optional.ofNullable(usuarioMap.get(c.getUsuarioId()))
-                        .map(Usuario::getNombre).orElse("N/A")
-                    : "N/A";
             PeriodoCobro periodo = c.getPeriodoId() != null ? periodoMap.get(c.getPeriodoId()) : null;
             boolean tieneMovimientos = conPagos.contains(c.getId()) || conMovAbonos.contains(c.getId());
             EstadoCobro estadoCobro = c.getEstado();
@@ -511,7 +497,6 @@ public class CobroService {
                     periodo != null ? periodo.getAnio() : null,
                     periodo != null ? periodo.getMes() : null,
                     c.getPropiedadId(), descripcion,
-                    c.getUsuarioId(), nombreUsuario,
                     c.getConcepto(), c.getDescripcion(),
                     c.getMontoBase(), c.getMontoMora(), c.getMontoTotal(),
                     c.getMontoPagado(), c.getMontoPendiente(),
@@ -538,8 +523,6 @@ public class CobroService {
     private CobroResponse toResponse(Cobro c) {
         String descripcionPropiedad = propiedadRepo.findById(c.getPropiedadId())
                 .map(this::construirPathTexto).orElse("N/A");
-        String nombreUsuario = c.getUsuarioId() != null
-                ? usuarioRepo.findById(c.getUsuarioId()).map(Usuario::getNombre).orElse("N/A") : "N/A";
         PeriodoCobro periodo = c.getPeriodoId() != null
                 ? periodoRepo.findById(c.getPeriodoId()).orElse(null) : null;
         boolean tieneMovimientos = pagoRepo.existsByCobroId(c.getId())
@@ -549,7 +532,6 @@ public class CobroService {
                 periodo != null ? periodo.getAnio() : 0,
                 periodo != null ? periodo.getMes() : 0,
                 c.getPropiedadId(), descripcionPropiedad,
-                c.getUsuarioId(), nombreUsuario,
                 c.getConcepto(), c.getDescripcion(),
                 c.getMontoBase(), c.getMontoMora(), c.getMontoTotal(),
                 c.getMontoPagado(), c.getMontoPendiente(),

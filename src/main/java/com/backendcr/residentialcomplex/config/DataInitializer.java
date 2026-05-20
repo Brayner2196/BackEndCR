@@ -1,16 +1,5 @@
 package com.backendcr.residentialcomplex.config;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,11 +8,7 @@ import org.springframework.stereotype.Component;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.entity.Identidad;
-import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
-import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
-import com.backendcr.residentialcomplex.tenant.service.TenantService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,14 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-	private static final String SCHEMA = "conjunto_101";
-
 	private final IdentidadRepository identidadRepository;
-	private final TenantRepository tenantRepository;
 	private final JdbcTemplate jdbcTemplate;
 	private final PasswordEncoder passwordEncoder;
-	private final TenantService tenantService;
-
 	@Override
 	public void run(String... args) {
 		TenantContext.setTenant("public");

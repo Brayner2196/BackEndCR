@@ -12,8 +12,6 @@ public record CobroResponse(
         Integer mes,
         Long propiedadId,
         String propiedadIdentificador,
-        Long usuarioId,
-        String usuarioNombre,
         ConceptoCobro concepto,
         String descripcion,
         BigDecimal montoBase,

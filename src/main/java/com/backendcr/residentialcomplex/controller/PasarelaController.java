@@ -213,28 +213,6 @@ public class PasarelaController {
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    // Backward compatible con endpoints MP anteriores
-    // ═════════════════════════════════════════════════════════════════════════
-
-    @GetMapping("/api/mp/pago-exito")
-    public ResponseEntity<java.util.Map<String, String>> pagoExito(@RequestParam java.util.Map<String, String> params) {
-        log.info("MP back_url éxito - params={}", params);
-        return ResponseEntity.ok(java.util.Map.of("estado", "aprobado", "mensaje", "Pago procesado correctamente"));
-    }
-
-    @GetMapping("/api/mp/pago-fallo")
-    public ResponseEntity<java.util.Map<String, String>> pagoFallo(@RequestParam java.util.Map<String, String> params) {
-        log.info("MP back_url fallo - params={}", params);
-        return ResponseEntity.ok(java.util.Map.of("estado", "fallido", "mensaje", "El pago no pudo procesarse"));
-    }
-
-    @GetMapping("/api/mp/pago-pendiente")
-    public ResponseEntity<java.util.Map<String, String>> pagoPendiente(@RequestParam java.util.Map<String, String> params) {
-        log.info("MP back_url pendiente - params={}", params);
-        return ResponseEntity.ok(java.util.Map.of("estado", "pendiente", "mensaje", "El pago está en revisión"));
-    }
-
-    // ═════════════════════════════════════════════════════════════════════════
     // Helpers
     // ═════════════════════════════════════════════════════════════════════════
 

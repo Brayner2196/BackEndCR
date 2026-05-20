@@ -24,9 +24,6 @@ public class Cobro {
     @Column(name = "propiedad_id", nullable = false)
     private Long propiedadId;
 
-    @Column(name = "usuario_id")
-    private Long usuarioId;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ConceptoCobro concepto = ConceptoCobro.ADMINISTRACION;
@@ -76,8 +73,6 @@ public class Cobro {
     public void setPeriodoId(Long periodoId) { this.periodoId = periodoId; }
     public Long getPropiedadId() { return propiedadId; }
     public void setPropiedadId(Long propiedadId) { this.propiedadId = propiedadId; }
-    public Long getUsuarioId() { return usuarioId; }
-    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
     public ConceptoCobro getConcepto() { return concepto; }
     public void setConcepto(ConceptoCobro concepto) { this.concepto = concepto; }
     public String getDescripcion() { return descripcion; }
