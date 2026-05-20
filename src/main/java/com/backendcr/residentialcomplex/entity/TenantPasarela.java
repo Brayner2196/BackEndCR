@@ -1,7 +1,9 @@
 package com.backendcr.residentialcomplex.entity;
 
+import com.backendcr.residentialcomplex.config.EncryptedStringConverter;
 import com.backendcr.residentialcomplex.entity.enums.TipoPasarela;
 import jakarta.persistence.*;
+import java.time.Instant;
 
 /**
  * Configuración de una pasarela de pago para un tenant específico.
@@ -51,15 +53,42 @@ public class TenantPasarela {
     // Para Wompi: publicKey = llave pública, privateKey = llave privada
     // Para Bold: publicKey = api_key pública, privateKey = api_key privada
 
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "public_key")
     private String publicKey;
 
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "private_key")
     private String privateKey;
 
     /** Secret para verificar firma de webhooks */
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "webhook_secret")
     private String webhookSecret;
+
+    // ── Auditoría ──────────────────────────────────────────────────────────────
+    /** Fecha de creación del registro */
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    /** Última vez que se modificó la configuración */
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    /** Email del admin que hizo el último cambio */
+    @Column(name = "updated_by")
+    private String updatedBy;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 
     // ── URL de retorno override (si null usa las globales de application.properties) ──
     @Column(name = "success_url")
@@ -108,4 +137,25 @@ public class TenantPasarela {
 
     public String getPendingUrl() { return pendingUrl; }
     public void setPendingUrl(String pendingUrl) { this.pendingUrl = pendingUrl; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public String getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+
+    /**
+     * Nunca exponer credenciales en logs. Solo datos no sensibles.
+     */
+    @Override
+    public String toString() {
+        return "TenantPasarela{" +
+               "id=" + id +
+               ", tenantId=" + (tenant != null ? tenant.getId() : null) +
+               ", tipo=" + tipoPasarela +
+               ", activa=" + activa +
+               ", sandbox=" + sandbox +
+               ", prioridad=" + prioridad +
+               '}';
+        // privateKey, publicKey, webhookSecret OMITIDOS intencionalmente
+    }
 }

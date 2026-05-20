@@ -41,6 +41,7 @@ public class SecurityConfig {
 						"/api/pago/confirmar/mp/**"
 					).permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
+					.requestMatchers("/api/super/**").hasRole("SUPER_ADMIN")
 					.anyRequest().authenticated()
 		).sessionManagement(session -> session
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)

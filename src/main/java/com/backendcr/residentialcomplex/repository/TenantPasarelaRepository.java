@@ -3,6 +3,7 @@ package com.backendcr.residentialcomplex.repository;
 import com.backendcr.residentialcomplex.entity.TenantPasarela;
 import com.backendcr.residentialcomplex.entity.enums.TipoPasarela;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -34,5 +35,35 @@ public interface TenantPasarelaRepository extends JpaRepository<TenantPasarela, 
     boolean existsByTenantSchemaAndTipo(
             @Param("schemaName") String schemaName,
             @Param("tipo") TipoPasarela tipo
+    );
+
+    // ─── Queries nativas para rotación de clave (bypass al AttributeConverter) ──
+
+    /** Lee el valor cifrado RAW de public_key sin pasar por el converter */
+    @Query(value = "SELECT public_key FROM public.tenant_pasarelas WHERE id = :id", nativeQuery = true)
+    String findRawPublicKey(@Param("id") Long id);
+
+    /** Lee el valor cifrado RAW de private_key sin pasar por el converter */
+    @Query(value = "SELECT private_key FROM public.tenant_pasarelas WHERE id = :id", nativeQuery = true)
+    String findRawPrivateKey(@Param("id") Long id);
+
+    /** Lee el valor cifrado RAW de webhook_secret sin pasar por el converter */
+    @Query(value = "SELECT webhook_secret FROM public.tenant_pasarelas WHERE id = :id", nativeQuery = true)
+    String findRawWebhookSecret(@Param("id") Long id);
+
+    /** Escribe los valores re-cifrados directamente, sin pasar por el converter */
+    @Modifying
+    @Query(value = """
+            UPDATE public.tenant_pasarelas
+               SET public_key = :publicKey,
+                   private_key = :privateKey,
+                   webhook_secret = :webhookSecret
+             WHERE id = :id
+            """, nativeQuery = true)
+    void updateCredencialesRaw(
+            @Param("id")            Long   id,
+            @Param("publicKey")     String publicKey,
+            @Param("privateKey")    String privateKey,
+            @Param("webhookSecret") String webhookSecret
     );
 }

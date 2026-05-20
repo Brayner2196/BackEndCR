@@ -9,6 +9,8 @@ import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -52,6 +54,15 @@ public class PasarelaOrchestrator {
                 .toList();
     }
 
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Obtiene el email del usuario autenticado para registro de auditoría. */
+    private String emailActual() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return "system";
+        return auth.getName(); // en JWT suele ser el email/username
+    }
+
     // ─── CRUD de pasarelas (admin/superadmin) ──────────────────────────────────
 
     @Transactional
@@ -71,6 +82,7 @@ public class PasarelaOrchestrator {
         pasarela.setSandbox(request.sandbox());
         pasarela.setPrioridad(request.prioridad() != null ? request.prioridad() : 1);
         pasarela.setActiva(true);
+        pasarela.setUpdatedBy(emailActual());
         if (request.successUrl() != null) pasarela.setSuccessUrl(request.successUrl());
         if (request.failureUrl() != null) pasarela.setFailureUrl(request.failureUrl());
         if (request.pendingUrl() != null)  pasarela.setPendingUrl(request.pendingUrl());
@@ -90,6 +102,8 @@ public class PasarelaOrchestrator {
         TenantPasarela p = pasarelaRepo.findById(pasarelaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pasarela no encontrada"));
         p.setActiva(activa);
+        p.setUpdatedBy(emailActual());
+        log.info("Pasarela {} {} por {}", pasarelaId, activa ? "activada" : "desactivada", emailActual());
         pasarelaRepo.save(p);
     }
 
