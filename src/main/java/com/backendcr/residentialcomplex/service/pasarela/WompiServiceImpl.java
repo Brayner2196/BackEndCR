@@ -50,12 +50,6 @@ public class WompiServiceImpl implements PasarelaService {
     @Value("${app.base-url:https://api.conjuntosapp.com}")
     private String appBaseUrl;
 
-    @Value("${mercadopago.success-url:conjuntosapp://pago/exito}")
-    private String globalSuccessUrl;
-
-    @Value("${mercadopago.failure-url:conjuntosapp://pago/fallo}")
-    private String globalFailureUrl;
-
     private final CobroRepository cobroRepo;
     private final PagoRepository pagoRepo;
     private final PagoService pagoService;
@@ -107,7 +101,10 @@ public class WompiServiceImpl implements PasarelaService {
 
         String baseUrl  = config.isSandbox() ? WOMPI_API_URL : WOMPI_PROD_URL;
         String ref      = tenantId + "|" + cobroId + "|" + usuarioId + "|WOMPI";
-        String redirect = resolverUrl(config.getSuccessUrl(), globalSuccessUrl);
+        // redirect_url debe ser HTTPS válido. Se usa el endpoint de retorno MP
+        // (interceptado por el WebView Flutter en _exitoPath=/api/mp/pago-exito).
+        // Si el tenant configuró su propia URL en TenantPasarela.successUrl, esa toma precedencia.
+        String redirect = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/mp/pago-exito");
 
         try {
             String requestBody = objectMapper.writeValueAsString(Map.of(
