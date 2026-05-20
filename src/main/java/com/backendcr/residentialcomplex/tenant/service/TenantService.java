@@ -13,6 +13,7 @@ import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
+import com.backendcr.residentialcomplex.service.pasarela.PasarelaOrchestrator;
 import com.backendcr.residentialcomplex.tenant.dto.ActualizarTenantRequest;
 import com.backendcr.residentialcomplex.tenant.dto.CrearTenantRequest;
 import com.backendcr.residentialcomplex.tenant.dto.CrearTenantResponse;
@@ -31,6 +32,7 @@ public class TenantService {
     private final IdentidadRepository identidadRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+    private final PasarelaOrchestrator pasarelaOrchestrator;
 
     @Transactional
     public CrearTenantResponse crearTenant(CrearTenantRequest request) {
@@ -73,6 +75,21 @@ public class TenantService {
         tenant.setDireccion(request.direccion());
         tenant.setActivo(true);
         tenant = tenantRepository.save(tenant);
+
+        // Configurar pasarelas de pago si se enviaron en la creación
+        if (request.pasarelas() != null && !request.pasarelas().isEmpty()) {
+            final Long tenantId = tenant.getId();
+            request.pasarelas().forEach(pasarelaReq -> {
+                try {
+                    pasarelaOrchestrator.crearOActualizarPasarela(tenantId, pasarelaReq);
+                    log.info("Pasarela {} configurada para tenant '{}'",
+                            pasarelaReq.tipoPasarela(), request.schemaName());
+                } catch (Exception e) {
+                    log.warn("Error configurando pasarela {} para tenant '{}': {}",
+                            pasarelaReq.tipoPasarela(), request.schemaName(), e.getMessage());
+                }
+            });
+        }
 
         return new CrearTenantResponse(
                 tenant.getId(),

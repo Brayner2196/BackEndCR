@@ -2,6 +2,7 @@ package com.backendcr.residentialcomplex.tenant.dto;
 
 import java.util.List;
 
+import com.backendcr.residentialcomplex.dto.pasarela.PasarelaConfigRequest;
 import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 
 import jakarta.validation.constraints.Email;
@@ -29,5 +30,11 @@ public record CrearTenantRequest(
 
         String direccion,
 
-        List<TipoPropiedadNodoDto> tiposPropiedad
+        List<TipoPropiedadNodoDto> tiposPropiedad,
+
+        /**
+         * Pasarelas de pago a configurar desde la creación del tenant.
+         * Opcional — se pueden agregar o modificar después via /api/tenants/{id}/pasarelas
+         */
+        List<PasarelaConfigRequest> pasarelas
 ) {}

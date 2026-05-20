@@ -33,7 +33,13 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
 					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad").permitAll()
-					.requestMatchers("/api/mp/webhook", "/api/mp/confirmar/**", "/api/mp/pago-exito", "/api/mp/pago-fallo", "/api/mp/pago-pendiente").permitAll()
+					// Webhooks pasarelas (sin auth — vienen de servicios externos)
+					.requestMatchers(
+						"/api/mp/webhook", "/api/mp/confirmar/**",
+						"/api/mp/pago-exito", "/api/mp/pago-fallo", "/api/mp/pago-pendiente",
+						"/api/pago/webhook/mp", "/api/pago/webhook/wompi", "/api/pago/webhook/bold",
+						"/api/pago/confirmar/mp/**"
+					).permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
 					.anyRequest().authenticated()
 		).sessionManagement(session -> session

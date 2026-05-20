@@ -206,6 +206,40 @@ public class PagoService {
     }
 
     /**
+     * Método genérico para registrar y verificar pagos de pasarelas online (Wompi, Bold, etc.).
+     * Funciona igual que registrarYVerificarPagoMP pero acepta cualquier MetodoPago.
+     *
+     * IMPORTANTE: No es @Transactional a propósito — el TenantContext debe estar seteado
+     * ANTES de que comience cualquier transacción de Hibernate.
+     * La lógica DB va en PagoService para que @Transactional funcione correctamente.
+     */
+    @Transactional
+    public void registrarYVerificarPagoOnline(Long cobroId, Long usuarioId, String transaccionId,
+                                               BigDecimal monto, MetodoPago metodoPago) {
+        // Idempotencia: ignorar si ya está verificado
+        boolean yaVerificado = pagoRepo.findAllByCobroId(cobroId).stream()
+                .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
+        if (yaVerificado) {
+            return;
+        }
+
+        Pago pago = new Pago();
+        pago.setCobroId(cobroId);
+        pago.setUsuarioId(usuarioId);
+        pago.setMontoPagado(monto);
+        pago.setFechaPago(LocalDate.now());
+        pago.setMetodoPago(metodoPago);
+        pago.setReferencia(metodoPago.name() + "-" + transaccionId);
+        pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
+        Pago saved = pagoRepo.save(pago);
+
+        VerificarPagoRequest req = new VerificarPagoRequest(
+                "Verificado automáticamente vía " + metodoPago.name()
+        );
+        verificar(saved.getId(), req, null);
+    }
+
+    /**
      * Verifica un pago de forma automática sin requerir un adminId.
      * Solo debe llamarse desde el webhook de MercadoPago tras confirmar que el pago fue aprobado.
      */
