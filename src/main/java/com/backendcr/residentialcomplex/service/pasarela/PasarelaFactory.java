@@ -49,7 +49,7 @@ public class PasarelaFactory {
 
     /**
      * Obtiene la implementación + config de tenant en un solo paso.
-     * Usa null como config para MP con fallback global si no está en BD.
+     * Todas las pasarelas requieren configuración activa en BD (no hay fallback a env vars).
      */
     public PasarelaConConfig resolver(String tenantSchema, TipoPasarela tipo) {
         PasarelaService servicio = getMap().get(tipo);
@@ -58,15 +58,10 @@ public class PasarelaFactory {
                     "Pasarela no soportada: " + tipo);
         }
 
-        // Para MP: si no está en BD, permite continuar con config null (usa globales)
         TenantPasarela config = pasarelaRepo.findByTenantSchemaAndTipo(tenantSchema, tipo)
                 .filter(TenantPasarela::isActiva)
-                .orElse(null);
-
-        if (config == null && tipo != TipoPasarela.MERCADO_PAGO) {
-            throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED,
-                    "La pasarela " + tipo.name() + " no está configurada para este conjunto");
-        }
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.PRECONDITION_FAILED,
+                        "La pasarela " + tipo.name() + " no está configurada o activa para este conjunto"));
 
         return new PasarelaConConfig(servicio, config);
     }

@@ -35,32 +35,25 @@ import java.util.List;
 /**
  * Implementación de MercadoPago para la interfaz PasarelaService.
  *
- * Las credenciales se leen de TenantPasarela (por tenant), con fallback
- * a los valores globales de application.properties para compatibilidad.
+ * Las credenciales se leen EXCLUSIVAMENTE de TenantPasarela (BD encriptada).
+ * Ya no existe fallback a variables de entorno; cada tenant debe tener
+ * su propia configuración registrada en la tabla tenant_pasarelas.
+ *
+ * URLs de retorno:
+ *  - Si el tenant configuró successUrl/failureUrl/pendingUrl en TenantPasarela, se usan esas.
+ *  - Si no, se usan los paths estándar de este backend (interceptados por el WebView Flutter).
+ *
+ * Notificación MP:
+ *  - Se usa una URL por-tenant: {appBaseUrl}/api/pago/webhook/mp/{tenantId}
+ *  - Esto permite al controller resolver la config correcta al recibir el webhook.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MercadoPagoServiceImpl implements PasarelaService {
 
-    // Fallback global (para tenants sin config específica en BD)
-    @Value("${mercadopago.access-token:}")
-    private String globalAccessToken;
-
-    @Value("${mercadopago.webhook-url:}")
-    private String globalWebhookUrl;
-
-    @Value("${mercadopago.success-url:conjuntosapp://pago/exito}")
-    private String globalSuccessUrl;
-
-    @Value("${mercadopago.failure-url:conjuntosapp://pago/fallo}")
-    private String globalFailureUrl;
-
-    @Value("${mercadopago.pending-url:conjuntosapp://pago/pendiente}")
-    private String globalPendingUrl;
-
-    @Value("${mercadopago.sandbox:true}")
-    private boolean globalSandbox;
+    @Value("${app.base-url:https://api.conjuntosapp.com}")
+    private String appBaseUrl;
 
     private final CobroRepository cobroRepo;
     private final PagoRepository pagoRepo;
@@ -82,11 +75,13 @@ public class MercadoPagoServiceImpl implements PasarelaService {
             String tenantId,
             BigDecimal montoPersonalizado) {
 
-        String accessToken = resolverAccessToken(config);
-        boolean sandbox    = config != null ? config.isSandbox() : globalSandbox;
-        String successUrl  = resolverUrl(config != null ? config.getSuccessUrl() : null, globalSuccessUrl);
-        String failureUrl  = resolverUrl(config != null ? config.getFailureUrl() : null, globalFailureUrl);
-        String pendingUrl  = resolverUrl(config != null ? config.getPendingUrl() : null, globalPendingUrl);
+        validarConfig(config);
+
+        String accessToken = config.getPrivateKey();
+        boolean sandbox    = config.isSandbox();
+        String successUrl  = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/mp/pago-exito");
+        String failureUrl  = resolverUrl(config.getFailureUrl(), appBaseUrl + "/api/mp/pago-fallo");
+        String pendingUrl  = resolverUrl(config.getPendingUrl(), appBaseUrl + "/api/mp/pago-pendiente");
 
         Cobro cobro = cobroRepo.findById(cobroId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobro no encontrado"));
@@ -133,12 +128,15 @@ public class MercadoPagoServiceImpl implements PasarelaService {
             // external_reference codifica: tenantId|cobroId|usuarioId|MERCADO_PAGO
             String externalRef = tenantId + "|" + cobroId + "|" + usuarioId + "|MERCADO_PAGO";
 
+            // notificationUrl por-tenant: permite que el webhook resuelva la config de BD
+            String notificationUrl = appBaseUrl + "/api/pago/webhook/mp/" + tenantId;
+
             PreferenceRequest preferenceRequest = PreferenceRequest.builder()
                     .items(List.of(item))
                     .backUrls(backUrls)
                     .autoReturn("approved")
                     .externalReference(externalRef)
-                    .notificationUrl(globalWebhookUrl + "/api/pago/webhook/mp")
+                    .notificationUrl(notificationUrl)
                     .build();
 
             PreferenceClient client = new PreferenceClient();
@@ -156,8 +154,13 @@ public class MercadoPagoServiceImpl implements PasarelaService {
         }
     }
 
-    // ─── Procesar Webhook ────────────────────────────────────────────────────
+    // ─── Procesar Webhook / Confirmación ────────────────────────────────────
 
+    /**
+     * Procesa una notificación de MercadoPago.
+     * Requiere config no nula (credenciales del tenant en BD).
+     * Si config es null, se ignora el evento con un warning (flujo legacy).
+     */
     @Override
     public void procesarWebhook(TenantPasarela config, String paymentIdStr, String signature) {
         if (paymentIdStr == null || paymentIdStr.isBlank()) {
@@ -165,9 +168,14 @@ public class MercadoPagoServiceImpl implements PasarelaService {
             return;
         }
 
+        if (config == null || config.getPrivateKey() == null || config.getPrivateKey().isBlank()) {
+            log.warn("Webhook MP sin config de tenant para paymentId={} — ignorado. " +
+                     "Verificar que el tenant tiene MercadoPago configurado en BD.", paymentIdStr);
+            return;
+        }
+
         try {
-            String accessToken = resolverAccessToken(config);
-            MercadoPagoConfig.setAccessToken(accessToken);
+            MercadoPagoConfig.setAccessToken(config.getPrivateKey());
 
             PaymentClient client = new PaymentClient();
             Payment mpPayment = client.get(Long.parseLong(paymentIdStr));
@@ -188,9 +196,9 @@ public class MercadoPagoServiceImpl implements PasarelaService {
                 return;
             }
 
-            String tenantId  = partes[0];
-            Long cobroId     = Long.parseLong(partes[1]);
-            Long usuarioId   = Long.parseLong(partes[2]);
+            String tenantId = partes[0];
+            Long cobroId    = Long.parseLong(partes[1]);
+            Long usuarioId  = Long.parseLong(partes[2]);
 
             if (!"approved".equals(status)) {
                 log.info("Pago MP no aprobado (status={}), no se registra", status);
@@ -215,12 +223,11 @@ public class MercadoPagoServiceImpl implements PasarelaService {
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    /** MP usa privateKey como accessToken */
-    private String resolverAccessToken(TenantPasarela config) {
-        if (config != null && config.getPrivateKey() != null && !config.getPrivateKey().isBlank()) {
-            return config.getPrivateKey();
+    private void validarConfig(TenantPasarela config) {
+        if (config == null || config.getPrivateKey() == null || config.getPrivateKey().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED,
+                    "Este conjunto no tiene configurada la pasarela MercadoPago");
         }
-        return globalAccessToken;
     }
 
     private String resolverUrl(String override, String fallback) {

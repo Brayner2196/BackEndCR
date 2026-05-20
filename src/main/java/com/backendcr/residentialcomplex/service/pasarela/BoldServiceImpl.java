@@ -47,11 +47,9 @@ public class BoldServiceImpl implements PasarelaService {
     private static final String BOLD_API_URL  = "https://integrations.api.bold.co/online/link/v1";
     private static final String BOLD_PROD_URL = "https://integrations.api.bold.co/online/link/v1";
 
-    @Value("${mercadopago.success-url:conjuntosapp://pago/exito}")
-    private String globalSuccessUrl;
-
-    @Value("${mercadopago.failure-url:conjuntosapp://pago/fallo}")
-    private String globalFailureUrl;
+    // URL base del backend — se usa como fallback para redirect_url de Bold
+    @Value("${app.base-url:https://api.conjuntosapp.com}")
+    private String appBaseUrl;
 
     private final CobroRepository cobroRepo;
     private final PagoRepository pagoRepo;
@@ -103,7 +101,9 @@ public class BoldServiceImpl implements PasarelaService {
         long montoCentavos = monto.multiply(BigDecimal.valueOf(100)).longValue();
 
         String ref       = tenantId + "|" + cobroId + "|" + usuarioId + "|BOLD";
-        String redirect  = resolverUrl(config.getSuccessUrl(), globalSuccessUrl);
+        // redirect_url debe ser HTTPS válido (Bold lo valida). Usa el endpoint de retorno
+        // estándar, interceptado por el WebView Flutter en _exitoPath.
+        String redirect  = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/mp/pago-exito");
         String apiKey    = config.getPrivateKey();
 
         try {

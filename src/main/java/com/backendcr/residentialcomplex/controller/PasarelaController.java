@@ -31,9 +31,13 @@ import java.util.List;
  *  POST /api/residente/pago/checkout/{cobroId} → crea checkout en la pasarela elegida
  *
  * Endpoints webhook (públicos):
- *  POST /api/pago/webhook/mp       → webhook MercadoPago
- *  POST /api/pago/webhook/wompi    → webhook Wompi
- *  POST /api/pago/webhook/bold     → webhook Bold
+ *  POST /api/pago/webhook/mp/{tenantSchema} → webhook MercadoPago por-tenant (URL notificación)
+ *  POST /api/pago/webhook/mp                → webhook MP legacy (sin config de tenant)
+ *  POST /api/pago/webhook/wompi             → webhook Wompi
+ *  POST /api/pago/webhook/bold              → webhook Bold
+ *
+ * Confirmación desde app (autenticado):
+ *  POST /api/pago/confirmar/mp/{paymentId} → confirmar pago MP desde WebView Flutter
  *
  * Endpoints admin (TENANT_ADMIN o SUPER_ADMIN):
  *  GET    /api/admin/pasarelas                 → listar pasarelas del tenant
@@ -92,16 +96,45 @@ public class PasarelaController {
     // WEBHOOKS PÚBLICOS
     // ═════════════════════════════════════════════════════════════════════════
 
-    /** Webhook MercadoPago — mismo comportamiento que el controller anterior */
+    /**
+     * Webhook MercadoPago POR TENANT.
+     * La URL de notificación se configura en MercadoPagoServiceImpl como:
+     * {appBaseUrl}/api/pago/webhook/mp/{tenantSchema}
+     * Esto permite resolver la config del tenant antes de llamar a la API de MP.
+     */
+    @PostMapping("/api/pago/webhook/mp/{tenantSchema}")
+    public ResponseEntity<Void> webhookMercadoPagoTenant(
+            @PathVariable String tenantSchema,
+            HttpServletRequest request) {
+        try {
+            String rawBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
+            log.info("Webhook MP tenant={} - queryString={} body={}", tenantSchema, request.getQueryString(), rawBody);
+
+            String paymentId = extraerPaymentIdMP(request, rawBody);
+            if (paymentId != null) {
+                var config = obtenerConfigONull(tenantSchema, TipoPasarela.MERCADO_PAGO);
+                factory.getServicio(TipoPasarela.MERCADO_PAGO)
+                        .procesarWebhook(config, paymentId, null);
+            }
+        } catch (Exception e) {
+            log.error("Error procesando webhook MP tenant {}: {}", tenantSchema, e.getMessage());
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Webhook MercadoPago global (legacy / sin tenant en URL).
+     * Ya no tiene config de tenant, así que procesarWebhook lo ignorará con un warning.
+     * Se mantiene para compatibilidad con preferencias antiguas.
+     */
     @PostMapping("/api/pago/webhook/mp")
     public ResponseEntity<Void> webhookMercadoPago(HttpServletRequest request) {
         try {
             String rawBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
-            log.info("Webhook MP - queryString={} body={}", request.getQueryString(), rawBody);
+            log.info("Webhook MP global - queryString={} body={}", request.getQueryString(), rawBody);
 
             String paymentId = extraerPaymentIdMP(request, rawBody);
             if (paymentId != null) {
-                // config null → usa fallback global
                 factory.getServicio(TipoPasarela.MERCADO_PAGO)
                         .procesarWebhook(null, paymentId, null);
             }
@@ -111,11 +144,18 @@ public class PasarelaController {
         return ResponseEntity.ok().build();
     }
 
-    /** Confirmación desde la app Flutter (back_url de éxito/pendiente) */
+    /**
+     * Confirmación desde la app Flutter al interceptar la back_url de éxito/pendiente.
+     * Requiere autenticación para poder resolver el tenant del JWT y buscar la config en BD.
+     * Es idempotente: si el webhook ya procesó el pago, el backend lo ignora.
+     */
     @PostMapping("/api/pago/confirmar/mp/{paymentId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> confirmarMercadoPago(@PathVariable String paymentId) {
+        String tenantSchema = TenantContext.getTenant();
+        var config = obtenerConfigONull(tenantSchema, TipoPasarela.MERCADO_PAGO);
         factory.getServicio(TipoPasarela.MERCADO_PAGO)
-                .procesarWebhook(null, paymentId, null);
+                .procesarWebhook(config, paymentId, null);
         return ResponseEntity.ok().build();
     }
 
