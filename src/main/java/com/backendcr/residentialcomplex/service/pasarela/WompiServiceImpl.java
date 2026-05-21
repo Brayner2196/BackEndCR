@@ -135,9 +135,13 @@ public class WompiServiceImpl implements PasarelaService {
             }
 
             JsonNode json = objectMapper.readTree(response.body());
-            String checkoutUrl = json.path("data").path("url").asText();
+            log.debug("Wompi response body: {}", response.body());
 
-            if (checkoutUrl == null || checkoutUrl.isBlank()) {
+            // Wompi devuelve el link en data.payment_link_url (no en data.url)
+            String checkoutUrl = json.path("data").path("payment_link_url").asText("");
+
+            if (checkoutUrl.isBlank()) {
+                log.error("Wompi body sin payment_link_url: {}", response.body());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Wompi no devolvió URL de checkout");
             }
