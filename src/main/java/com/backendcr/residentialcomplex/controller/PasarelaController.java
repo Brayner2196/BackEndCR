@@ -159,6 +159,21 @@ public class PasarelaController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Confirmación síncrona de pago Wompi desde la app Flutter.
+     * Se invoca cuando el WebView intercepta la URL de éxito antes de que llegue el webhook.
+     * Es idempotente: si el webhook ya procesó el pago, registrarYVerificarPagoOnline lo ignora.
+     */
+    @PostMapping("/api/pago/confirmar/wompi/{transactionId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> confirmarWompi(@PathVariable String transactionId) {
+        String tenantSchema = TenantContext.getTenant();
+        var config = obtenerConfigONull(tenantSchema, TipoPasarela.WOMPI);
+        factory.getServicio(TipoPasarela.WOMPI)
+                .confirmarTransaccion(config, transactionId);
+        return ResponseEntity.ok().build();
+    }
+
     /** Webhook Wompi */
     @PostMapping("/api/pago/webhook/wompi")
     public ResponseEntity<Void> webhookWompi(

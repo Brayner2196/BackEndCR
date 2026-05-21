@@ -43,4 +43,17 @@ public interface PasarelaService {
      * @param signature   header de firma (puede ser null si la pasarela no la usa)
      */
     void procesarWebhook(TenantPasarela config, String payload, String signature);
+
+    /**
+     * Confirma una transacción de forma sincrónica consultando la API de la pasarela.
+     * Se usa cuando la app intercepta la URL de éxito antes de que llegue el webhook.
+     * Solo es obligatorio en pasarelas que lo necesiten (ej. Wompi); las demás lanzan excepción.
+     *
+     * @param config        credenciales del tenant
+     * @param transactionId ID de la transacción en la pasarela
+     */
+    default void confirmarTransaccion(TenantPasarela config, String transactionId) {
+        throw new UnsupportedOperationException(
+                "La pasarela " + getTipo().name() + " no soporta confirmación directa de transacción");
+    }
 }

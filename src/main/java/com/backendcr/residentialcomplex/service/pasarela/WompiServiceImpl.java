@@ -236,6 +236,84 @@ public class WompiServiceImpl implements PasarelaService {
         }
     }
 
+    // ─── Confirmar Transacción (desde app Flutter) ───────────────────────────
+
+    /**
+     * Consulta el estado de una transacción Wompi en tiempo real y la registra si está APPROVED.
+     * Se usa cuando el WebView intercepta la URL de éxito y necesita confirmación síncrona
+     * antes de que llegue el webhook asincrónico.
+     */
+    @Override
+    public void confirmarTransaccion(TenantPasarela config, String transactionId) {
+        validarConfig(config);
+
+        String baseUrl = config.isSandbox() ? WOMPI_API_URL : WOMPI_PROD_URL;
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/transactions/" + transactionId))
+                    .header("Authorization", "Bearer " + config.getPrivateKey())
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.debug("Wompi confirmar txId={} status={} body={}", transactionId, response.statusCode(), response.body());
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                log.error("Wompi confirmar error {}: {}", response.statusCode(), response.body());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Error consultando transacción Wompi: " + response.statusCode());
+            }
+
+            JsonNode data = objectMapper.readTree(response.body()).path("data");
+
+            String status    = data.path("status").asText("");
+            String reference = data.path("reference").asText("");
+            BigDecimal monto = data.path("amount_in_cents").decimalValue()
+                    .divide(BigDecimal.valueOf(100));
+
+            log.info("Wompi confirmar txId={} status={} reference={}", transactionId, status, reference);
+
+            if (!"APPROVED".equals(status)) {
+                log.warn("Transacción Wompi {} no aprobada (status={})", transactionId, status);
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El pago Wompi no está aprobado (status=" + status + ")");
+            }
+
+            if (reference == null || !reference.contains("|")) {
+                log.warn("Referencia Wompi inválida en confirmar: {}", reference);
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Referencia de transacción Wompi inválida");
+            }
+
+            String[] partes = reference.split("\\|");
+            if (partes.length < 3) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Formato de referencia Wompi inválido");
+            }
+
+            String tenantId = partes[0];
+            Long cobroId    = Long.parseLong(partes[1]);
+            Long usuarioId  = Long.parseLong(partes[2]);
+
+            TenantContext.setTenant(tenantId);
+            try {
+                pagoService.registrarYVerificarPagoOnline(cobroId, usuarioId, transactionId, monto, MetodoPago.WOMPI);
+                log.info("Pago Wompi confirmado (app) para cobro {} tenant {}", cobroId, tenantId);
+            } finally {
+                TenantContext.clear();
+            }
+
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error confirmando transacción Wompi {}: {}", transactionId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error al confirmar pago Wompi: " + e.getMessage());
+        }
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private void validarConfig(TenantPasarela config) {
