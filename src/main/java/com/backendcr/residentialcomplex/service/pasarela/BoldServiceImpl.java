@@ -48,7 +48,7 @@ public class BoldServiceImpl implements PasarelaService {
     private static final String BOLD_PROD_URL = "https://integrations.api.bold.co/online/link/v1";
 
     // URL base del backend — se usa como fallback para redirect_url de Bold
-    @Value("${app.base-url:https://api.conjuntosapp.com}")
+    @Value("${app.base-url}")
     private String appBaseUrl;
 
     private final CobroRepository cobroRepo;
