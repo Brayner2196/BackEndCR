@@ -33,6 +33,11 @@ public class AuthController {
 		return authService.registro(request);
 	}
 
+	@PostMapping("/refresh")
+	public RefreshResponse refresh(@Valid @RequestBody RefreshRequest request) {
+		return authService.refresh(request);
+	}
+
 	@GetMapping("/tiposPropiedad")
 	public List<TipoPropiedadNodoDto> tiposPropiedad(@RequestParam String codigo) {
 		return authService.getTiposPropiedad(codigo);

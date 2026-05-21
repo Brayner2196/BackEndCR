@@ -32,7 +32,7 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
-					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad").permitAll()
+					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad", "/auth/refresh").permitAll()
 					// Webhooks pasarelas (sin auth — vienen de servicios externos)
 					.requestMatchers(
 						"/api/mp/webhook", "/api/mp/confirmar/**",

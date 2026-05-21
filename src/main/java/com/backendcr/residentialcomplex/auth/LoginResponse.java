@@ -2,6 +2,7 @@ package com.backendcr.residentialcomplex.auth;
 
 public record LoginResponse(
 		String token,
+		String refreshToken,
 		String email,
 		String rol,
 		String tenantId,

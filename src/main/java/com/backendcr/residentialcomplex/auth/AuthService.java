@@ -29,6 +29,7 @@ public class AuthService {
 	private final TenantRepository tenantRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
+	private final RefreshTokenService refreshTokenService;
 	private final JdbcTemplate jdbcTemplate;
 	private final PropiedadService propiedadService;
 	private final UsuarioPropiedadRepository usuarioPropiedadRepository;
@@ -216,10 +217,32 @@ public class AuthService {
 		}
 	}
 
+	// ─── Refresh token ───────────────────────────────────────────────────
+
+	public RefreshResponse refresh(RefreshRequest request) {
+		// Rotar el refresh token (valida + revoca el actual + crea uno nuevo)
+		com.backendcr.residentialcomplex.entity.RefreshToken nuevoRt =
+				refreshTokenService.rotar(request.refreshToken());
+
+		// Recuperar la identidad para regenerar el access token con sus datos actuales
+		Identidad identidad = identidadRepository.findById(nuevoRt.getIdentidadId())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+		if (!identidad.isActivo()) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está inactiva");
+		}
+
+		String tenantId = identidad.getTenantId() != null ? identidad.getTenantId() : "public";
+		String nuevoToken = jwtService.generarToken(identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId);
+
+		return new RefreshResponse(nuevoToken, nuevoRt.getToken());
+	}
+
 	private LoginResponse generarLoginResponse(Identidad identidad, String tenantId, String nombreConjunto) {
 		String token = jwtService.generarToken(identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId);
+		String refreshToken = refreshTokenService.crear(identidad.getId()).getToken();
 		String nombre = obtenerNombreDesdeSchema(tenantId, identidad.getId());
-		return new LoginResponse(token, identidad.getEmail(), identidad.getRol(), tenantId, nombreConjunto, nombre);
+		return new LoginResponse(token, refreshToken, identidad.getEmail(), identidad.getRol(), tenantId, nombreConjunto, nombre);
 	}
 
 }

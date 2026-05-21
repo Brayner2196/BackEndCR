@@ -52,7 +52,7 @@ public class WompiServiceImpl implements PasarelaService {
     // los IDs de link tienen prefijo test_. No existe checkout-sandbox.wompi.co.
     private static final String WOMPI_CHECKOUT_BASE = "https://checkout.wompi.co/l/";
 
-    @Value("${app.base-url:https://api.conjuntosapp.com}")
+    @Value("${app.base-url:https}")
     private String appBaseUrl;
 
     private final CobroRepository cobroRepo;
