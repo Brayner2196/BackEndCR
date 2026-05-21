@@ -44,8 +44,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class WompiServiceImpl implements PasarelaService {
 
-    private static final String WOMPI_API_URL = "https://sandbox.wompi.co/v1";
-    private static final String WOMPI_PROD_URL = "https://production.wompi.co/v1";
+    private static final String WOMPI_API_URL      = "https://sandbox.wompi.co/v1";
+    private static final String WOMPI_PROD_URL     = "https://production.wompi.co/v1";
+
+    // URLs base del checkout (donde el usuario completa el pago)
+    private static final String WOMPI_CHECKOUT_SANDBOX = "https://checkout-sandbox.wompi.co/l/";
+    private static final String WOMPI_CHECKOUT_PROD    = "https://checkout.wompi.co/l/";
 
     @Value("${app.base-url:https://api.conjuntosapp.com}")
     private String appBaseUrl;
@@ -137,14 +141,18 @@ public class WompiServiceImpl implements PasarelaService {
             JsonNode json = objectMapper.readTree(response.body());
             log.debug("Wompi response body: {}", response.body());
 
-            // Wompi devuelve el link en data.payment_link_url (no en data.url)
-            String checkoutUrl = json.path("data").path("payment_link_url").asText("");
+            // Wompi devuelve solo el `id` del link; la URL de checkout se construye
+            // concatenando la base correspondiente (sandbox o producción) + el id.
+            String linkId = json.path("data").path("id").asText("");
 
-            if (checkoutUrl.isBlank()) {
-                log.error("Wompi body sin payment_link_url: {}", response.body());
+            if (linkId.isBlank()) {
+                log.error("Wompi body sin id de link: {}", response.body());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Wompi no devolvió URL de checkout");
             }
+
+            String checkoutBase = config.isSandbox() ? WOMPI_CHECKOUT_SANDBOX : WOMPI_CHECKOUT_PROD;
+            String checkoutUrl  = checkoutBase + linkId;
 
             log.info("Wompi link creado para cobro {} tenant {}: {}", cobroId, tenantId, checkoutUrl);
             return new CheckoutResponse(checkoutUrl, TipoPasarela.WOMPI);
