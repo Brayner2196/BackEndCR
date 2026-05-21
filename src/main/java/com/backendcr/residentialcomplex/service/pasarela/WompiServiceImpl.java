@@ -44,12 +44,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class WompiServiceImpl implements PasarelaService {
 
-    private static final String WOMPI_API_URL      = "https://sandbox.wompi.co/v1";
-    private static final String WOMPI_PROD_URL     = "https://production.wompi.co/v1";
+    private static final String WOMPI_API_URL  = "https://sandbox.wompi.co/v1";
+    private static final String WOMPI_PROD_URL = "https://production.wompi.co/v1";
 
-    // URLs base del checkout (donde el usuario completa el pago)
-    private static final String WOMPI_CHECKOUT_SANDBOX = "https://checkout-sandbox.wompi.co/l/";
-    private static final String WOMPI_CHECKOUT_PROD    = "https://checkout.wompi.co/l/";
+    // Wompi usa el mismo dominio de checkout para sandbox y producción.
+    // La diferencia es que en sandbox las llaves tienen prefijo pub_test_ y
+    // los IDs de link tienen prefijo test_. No existe checkout-sandbox.wompi.co.
+    private static final String WOMPI_CHECKOUT_BASE = "https://checkout.wompi.co/l/";
 
     @Value("${app.base-url:https://api.conjuntosapp.com}")
     private String appBaseUrl;
@@ -151,8 +152,7 @@ public class WompiServiceImpl implements PasarelaService {
                         "Wompi no devolvió URL de checkout");
             }
 
-            String checkoutBase = config.isSandbox() ? WOMPI_CHECKOUT_SANDBOX : WOMPI_CHECKOUT_PROD;
-            String checkoutUrl  = checkoutBase + linkId;
+            String checkoutUrl = WOMPI_CHECKOUT_BASE + linkId;
 
             log.info("Wompi link creado para cobro {} tenant {}: {}", cobroId, tenantId, checkoutUrl);
             return new CheckoutResponse(checkoutUrl, TipoPasarela.WOMPI);
