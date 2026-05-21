@@ -52,7 +52,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MercadoPagoServiceImpl implements PasarelaService {
 
-    @Value("${app.base-url:https://api.conjuntosapp.com}")
+    @Value("${app.base-url}")
     private String appBaseUrl;
 
     private final CobroRepository cobroRepo;
