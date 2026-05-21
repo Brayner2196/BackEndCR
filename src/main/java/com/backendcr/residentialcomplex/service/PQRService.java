@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -70,7 +71,7 @@ public class PQRService {
         EstadoPQR estadoAnterior = pqr.getEstado();
         pqr.setRespuestaAdmin(req.respuesta());
         pqr.setRespondidoPor(adminId);
-        pqr.setFechaRespuesta(LocalDateTime.now());
+        pqr.setFechaRespuesta(ColombiaTimeZone.ahora());
         if (pqr.getEstado() == EstadoPQR.RADICADA || pqr.getEstado() == EstadoPQR.EN_PROCESO) {
             pqr.setEstado(EstadoPQR.RESUELTO);
         }

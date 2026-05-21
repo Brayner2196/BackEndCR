@@ -12,5 +12,8 @@ public record ActualizarTenantRequest(
 
         String direccion,
 
-        Boolean activo
+        Boolean activo,
+
+        /** Ej: "America/Bogota". Null = mantener la timezone actual. */
+        String timezone
 ) {}

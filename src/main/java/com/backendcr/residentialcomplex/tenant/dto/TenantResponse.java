@@ -7,5 +7,6 @@ public record TenantResponse(
         String codigo,
         boolean activo,
         String direccion,
+        String timezone,
         int cantidadUsuarios
 ) {}

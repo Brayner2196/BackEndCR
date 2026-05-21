@@ -73,6 +73,8 @@ public class TenantService {
         tenant.setNombre(request.nombre());
         tenant.setCodigo(request.codigo());
         tenant.setDireccion(request.direccion());
+        tenant.setTimezone(request.timezone() != null && !request.timezone().isBlank()
+                ? request.timezone() : "America/Bogota");
         tenant.setActivo(true);
         tenant = tenantRepository.save(tenant);
 
@@ -96,6 +98,7 @@ public class TenantService {
                 tenant.getSchemaName(),
                 tenant.getNombre(),
                 tenant.getCodigo(),
+                tenant.getTimezone(),
                 new CrearTenantResponse.AdminInfo(identidad.getId(), identidad.getEmail())
         );
     }
@@ -131,6 +134,9 @@ public class TenantService {
         if (request.activo() != null) {
             tenant.setActivo(request.activo());
         }
+        if (request.timezone() != null && !request.timezone().isBlank()) {
+            tenant.setTimezone(request.timezone());
+        }
 
         return toResponse(tenantRepository.save(tenant));
     }
@@ -162,6 +168,7 @@ public class TenantService {
                 tenant.getCodigo(),
                 tenant.isActivo(),
                 tenant.getDireccion(),
+                tenant.getTimezone(),
                 jdbcTemplate.queryForObject(
                         "SELECT COUNT(*) FROM " + tenant.getSchemaName() + ".usuarios", Integer.class)
         );

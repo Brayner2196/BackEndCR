@@ -7,7 +7,8 @@ public record LoginResponse(
 		String rol,
 		String tenantId,
 		String nombreConjunto, // null si es SUPER_ADMIN
-		String nombre          // null si es SUPER_ADMIN
+		String nombre,         // null si es SUPER_ADMIN
+		String timezone        // ej: "America/Bogota" — null si es SUPER_ADMIN
 ) {
 
 }

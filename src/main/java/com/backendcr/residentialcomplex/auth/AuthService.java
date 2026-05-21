@@ -242,7 +242,11 @@ public class AuthService {
 		String token = jwtService.generarToken(identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId);
 		String refreshToken = refreshTokenService.crear(identidad.getId()).getToken();
 		String nombre = obtenerNombreDesdeSchema(tenantId, identidad.getId());
-		return new LoginResponse(token, refreshToken, identidad.getEmail(), identidad.getRol(), tenantId, nombreConjunto, nombre);
+		String timezone = tenantRepository.findBySchemaName(tenantId)
+				.map(t -> t.getTimezone() != null ? t.getTimezone() : "America/Bogota")
+				.orElse(null); // null para SUPER_ADMIN (tenantId = "public")
+		return new LoginResponse(token, refreshToken, identidad.getEmail(), identidad.getRol(),
+				tenantId, nombreConjunto, nombre, timezone);
 	}
 
 }

@@ -5,6 +5,7 @@ public record CrearTenantResponse(
         String schemaName,
         String nombre,
         String codigo,
+        String timezone,
         AdminInfo admin
 ) {
     public record AdminInfo(

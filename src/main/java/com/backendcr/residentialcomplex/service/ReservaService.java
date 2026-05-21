@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -121,7 +122,7 @@ public class ReservaService {
         }
 
         // 7. Validar anticipación
-        long diasAnticipacion = ChronoUnit.DAYS.between(LocalDate.now(), req.fecha());
+        long diasAnticipacion = ChronoUnit.DAYS.between(ColombiaTimeZone.hoy(), req.fecha());
         if (diasAnticipacion < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "No se pueden crear reservas para fechas pasadas");
@@ -168,7 +169,7 @@ public class ReservaService {
         r.setEstado(EstadoReserva.APROBADA);
         r.setDecididoPor(adminId);
         r.setMotivoDecision(req != null ? req.motivo() : null);
-        r.setFechaDecision(LocalDateTime.now());
+        r.setFechaDecision(ColombiaTimeZone.ahora());
         return toResponse(reservaRepo.save(r));
     }
 
@@ -179,7 +180,7 @@ public class ReservaService {
         r.setEstado(EstadoReserva.RECHAZADA);
         r.setDecididoPor(adminId);
         r.setMotivoDecision(req != null ? req.motivo() : null);
-        r.setFechaDecision(LocalDateTime.now());
+        r.setFechaDecision(ColombiaTimeZone.ahora());
         return toResponse(reservaRepo.save(r));
     }
 
@@ -195,7 +196,7 @@ public class ReservaService {
                     "La reserva ya está " + r.getEstado());
         }
         r.setEstado(EstadoReserva.CANCELADA);
-        r.setFechaDecision(LocalDateTime.now());
+        r.setFechaDecision(ColombiaTimeZone.ahora());
         return toResponse(reservaRepo.save(r));
     }
 

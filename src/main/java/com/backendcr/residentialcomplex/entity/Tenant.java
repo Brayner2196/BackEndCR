@@ -23,7 +23,10 @@ public class Tenant {
 
 	@Column
 	private String direccion;
-	
+
+	@Column(nullable = false, length = 50)
+	private String timezone = "America/Bogota";
+
 	@Transient
 	private int cantidadUsuarios;
 
@@ -75,10 +78,18 @@ public class Tenant {
 		this.direccion = direccion;
 	}
 
+	public String getTimezone() {
+		return timezone;
+	}
+
+	public void setTimezone(String timezone) {
+		this.timezone = timezone;
+	}
+
 	public int getCantidadUsuarios() {
 		return cantidadUsuarios;
 	}
-	
+
 	public void setCantidadUsuarios(int cantidadUsuarios) {
 		this.cantidadUsuarios = cantidadUsuarios;
 	}

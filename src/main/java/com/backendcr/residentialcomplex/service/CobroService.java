@@ -6,6 +6,7 @@ import com.backendcr.residentialcomplex.entity.*;
 import com.backendcr.residentialcomplex.entity.converter.NumMesStringConverter;
 import com.backendcr.residentialcomplex.entity.enums.*;
 import com.backendcr.residentialcomplex.repository.*;
+import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import java.time.ZoneId;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -37,6 +40,7 @@ public class CobroService {
     private final MovimientoAbonoRepository movimientoAbonoRepo;
     private final NotificacionService notificacionService;
     private final NumMesStringConverter numMesStringConverter;
+    private final TenantRepository tenantRepository;
 
     // ─── Períodos ──────────────────────────────────────────────
 
@@ -151,7 +155,7 @@ public class CobroService {
             cobro.setMontoBase(monto);
             cobro.setMontoMora(BigDecimal.ZERO);
             cobro.setMontoTotal(monto);
-            cobro.setFechaGeneracion(LocalDate.now());
+            cobro.setFechaGeneracion(ColombiaTimeZone.hoy());
             cobro.setFechaLimitePago(periodo.getFechaLimitePago());
             cobro.setEstado(EstadoCobro.PENDIENTE);
             cobroRepo.save(cobro);
@@ -194,7 +198,7 @@ public class CobroService {
         cobro.setMontoBase(req.monto());
         cobro.setMontoMora(BigDecimal.ZERO);
         cobro.setMontoTotal(req.monto());
-        cobro.setFechaGeneracion(LocalDate.now());
+        cobro.setFechaGeneracion(ColombiaTimeZone.hoy());
         cobro.setFechaLimitePago(req.fechaLimitePago());
         cobro.setEstado(EstadoCobro.PENDIENTE);
         return toResponse(cobroRepo.save(cobro));
@@ -220,7 +224,7 @@ public class CobroService {
         List<PeriodoCobro> periodos = periodoRepo.findAllByOrderByAnioDescMesDesc();
         int anio, mes;
         if (periodos.isEmpty()) {
-            LocalDate next = LocalDate.now().plusMonths(1);
+            LocalDate next = ColombiaTimeZone.hoy().plusMonths(1);
             anio = next.getYear();
             mes  = next.getMonthValue();
         } else {
@@ -310,13 +314,31 @@ public class CobroService {
         );
     }
 
-    // ─── Job automático de mora — corre cada día a la 1 AM ───────────
+    // ─── Job automático de mora — corre cada día a la 1 AM UTC ──────
+    // Itera todos los tenants activos usando la timezone de cada uno,
+    // evitando marcar como VENCIDO cobros que aún están vigentes en su zona horaria.
 
     @Scheduled(cron = "0 0 1 * * *")
-    @Transactional
     public void calcularMoras() {
+        tenantRepository.findAll().stream()
+                .filter(Tenant::isActivo)
+                .forEach(tenant -> {
+                    try {
+                        TenantContext.setTenant(tenant.getSchemaName());
+                        TenantContext.setTimezone(tenant.getTimezone() != null
+                                ? tenant.getTimezone() : "America/Bogota");
+                        calcularMorasParaTenant();
+                    } finally {
+                        TenantContext.clear();
+                    }
+                });
+    }
+
+    @Transactional
+    public void calcularMorasParaTenant() {
+        LocalDate hoy = LocalDate.now(ZoneId.of(TenantContext.getTimezone()));
         List<Cobro> vencidos = cobroRepo.findAllByEstadoInAndFechaLimitePagoBefore(
-                List.of(EstadoCobro.PENDIENTE, EstadoCobro.PARCIAL), LocalDate.now());
+                List.of(EstadoCobro.PENDIENTE, EstadoCobro.PARCIAL), hoy);
         ConfiguracionMora config = moraRepo.findFirstByActivoTrueOrderByFechaVigenciaDesc().orElse(null);
 
         for (Cobro cobro : vencidos) {
@@ -488,7 +510,7 @@ public class CobroService {
             EstadoCobro estadoCobro = c.getEstado();
             if (c.getEstado() != null
                     && (c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.PARCIAL)
-                    && c.getFechaLimitePago().isBefore(LocalDate.now())) {
+                    && c.getFechaLimitePago().isBefore(ColombiaTimeZone.hoy())) {
                 estadoCobro = EstadoCobro.VENCIDO;
             }
 

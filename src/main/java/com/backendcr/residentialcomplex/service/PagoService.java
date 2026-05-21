@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -116,7 +117,7 @@ public class PagoService {
         Pago pago = obtenerYValidar(id);
         pago.setEstado(EstadoPago.VERIFICADO);
         pago.setVerificadoPor(adminId);
-        pago.setFechaVerificacion(LocalDateTime.now());
+        pago.setFechaVerificacion(ColombiaTimeZone.ahora());
         pagoRepo.save(pago);
 
         Cobro cobro = cobroRepo.findById(pago.getCobroId())
@@ -195,7 +196,7 @@ public class PagoService {
         pago.setCobroId(cobroId);
         pago.setUsuarioId(usuarioId);
         pago.setMontoPagado(montoMP);
-        pago.setFechaPago(LocalDate.now());
+        pago.setFechaPago(ColombiaTimeZone.hoy());
         pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
         pago.setReferencia("MP-" + paymentId);
         pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
@@ -227,7 +228,7 @@ public class PagoService {
         pago.setCobroId(cobroId);
         pago.setUsuarioId(usuarioId);
         pago.setMontoPagado(monto);
-        pago.setFechaPago(LocalDate.now());
+        pago.setFechaPago(ColombiaTimeZone.hoy());
         pago.setMetodoPago(metodoPago);
         pago.setReferencia(metodoPago.name() + "-" + transaccionId);
         pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
@@ -256,7 +257,7 @@ public class PagoService {
         Pago pago = obtenerYValidar(id);
         pago.setEstado(EstadoPago.RECHAZADO);
         pago.setVerificadoPor(adminId);
-        pago.setFechaVerificacion(LocalDateTime.now());
+        pago.setFechaVerificacion(ColombiaTimeZone.ahora());
         pago.setMotivoRechazo(req.motivoRechazo());
         return toResponse(pagoRepo.save(pago));
     }

@@ -30,6 +30,9 @@ public record CrearTenantRequest(
 
         String direccion,
 
+        /** Ej: "America/Bogota", "America/Argentina/Buenos_Aires". Opcional — default Colombia. */
+        String timezone,
+
         List<TipoPropiedadNodoDto> tiposPropiedad,
 
         /**
