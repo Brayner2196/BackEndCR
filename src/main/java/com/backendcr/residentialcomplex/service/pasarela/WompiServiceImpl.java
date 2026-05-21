@@ -251,29 +251,33 @@ public class WompiServiceImpl implements PasarelaService {
 
         try {
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
+
+            // ── 1. Obtener detalles de la transacción ────────────────────────────
+            HttpRequest txRequest = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/transactions/" + transactionId))
                     .header("Authorization", "Bearer " + config.getPrivateKey())
                     .GET()
                     .build();
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.debug("Wompi confirmar txId={} status={} body={}", transactionId, response.statusCode(), response.body());
+            HttpResponse<String> txResponse = client.send(txRequest, HttpResponse.BodyHandlers.ofString());
+            log.debug("Wompi confirmar txId={} httpStatus={}", transactionId, txResponse.statusCode());
 
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.error("Wompi confirmar error {}: {}", response.statusCode(), response.body());
+            if (txResponse.statusCode() < 200 || txResponse.statusCode() >= 300) {
+                log.error("Wompi confirmar error {}: {}", txResponse.statusCode(), txResponse.body());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Error consultando transacción Wompi: " + response.statusCode());
+                        "Error consultando transacción Wompi: " + txResponse.statusCode());
             }
 
-            JsonNode data = objectMapper.readTree(response.body()).path("data");
+            JsonNode txData = objectMapper.readTree(txResponse.body()).path("data");
 
-            String status    = data.path("status").asText("");
-            String reference = data.path("reference").asText("");
-            BigDecimal monto = data.path("amount_in_cents").decimalValue()
+            String status       = txData.path("status").asText("");
+            BigDecimal monto    = txData.path("amount_in_cents").decimalValue()
                     .divide(BigDecimal.valueOf(100));
+            // NOTA: txData.reference es la referencia auto-generada por Wompi (ej: test_XYZ_timestamp_random).
+            // Nuestra referencia personalizada (tenantId|cobroId|usuarioId|WOMPI) está en el payment_link.
+            String paymentLinkId = txData.path("payment_link_id").asText("");
 
-            log.info("Wompi confirmar txId={} status={} reference={}", transactionId, status, reference);
+            log.info("Wompi confirmar txId={} status={} paymentLinkId={}", transactionId, status, paymentLinkId);
 
             if (!"APPROVED".equals(status)) {
                 log.warn("Transacción Wompi {} no aprobada (status={})", transactionId, status);
@@ -281,16 +285,45 @@ public class WompiServiceImpl implements PasarelaService {
                         "El pago Wompi no está aprobado (status=" + status + ")");
             }
 
-            if (reference == null || !reference.contains("|")) {
-                log.warn("Referencia Wompi inválida en confirmar: {}", reference);
+            // ── 2. Obtener la referencia personalizada desde el payment link ─────
+            // GET /v1/payment_links/{id} → data.reference = "tenantId|cobroId|usuarioId|WOMPI"
+            if (paymentLinkId.isBlank()) {
+                log.error("Wompi: transacción {} sin payment_link_id", transactionId);
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Referencia de transacción Wompi inválida");
+                        "La transacción Wompi no tiene payment_link_id asociado");
+            }
+
+            HttpRequest linkRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/payment_links/" + paymentLinkId))
+                    .header("Authorization", "Bearer " + config.getPrivateKey())
+                    .GET()
+                    .build();
+
+            HttpResponse<String> linkResponse = client.send(linkRequest, HttpResponse.BodyHandlers.ofString());
+            log.debug("Wompi payment_link {} httpStatus={}", paymentLinkId, linkResponse.statusCode());
+
+            if (linkResponse.statusCode() < 200 || linkResponse.statusCode() >= 300) {
+                log.error("Wompi: error obteniendo payment_link {}: {}", paymentLinkId, linkResponse.body());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Error consultando link de pago Wompi");
+            }
+
+            String reference = objectMapper.readTree(linkResponse.body())
+                    .path("data").path("reference").asText("");
+
+            log.info("Wompi referencia del payment_link {}: {}", paymentLinkId, reference);
+
+            // ── 3. Parsear la referencia y registrar el pago ─────────────────────
+            if (reference == null || !reference.contains("|")) {
+                log.warn("Referencia Wompi inválida en payment_link {}: {}", paymentLinkId, reference);
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Referencia de pago Wompi inválida: " + reference);
             }
 
             String[] partes = reference.split("\\|");
             if (partes.length < 3) {
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Formato de referencia Wompi inválido");
+                        "Formato de referencia Wompi inválido: " + reference);
             }
 
             String tenantId = partes[0];
