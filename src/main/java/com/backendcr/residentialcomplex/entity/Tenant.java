@@ -11,13 +11,13 @@ public class Tenant {
 	private Long id;
 
 	@Column(unique = true, nullable = false)
-	private String schemaName; // "acme", "nike", "adidas"
+	private String schemaName;
 
 	@Column(nullable = false)
-	private String nombre; // "ACME Corp", "Nike Inc"
+	private String nombre; 
 
 	@Column(unique = true, nullable = false)
-	private String codigo; // personalizable: "EL-PRADO-01"
+	private String codigo;
 
 	private boolean activo = true;
 
