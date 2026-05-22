@@ -116,7 +116,6 @@ public class ZonaComunService {
             grupo.setNota(dto.nota());
             grupo.setOrden(orden++);
 
-            List<FranjaHoraria> franjas = new ArrayList<>();
             if (dto.franjas() != null) {
                 int fOrden = 0;
                 for (FranjaHorariaDto fDto : dto.franjas()) {
@@ -124,10 +123,9 @@ public class ZonaComunService {
                     f.setHoraInicio(parseTime(fDto.horaInicio()));
                     f.setHoraFin(parseTime(fDto.horaFin()));
                     f.setOrden(fOrden++);
-                    franjas.add(f);
+                    grupo.addFranja(f); // bidireccional: setea grupo en la franja
                 }
             }
-            grupo.setFranjas(franjas);
             resultado.add(horarioGrupoRepo.save(grupo));
         }
         return resultado;

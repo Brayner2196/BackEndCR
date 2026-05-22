@@ -6,8 +6,8 @@ import java.util.List;
 
 /**
  * Agrupa días de la semana que comparten las mismas franjas horarias.
- * Ej: "Días de semana" → LUNES,MARTES,MIERCOLES,JUEVES con franjas 08:00-18:00.
- * Un día sólo puede pertenecer a un grupo dentro de la misma zona.
+ * Relación bidireccional con FranjaHoraria para que Hibernate inserte
+ * el grupo_id correctamente en la FK (evita el error null en NOT NULL).
  */
 @Entity
 @Table(name = "horarios_grupos_zona")
@@ -20,28 +20,29 @@ public class HorarioGrupoZona {
     @Column(name = "zona_comun_id", nullable = false)
     private Long zonaComunId;
 
-    /** Nombre descriptivo del grupo. Ej: "Días de semana", "Viernes", "Fin de semana" */
     @Column(nullable = false, length = 80)
     private String etiqueta;
 
-    /**
-     * Días incluidos en este grupo como CSV.
-     * Valores: LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO, DOMINGO
-     */
     @Column(name = "dias", nullable = false, length = 100)
     private String dias;
 
-    /** Nota interna visible sólo al admin. Ej: "Horario extendido para eventos" */
     @Column(length = 200)
     private String nota;
 
     @Column(nullable = false)
     private int orden = 0;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "grupo_id")
+    @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("orden ASC")
     private List<FranjaHoraria> franjas = new ArrayList<>();
+
+    // ── Helpers ────────────────────────────────────────────────
+
+    /** Agrega una franja manteniendo la referencia bidireccional. */
+    public void addFranja(FranjaHoraria franja) {
+        franja.setGrupo(this);
+        franjas.add(franja);
+    }
 
     // ── Getters / Setters ──────────────────────────────────────
 
