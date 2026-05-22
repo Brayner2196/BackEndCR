@@ -9,7 +9,9 @@ import com.backendcr.residentialcomplex.entity.Usuario;
 import com.backendcr.residentialcomplex.entity.ZonaComun;
 import com.backendcr.residentialcomplex.entity.enums.EstadoReserva;
 import com.backendcr.residentialcomplex.entity.enums.TipoExcepcionZona;
+import com.backendcr.residentialcomplex.entity.HorarioGrupoZona;
 import com.backendcr.residentialcomplex.repository.ExcepcionZonaComunRepository;
+import com.backendcr.residentialcomplex.repository.HorarioGrupoZonaRepository;
 import com.backendcr.residentialcomplex.repository.ReservaRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.repository.ZonaComunRepository;
@@ -38,6 +40,7 @@ public class ReservaService {
     private final ZonaComunRepository zonaRepo;
     private final UsuarioRepository usuarioRepo;
     private final ExcepcionZonaComunRepository excepcionRepo;
+    private final HorarioGrupoZonaRepository horarioGrupoRepo;
 
     // ─── Consultas ─────────────────────────────────────────────
 
@@ -99,10 +102,14 @@ public class ReservaService {
             }
         } else {
             // 4. Verificar día disponible
-            validarDiaDisponible(zona, req.fecha());
+            List<HorarioGrupoZona> grupos =
+                    horarioGrupoRepo.findByZonaComunIdOrderByOrdenAsc(zona.getId());
+            validarDiaDisponible(zona, req.fecha(), grupos);
 
-            // 5. Verificar horario estándar
-            if (zona.getHoraApertura() != null && zona.getHoraCierre() != null) {
+            // 5. Verificar horario: prioridad horarioGrupos, fallback legacy
+            if (!grupos.isEmpty()) {
+                validarDentroFranjas(req.horaInicio(), req.horaFin(), req.fecha(), grupos);
+            } else if (zona.getHoraApertura() != null && zona.getHoraCierre() != null) {
                 validarDentroHorario(req.horaInicio(), req.horaFin(),
                         zona.getHoraApertura(), zona.getHoraCierre(),
                         "Fuera del horario estándar (" +
@@ -202,17 +209,64 @@ public class ReservaService {
 
     // ─── Helpers de validación ─────────────────────────────────
 
-    private void validarDiaDisponible(ZonaComun zona, LocalDate fecha) {
+    private void validarDiaDisponible(ZonaComun zona, LocalDate fecha,
+                                       List<HorarioGrupoZona> grupos) {
+        String diaEspanol = diaEnEspanol(fecha.getDayOfWeek());
+
+        // Prioridad: horarioGrupos (modelo flexible)
+        if (!grupos.isEmpty()) {
+            boolean diaEnGrupo = grupos.stream()
+                    .flatMap(g -> Arrays.stream(g.getDias().split(",")))
+                    .map(String::trim)
+                    .anyMatch(d -> d.equalsIgnoreCase(diaEspanol));
+            if (!diaEnGrupo) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "La zona no está disponible los " + diaEspanol.toLowerCase());
+            }
+            return;
+        }
+
+        // Fallback: campo legacy diasDisponibles
         String csv = zona.getDiasDisponibles();
         if (csv == null || csv.isBlank()) return; // sin restricción
-
-        String diaEspanol = diaEnEspanol(fecha.getDayOfWeek());
         boolean disponible = Arrays.stream(csv.split(","))
                 .map(String::trim)
                 .anyMatch(d -> d.equalsIgnoreCase(diaEspanol));
         if (!disponible) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "La zona no está disponible los " + diaEspanol.toLowerCase());
+        }
+    }
+
+    /**
+     * Valida que horaInicio y horaFin coincidan con alguna franja del grupo
+     * aplicable al día de la fecha (exacta o contenida dentro de la franja).
+     */
+    private void validarDentroFranjas(LocalTime inicio, LocalTime fin,
+                                       LocalDate fecha, List<HorarioGrupoZona> grupos) {
+        String diaEspanol = diaEnEspanol(fecha.getDayOfWeek());
+
+        // Buscar el grupo del día
+        HorarioGrupoZona grupoDelDia = grupos.stream()
+                .filter(g -> Arrays.stream(g.getDias().split(","))
+                        .map(String::trim)
+                        .anyMatch(d -> d.equalsIgnoreCase(diaEspanol)))
+                .findFirst()
+                .orElse(null);
+
+        if (grupoDelDia == null || grupoDelDia.getFranjas().isEmpty()) return;
+
+        // Verificar que inicio y fin estén dentro de al menos una franja
+        boolean valido = grupoDelDia.getFranjas().stream()
+                .anyMatch(f -> !inicio.isBefore(f.getHoraInicio())
+                        && !fin.isAfter(f.getHoraFin()));
+
+        if (!valido) {
+            String franjas = grupoDelDia.getFranjas().stream()
+                    .map(f -> f.getHoraInicio() + "–" + f.getHoraFin())
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El horario solicitado está fuera de las franjas disponibles (" + franjas + ")");
         }
     }
 
