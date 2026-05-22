@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.backendcr.residentialcomplex.dto.propiedad.PropiedadPathItemDto;
 
+import com.backendcr.residentialcomplex.validation.ValidPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -16,6 +17,7 @@ public record RegistroRequest(
         String email,
 
         @NotBlank
+        @ValidPassword
         String password,
 
         @NotBlank

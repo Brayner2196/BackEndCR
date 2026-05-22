@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.backendcr.residentialcomplex.dto.propiedad.PropiedadPathItemDto;
 
+import com.backendcr.residentialcomplex.validation.ValidPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -19,7 +20,7 @@ public record CrearUsuarioRequest(
         String email,
 
         @NotBlank
-        @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
+        @ValidPassword
         String password,
 
         @NotBlank
