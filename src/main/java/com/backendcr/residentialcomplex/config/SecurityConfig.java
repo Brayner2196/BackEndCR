@@ -1,7 +1,9 @@
 package com.backendcr.residentialcomplex.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -45,8 +47,21 @@ public class SecurityConfig {
 					.anyRequest().authenticated()
 		).sessionManagement(session -> session
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-		  ) .addFilterBefore(JwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-			.addFilterAfter(tenantFilter, JwtAuthFilter.class);
+		).exceptionHandling(ex -> ex
+				// Sin Bearer token → 401 (no 403 default de Spring Security)
+				.authenticationEntryPoint((req, res, e) -> {
+					res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+					res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+					res.getWriter().write("{\"message\":\"No autenticado\"}");
+				})
+				// Rol incorrecto → 403 con body JSON legible
+				.accessDeniedHandler((req, res, e) -> {
+					res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+					res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+					res.getWriter().write("{\"message\":\"Acceso denegado\"}");
+				})
+		).addFilterBefore(JwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+		 .addFilterAfter(tenantFilter, JwtAuthFilter.class);
 		return http.build();
 	}
 

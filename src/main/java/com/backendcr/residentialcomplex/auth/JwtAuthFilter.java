@@ -3,6 +3,7 @@ package com.backendcr.residentialcomplex.auth;
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,7 +36,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		String token = authHeader.substring(7);
 
 		if (!jwtService.tokenValido(token)) {
-			filterChain.doFilter(request, response);
+			// Token presente pero inválido/expirado → 401 explícito para que Flutter haga refresh.
+			// Sin esto, el request sigue sin autenticación y Spring devuelve 403 (Forbidden).
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+			response.getWriter().write("{\"message\":\"Token expirado o inválido\"}");
 			return;
 		}
 
