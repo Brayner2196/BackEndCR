@@ -59,5 +59,5 @@ public class EncryptionAdminController {
                 "registrosMigrados", migradas,
                 "instruccion", "Actualiza ENCRYPTION_SECRET en el entorno con el newSecret y reinicia la app"
         ));
-    }
+    } 
 }
