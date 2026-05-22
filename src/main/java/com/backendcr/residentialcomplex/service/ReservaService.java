@@ -13,6 +13,7 @@ import com.backendcr.residentialcomplex.entity.HorarioGrupoZona;
 import com.backendcr.residentialcomplex.repository.ExcepcionZonaComunRepository;
 import com.backendcr.residentialcomplex.repository.HorarioGrupoZonaRepository;
 import com.backendcr.residentialcomplex.repository.ReservaRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.repository.ZonaComunRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,15 +23,20 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse;
+import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse.FranjaDisponibilidad;
+import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse.RangoOcupado;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +47,9 @@ public class ReservaService {
     private final UsuarioRepository usuarioRepo;
     private final ExcepcionZonaComunRepository excepcionRepo;
     private final HorarioGrupoZonaRepository horarioGrupoRepo;
+    private final UsuarioPropiedadRepository usuarioPropiedadRepo;
+
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     // ─── Consultas ─────────────────────────────────────────────
 
@@ -54,6 +63,90 @@ public class ReservaService {
 
     public List<ReservaResponse> listarPorResidente(Long residenteId) {
         return reservaRepo.findAllByResidenteId(residenteId).stream().map(this::toResponse).toList();
+    }
+
+    /**
+     * Retorna la disponibilidad de una zona para una fecha dada:
+     * franjas configuradas con cuántas están ocupadas y los rangos ocupados reales.
+     */
+    public DisponibilidadZonaResponse disponibilidad(Long zonaId, LocalDate fecha) {
+        ZonaComun zona = zonaRepo.findById(zonaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Zona común no encontrada"));
+
+        List<HorarioGrupoZona> grupos = horarioGrupoRepo.findByZonaComunIdOrderByOrdenAsc(zonaId);
+
+        // Encontrar el grupo del día
+        String diaEspanol = diaEnEspanol(fecha.getDayOfWeek());
+        HorarioGrupoZona grupoDelDia = grupos.stream()
+                .filter(g -> Arrays.stream(g.getDias().split(","))
+                        .map(String::trim)
+                        .anyMatch(d -> d.equalsIgnoreCase(diaEspanol)))
+                .findFirst()
+                .orElse(null);
+
+        // Reservas activas del día
+        List<Reserva> reservasDelDia = reservaRepo.findAllByZonaComunIdAndFecha(zonaId, fecha)
+                .stream()
+                .filter(r -> r.getEstado() == com.backendcr.residentialcomplex.entity.enums.EstadoReserva.APROBADA
+                        || r.getEstado() == com.backendcr.residentialcomplex.entity.enums.EstadoReserva.PENDIENTE)
+                .toList();
+
+        // Construir franjas con ocupación
+        List<FranjaDisponibilidad> franjasDto;
+        String grupoEtiqueta = null;
+        String grupoDias = null;
+        String grupoNota = null;
+
+        if (grupoDelDia != null && !grupoDelDia.getFranjas().isEmpty()) {
+            grupoEtiqueta = grupoDelDia.getEtiqueta();
+            grupoDias = grupoDelDia.getDias();
+            grupoNota = grupoDelDia.getNota();
+
+            franjasDto = grupoDelDia.getFranjas().stream().map(franja -> {
+                List<RangoOcupado> rangos = reservasDelDia.stream()
+                        .filter(r -> r.getHoraInicio().isBefore(franja.getHoraFin())
+                                && r.getHoraFin().isAfter(franja.getHoraInicio()))
+                        .map(r -> new RangoOcupado(
+                                r.getHoraInicio().format(TIME_FMT),
+                                r.getHoraFin().format(TIME_FMT)))
+                        .toList();
+                long ocupados = rangos.size();
+                boolean libre = !zona.isUsoExclusivo()
+                        ? ocupados < zona.getCapacidad()
+                        : ocupados == 0;
+                return new FranjaDisponibilidad(
+                        franja.getHoraInicio().format(TIME_FMT),
+                        franja.getHoraFin().format(TIME_FMT),
+                        libre,
+                        zona.getCapacidad(),
+                        ocupados,
+                        rangos);
+            }).toList();
+        } else if (zona.getHoraApertura() != null && zona.getHoraCierre() != null) {
+            // Fallback legacy
+            List<RangoOcupado> rangos = reservasDelDia.stream()
+                    .map(r -> new RangoOcupado(
+                            r.getHoraInicio().format(TIME_FMT),
+                            r.getHoraFin().format(TIME_FMT)))
+                    .toList();
+            boolean libre = rangos.size() < zona.getCapacidad();
+            franjasDto = List.of(new FranjaDisponibilidad(
+                    zona.getHoraApertura().format(TIME_FMT),
+                    zona.getHoraCierre().format(TIME_FMT),
+                    libre, zona.getCapacidad(), rangos.size(), rangos));
+        } else {
+            franjasDto = List.of();
+        }
+
+        return new DisponibilidadZonaResponse(
+                zonaId,
+                fecha.toString(),
+                grupoEtiqueta,
+                grupoDias,
+                grupoNota,
+                zona.getBufferLimpiezaMinutos(),
+                franjasDto
+        );
     }
 
     // ─── Crear (con validaciones completas) ───────────────────
@@ -154,10 +247,20 @@ public class ReservaService {
         }
 
         // 9. Crear reserva
+        // Resolver propiedadId: usar el del request si viene, sino tomar la primera propiedad del residente
+        Long propiedadId = req.propiedadId();
+        if (propiedadId == null) {
+            propiedadId = usuarioPropiedadRepo.findByUsuarioId(residenteId)
+                    .stream().findFirst()
+                    .map(up -> up.getPropiedadId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                            "El residente no tiene ninguna propiedad asignada"));
+        }
+
         Reserva r = new Reserva();
         r.setZonaComunId(req.zonaComunId());
         r.setResidenteId(residenteId);
-        r.setPropiedadId(req.propiedadId());
+        r.setPropiedadId(propiedadId);
         r.setFecha(req.fecha());
         r.setHoraInicio(req.horaInicio());
         r.setHoraFin(req.horaFin());
