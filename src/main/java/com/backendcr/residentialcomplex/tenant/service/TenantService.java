@@ -188,8 +188,10 @@ public class TenantService {
      *  7. anuncios
      *  8. anuncio_vistas
      *  9. zonas_comunes
-     * 1.excepciones_zonas_comunes
-     * 1. reservas
+     * 10. horarios_grupos_zona
+     * 11. franjas_horarias
+     * 12. excepciones_zonas_comunes
+     * 13. reservas
      * 1. periodos_cobro
      * 1. configuracion_cuotas    ← +tipo_propiedad_condicion_id, +fecha_vigencia_hasta
      * 1. configuracion_mora
@@ -325,61 +327,102 @@ public class TenantService {
                 """.formatted(schema, schema, schema));
         log.info("Tabla anuncio_vistas creada para tenant '{}'", schema);
 
-        // ── 9. zonas_comunes ──────────────────────────────────────────────
+        // ── 9. zonas_comunes ─────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.zonas_comunes (
-                    id                    BIGSERIAL PRIMARY KEY,
-                    nombre                VARCHAR(100) NOT NULL,
-                    descripcion           VARCHAR(500),
-                    capacidad             INT          NOT NULL DEFAULT 0,
-                    activa                BOOLEAN      NOT NULL DEFAULT TRUE,
-                    hora_apertura         TIME,
-                    hora_cierre           TIME,
-                    dias_disponibles      VARCHAR(100),
-                    duracion_min_minutos  INT,
-                    duracion_max_minutos  INT,
-                    anticipacion_min_dias INT,
-                    anticipacion_max_dias INT,
-                    requiere_aprobacion   BOOLEAN      NOT NULL DEFAULT TRUE,
-                    suspendida            BOOLEAN      NOT NULL DEFAULT FALSE,
-                    motivo_suspension     VARCHAR(300),
-                    creado_en             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    id                       BIGSERIAL    PRIMARY KEY,
+                    nombre                   VARCHAR(100) NOT NULL,
+                    descripcion              VARCHAR(500),
+                    categoria                VARCHAR(20)  NOT NULL DEFAULT 'OTRO',
+                    capacidad                INT          NOT NULL DEFAULT 0,
+                    activa                   BOOLEAN      NOT NULL DEFAULT TRUE,
+
+                    -- Modo de uso
+                    uso_exclusivo            BOOLEAN      NOT NULL DEFAULT TRUE,
+                    buffer_limpieza_minutos  INT          NOT NULL DEFAULT 0,
+
+                    -- Horario legacy
+                    hora_apertura            TIME,
+                    hora_cierre              TIME,
+                    dias_disponibles         VARCHAR(100),
+
+                    -- Reglas de duración
+                    duracion_min_minutos     INT,
+                    duracion_max_minutos     INT,
+
+                    -- Reglas de anticipación
+                    anticipacion_min_dias    INT,
+                    anticipacion_max_dias    INT,
+
+                    -- Cuota por residente
+                    max_reservas_semana      INT,
+                    max_reservas_mes         INT,
+                    cancelacion_horas_antes  INT,
+
+                    -- Aprobación
+                    requiere_aprobacion      BOOLEAN      NOT NULL DEFAULT TRUE,
+                    modo_aprobacion          VARCHAR(15)  NOT NULL DEFAULT 'MANUAL',
+
+                    -- Costo
+                    tiene_costo              BOOLEAN      NOT NULL DEFAULT FALSE,
+                    modo_tarifa              VARCHAR(15)  NOT NULL DEFAULT 'FIJA',
+                    tarifa_monto             NUMERIC(14,2),
+                    deposito_monto           NUMERIC(14,2),
+
+                    -- Restricciones
+                    solo_propietarios        BOOLEAN      NOT NULL DEFAULT FALSE,
+                    sin_deuda_pendiente      BOOLEAN      NOT NULL DEFAULT FALSE,
+                    edad_minima              INT,
+                    solo_torre               VARCHAR(50),
+
+                    -- Suspensión
+                    suspendida               BOOLEAN      NOT NULL DEFAULT FALSE,
+                    motivo_suspension        VARCHAR(300),
+
+                    creado_en                TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
-        	log.info("Tabla zonas_comunes creada para tenant '{}'", schema);
+        log.info("Tabla zonas_comunes creada para tenant '{}'", schema);
 
-        // Migración: agrega columnas nuevas a tenants existentes (idempotente)
-        /*jdbcTemplate.execute("""
-                DO $$ BEGIN
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS hora_apertura         TIME;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS hora_cierre           TIME;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS dias_disponibles      VARCHAR(100);
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS duracion_min_minutos  INT;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS duracion_max_minutos  INT;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS anticipacion_min_dias INT;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS anticipacion_max_dias INT;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS requiere_aprobacion   BOOLEAN NOT NULL DEFAULT TRUE;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS suspendida            BOOLEAN NOT NULL DEFAULT FALSE;
-                    ALTER TABLE %s.zonas_comunes ADD COLUMN IF NOT EXISTS motivo_suspension     VARCHAR(300);
-                END $$;
-                """.formatted(schema, schema, schema, schema, schema,
-                              schema, schema, schema, schema, schema));*/
+        // ── 10. horarios_grupos_zona ──────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.horarios_grupos_zona (
+                    id            BIGSERIAL    PRIMARY KEY,
+                    zona_comun_id BIGINT       NOT NULL REFERENCES %s.zonas_comunes(id) ON DELETE CASCADE,
+                    etiqueta      VARCHAR(80)  NOT NULL,
+                    dias          VARCHAR(100) NOT NULL,
+                    nota          VARCHAR(200),
+                    orden         INT          NOT NULL DEFAULT 0
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla horarios_grupos_zona creada para tenant '{}'", schema);
 
-        
-        // ── 10. excepciones_zonas_comunes ──────────────────────────────────────────────────
-            jdbcTemplate.execute("""
-                    CREATE TABLE IF NOT EXISTS %s.excepciones_zonas_comunes (
-                        id               BIGSERIAL PRIMARY KEY,
-                        zona_comun_id    BIGINT NOT NULL REFERENCES %s.zonas_comunes(id),
-                        fecha			 DATE NOT NULL,
-                        tipo             VARCHAR(30) NOT NULL,
-                        hora_apertura    TIME NOT NULL,
-                        hora_cierre      TIME NOT NULL,
-                        motivo		     VARCHAR(300),
-                        creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP                        
-                    )
-                    """.formatted(schema, schema));
-            log.info("Tabla excepciones_zonas_comunes creada para tenant '{}'", schema);
+        // ── 11. franjas_horarias ──────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.franjas_horarias (
+                    id          BIGSERIAL PRIMARY KEY,
+                    grupo_id    BIGINT    NOT NULL REFERENCES %s.horarios_grupos_zona(id) ON DELETE CASCADE,
+                    hora_inicio TIME      NOT NULL,
+                    hora_fin    TIME      NOT NULL,
+                    orden       INT       NOT NULL DEFAULT 0
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla franjas_horarias creada para tenant '{}'", schema);
+
+        // ── 12. excepciones_zonas_comunes ─────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.excepciones_zonas_comunes (
+                    id            BIGSERIAL   PRIMARY KEY,
+                    zona_comun_id BIGINT      NOT NULL REFERENCES %s.zonas_comunes(id) ON DELETE CASCADE,
+                    fecha         DATE        NOT NULL,
+                    tipo          VARCHAR(30) NOT NULL,
+                    hora_apertura TIME,
+                    hora_cierre   TIME,
+                    motivo        VARCHAR(300),
+                    creado_en     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla excepciones_zonas_comunes creada para tenant '{}'", schema);
         	
         // ── 11. reservas ──────────────────────────────────────────────────
         jdbcTemplate.execute("""
