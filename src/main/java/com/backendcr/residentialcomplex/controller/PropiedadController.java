@@ -30,8 +30,9 @@ public class PropiedadController {
 
     @GetMapping("/api/tipos-propiedad")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN')")
-    public List<TipoPropiedadNodoDto> obtenerArbol() {
-        return propiedadService.obtenerArbol();
+    public List<TipoPropiedadNodoDto> obtenerArbol(
+            @RequestParam(defaultValue = "false") boolean soloFacturables) {
+        return propiedadService.obtenerArbol(soloFacturables);
     }
 
     @PostMapping("/api/tipos-propiedad")

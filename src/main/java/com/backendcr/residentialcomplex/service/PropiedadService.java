@@ -42,8 +42,13 @@ public class PropiedadService {
     // ── Tipos de propiedad ────────────────────────────────────────────────────
 
     public List<TipoPropiedadNodoDto> obtenerArbol() {
+        return obtenerArbol(false);
+    }
+
+    public List<TipoPropiedadNodoDto> obtenerArbol(boolean soloFacturables) {
         return tipoRepo.findByParentIdIsNullOrderByOrden().stream()
                 .filter(TipoPropiedad::isActivo)
+                .filter(t -> !soloFacturables || t.isEsFacturable())
                 .map(this::toNodoDto)
                 .toList();
     }
