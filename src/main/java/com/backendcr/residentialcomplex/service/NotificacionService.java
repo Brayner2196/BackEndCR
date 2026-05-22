@@ -37,13 +37,9 @@ public class NotificacionService {
 
     @Transactional
     public void registrarToken(Long usuarioId, String tenantId, FcmTokenRequest request) {
-        deviceTokenRepository.findByUsuarioIdAndPlataforma(usuarioId, request.getPlataforma())
-            .ifPresentOrElse(
-                existing -> existing.setToken(request.getToken()),
-                () -> deviceTokenRepository.save(
-                    new DeviceToken(usuarioId, tenantId, request.getToken(), request.getPlataforma())
-                )
-            );
+        // Upsert atómico evita race condition cuando dos requests llegan en paralelo
+        deviceTokenRepository.upsertToken(
+                usuarioId, tenantId, request.getToken(), request.getPlataforma());
     }
 
     @Transactional
