@@ -11,6 +11,10 @@ import com.backendcr.residentialcomplex.service.CobroService;
 import com.backendcr.residentialcomplex.service.PagoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
@@ -49,6 +53,17 @@ public class ResidentePagosController {
     @GetMapping("/cobros/historial")
     public List<CobroResponse> historial(@AuthenticationPrincipal String email) {
         return cobroService.listarPorUsuarioYEstado(resolverUsuarioId(email), EstadoCobro.PAGADO);
+    }
+
+    /**
+     * Historial paginado de todos los cobros del residente, de más reciente a más antiguo.
+     * GET /api/residente/cobros/historial-paginado?page=0&size=5
+     */
+    @GetMapping("/cobros/historial-paginado")
+    public Page<CobroResponse> historialPaginado(
+            @AuthenticationPrincipal String email,
+            @PageableDefault(size = 5, sort = "fechaGeneracion", direction = Sort.Direction.DESC) Pageable pageable) {
+        return cobroService.listarHistorialPaginado(resolverUsuarioId(email), pageable);
     }
 
     @PostMapping("/pagos")

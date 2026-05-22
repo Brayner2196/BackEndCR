@@ -8,6 +8,8 @@ import com.backendcr.residentialcomplex.entity.enums.*;
 import com.backendcr.residentialcomplex.repository.*;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -357,6 +359,22 @@ public class CobroService {
             cobro.setEstado(EstadoCobro.VENCIDO);
             cobroRepo.save(cobro);
         }
+    }
+
+    // ─── Historial paginado del residente (infinite scroll) ───────
+
+    /**
+     * Devuelve un Page<CobroResponse> con TODOS los cobros del usuario
+     * (cualquier estado), ordenados por fechaGeneracion desc.
+     * Usar con page=0&size=5 para el primer cargue y aumentar page en scroll.
+     */
+    @Transactional(readOnly = true)
+    public Page<CobroResponse> listarHistorialPaginado(Long usuarioId, Pageable pageable) {
+        List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+                .stream().map(UsuarioPropiedad::getPropiedadId).toList();
+        if (propiedadIds.isEmpty()) return Page.empty(pageable);
+        Page<Cobro> page = cobroRepo.findAllByPropiedadIdInOrderByFechaGeneracionDesc(propiedadIds, pageable);
+        return page.map(c -> toResponseList(List.of(c)).get(0));
     }
 
     // ─── Estado de cuenta del residente ───────────────────────────
