@@ -696,9 +696,103 @@ public class TenantService {
                     )
                     """.formatted(schema, schema, schema, schema));
             	log.info("Tabla solicitudes creada para tenant '{}'", schema);
-        	
-        	
+            	
+            	jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS %s.configuracion_plan_pago (
+                            id                          BIGSERIAL PRIMARY KEY,
+                            activo                      BOOLEAN NOT NULL DEFAULT FALSE,
+                            max_cuotas                  INT NOT NULL DEFAULT 3,
+                            recargo_fraccionamiento     BOOLEAN NOT NULL DEFAULT FALSE,
+                            porcentaje_recargo          NUMERIC(5,2) NOT NULL DEFAULT 0,
+                            mora_congelada_durante_plan BOOLEAN NOT NULL DEFAULT FALSE,
+                            aprobacion_automatica       BOOLEAN NOT NULL DEFAULT FALSE,
+                            actualizado_en              TIMESTAMP
+                        )
+                        """.formatted(schema));
+                log.info("Tabla configuracion_plan_pago creada/verificada para tenant '{}'", schema);
+
+                jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS %s.planes_pago (
+                            id                  BIGSERIAL PRIMARY KEY,
+                            propiedad_id        BIGINT NOT NULL,
+                            residente_id        BIGINT NOT NULL,
+                            monto_total_deuda   NUMERIC(12,0) NOT NULL,
+                            numero_cuotas       INT NOT NULL,
+                            monto_recargo       NUMERIC(12,0) NOT NULL DEFAULT 0,
+                            monto_total_plan    NUMERIC(12,0) NOT NULL,
+                            estado              VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+                            cobros_incluidos    VARCHAR(500),
+                            observaciones       VARCHAR(500),
+                            motivo_rechazo      VARCHAR(300),
+                            nota_admin          VARCHAR(300),
+                            aprobado_por        BIGINT,
+                            fecha_decision      TIMESTAMP,
+                            creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            actualizado_en      TIMESTAMP
+                        )
+                        """.formatted(schema));
+                log.info("Tabla planes_pago creada/verificada para tenant '{}'", schema);
+
+                jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS %s.cuotas_plan (
+                            id               BIGSERIAL PRIMARY KEY,
+                            plan_id          BIGINT NOT NULL REFERENCES %s.planes_pago(id),
+                            numero_cuota     INT NOT NULL,
+                            monto            NUMERIC(12,0) NOT NULL,
+                            fecha_vencimiento DATE NOT NULL,
+                            estado           VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+                            fecha_pago       DATE,
+                            nota_pago        VARCHAR(300),
+                            actualizado_en   TIMESTAMP
+                        )
+                        """.formatted(schema, schema));
+                log.info("Tabla cuotas_plan creada/verificada para tenant '{}'", schema);
+                
+                jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS %s.presupuestos (
+                            id                          BIGSERIAL PRIMARY KEY,
+                            anio                        INT NOT NULL,
+                            titulo                      VARCHAR(150),
+                            monto_total_presupuestado   NUMERIC(15,0) NOT NULL DEFAULT 0,
+                            activo                      BOOLEAN NOT NULL DEFAULT FALSE,
+                            creado_en                   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            actualizado_en              TIMESTAMP
+                        )
+                        """.formatted(schema));
+                log.info("Tabla presupuestos creada/verificada para tenant '{}'", schema);
+
+                jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS %s.categorias_presupuesto (
+                            id              BIGSERIAL PRIMARY KEY,
+                            presupuesto_id  BIGINT NOT NULL REFERENCES %s.presupuestos(id),
+                            nombre          VARCHAR(100) NOT NULL,
+                            descripcion     VARCHAR(300),
+                            monto_asignado  NUMERIC(15,0) NOT NULL,
+                            color           VARCHAR(10),
+                            icono           VARCHAR(80),
+                            creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            actualizado_en  TIMESTAMP
+                        )
+                        """.formatted(schema, schema));
+                log.info("Tabla categorias_presupuesto creada/verificada para tenant '{}'", schema);
+
+                jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS %s.gastos_registrados (
+                            id              BIGSERIAL PRIMARY KEY,
+                            presupuesto_id  BIGINT NOT NULL REFERENCES %s.presupuestos(id),
+                            categoria_id    BIGINT NOT NULL REFERENCES %s.categorias_presupuesto(id),
+                            descripcion     VARCHAR(300) NOT NULL,
+                            monto           NUMERIC(15,0) NOT NULL,
+                            fecha           DATE NOT NULL,
+                            comprobante     VARCHAR(500),
+                            registrado_por  BIGINT NOT NULL,
+                            creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        )
+                        """.formatted(schema, schema, schema));
+                log.info("Tabla gastos_registrados creada/verificada para tenant '{}'", schema);
+
     }
+
 
     private void insertarTiposPropiedad(String schema, List<TipoPropiedadNodoDto> tipos,
                                         Long parentId, int ordenBase) {
