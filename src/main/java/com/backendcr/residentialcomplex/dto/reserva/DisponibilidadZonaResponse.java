@@ -1,6 +1,5 @@
 package com.backendcr.residentialcomplex.dto.reserva;
 
-import java.time.LocalTime;
 import java.util.List;
 
 /**

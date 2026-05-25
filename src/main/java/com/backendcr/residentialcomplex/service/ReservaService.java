@@ -28,7 +28,6 @@ import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse.F
 import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse.RangoOcupado;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -36,7 +35,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

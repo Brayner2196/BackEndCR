@@ -1,6 +1,5 @@
 package com.backendcr.residentialcomplex.dto.reserva;
 
-import com.backendcr.residentialcomplex.entity.FranjaHoraria;
 import com.backendcr.residentialcomplex.entity.HorarioGrupoZona;
 import com.backendcr.residentialcomplex.entity.ZonaComun;
 import com.backendcr.residentialcomplex.entity.enums.CategoriaZona;

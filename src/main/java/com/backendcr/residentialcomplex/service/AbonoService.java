@@ -13,7 +13,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
