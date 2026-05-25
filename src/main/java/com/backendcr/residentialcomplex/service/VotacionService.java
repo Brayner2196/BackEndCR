@@ -170,6 +170,7 @@ public class VotacionService {
         v.setEscalaMax(req.escalaMax());
         v.setMostrarVotantes(req.mostrarVotantes());
         v.setPermiteCambiarVoto(req.permiteCambiarVoto());
+        v.setMostrarPorcentajes(req.mostrarPorcentajes());
         if (req.fechaInicio() != null) v.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
         else v.setFechaInicio(null);
         if (req.fechaFin() != null) v.setFechaFin(LocalDateTime.parse(req.fechaFin()));
@@ -230,6 +231,25 @@ public class VotacionService {
                     .toList();
         }
 
-        return VotacionResponse.from(v, totalVotantes, yaVote, opcionesResp, votantes);
+        // ── Voto propio del residente autenticado ────────────────────────────
+        List<Long> miVotoOpcionIds = null;
+        Integer miVotoValorNumerico = null;
+        String miVotoRespuestaTexto = null;
+
+        if (residenteId != null && yaVote) {
+            List<VotoResidente> misVotos = votoRepo.findAllByVotacionIdAndResidenteId(v.getId(), residenteId);
+            if (!misVotos.isEmpty()) {
+                VotoResidente primerVoto = misVotos.get(0);
+                miVotoOpcionIds = misVotos.stream()
+                        .map(VotoResidente::getOpcionId)
+                        .filter(Objects::nonNull)
+                        .toList();
+                miVotoValorNumerico = primerVoto.getValorNumerico();
+                miVotoRespuestaTexto = primerVoto.getRespuestaTexto();
+            }
+        }
+
+        return VotacionResponse.from(v, totalVotantes, yaVote, opcionesResp, votantes,
+                miVotoOpcionIds, miVotoValorNumerico, miVotoRespuestaTexto);
     }
 }

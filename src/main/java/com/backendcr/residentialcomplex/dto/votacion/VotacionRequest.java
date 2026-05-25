@@ -14,6 +14,7 @@ public record VotacionRequest(
         Integer escalaMax,
         boolean mostrarVotantes,
         boolean permiteCambiarVoto,
+        boolean mostrarPorcentajes,
         String fechaInicio,
         String fechaFin,
         List<String> opciones  // solo para OPCION_UNICA y OPCION_MULTIPLE

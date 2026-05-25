@@ -42,6 +42,10 @@ public class Votacion {
     @Column(name = "permite_cambiar_voto", nullable = false)
     private boolean permiteCambiarVoto = false;
 
+    /** Si true, los propietarios/inquilinos pueden ver el % de votos por opción */
+    @Column(name = "mostrar_porcentajes", nullable = false)
+    private boolean mostrarPorcentajes = false;
+
     @Column(name = "fecha_inicio")
     private LocalDateTime fechaInicio;
 
@@ -82,6 +86,9 @@ public class Votacion {
 
     public boolean isPermiteCambiarVoto() { return permiteCambiarVoto; }
     public void setPermiteCambiarVoto(boolean permiteCambiarVoto) { this.permiteCambiarVoto = permiteCambiarVoto; }
+
+    public boolean isMostrarPorcentajes() { return mostrarPorcentajes; }
+    public void setMostrarPorcentajes(boolean mostrarPorcentajes) { this.mostrarPorcentajes = mostrarPorcentajes; }
 
     public LocalDateTime getFechaInicio() { return fechaInicio; }
     public void setFechaInicio(LocalDateTime fechaInicio) { this.fechaInicio = fechaInicio; }
