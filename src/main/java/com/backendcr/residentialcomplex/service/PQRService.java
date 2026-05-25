@@ -19,8 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
-import java.time.LocalDateTime;
+import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class PQRService {
     private final PQRRepository pqrRepo;
     private final UsuarioRepository usuarioRepo;
     private final PQRHistorialRepository historialRepo;
+    private final IdentidadRepository identidadRepo;
 
     public List<PQRResponse> listarTodas() {
         return pqrRepo.findAll().stream().map(this::toResponse).toList();
@@ -45,7 +47,16 @@ public class PQRService {
     public List<PQRHistorialResponse> listarHistorial(Long pqrId) {
         obtener(pqrId); // valida que exista
         return historialRepo.findAllByPqrIdOrderByFechaCambioAsc(pqrId)
-                .stream().map(PQRHistorialResponse::from).toList();
+                .stream().map(this::enriquecerHistorial).toList();
+    }
+
+    public List<PQRHistorialResponse> listarHistorialResidente(Long pqrId, Long residenteId) {
+        PQR pqr = obtener(pqrId);
+        if (!pqr.getResidenteId().equals(residenteId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a esta PQR");
+        }
+        return historialRepo.findAllByPqrIdOrderByFechaCambioAsc(pqrId)
+                .stream().map(this::enriquecerHistorial).toList();
     }
 
     @Transactional
@@ -91,6 +102,23 @@ public class PQRService {
     }
 
     // ─── Helpers ──────────────────────────────────────────────
+
+    private PQRHistorialResponse enriquecerHistorial(PQRHistorial h) {
+        String nombre = "Sistema";
+        String rol = "";
+        if (h.getCambiadoPor() != null) {
+            Optional<com.backendcr.residentialcomplex.entity.Usuario> usuOpt =
+                    usuarioRepo.findById(h.getCambiadoPor());
+            if (usuOpt.isPresent()) {
+                var usu = usuOpt.get();
+                nombre = usu.getNombre();
+                rol = identidadRepo.findById(usu.getIdentidadId())
+                        .map(id -> id.getRol())
+                        .orElse("");
+            }
+        }
+        return PQRHistorialResponse.from(h, nombre, rol);
+    }
 
     private void registrarHistorial(Long pqrId, EstadoPQR anterior, EstadoPQR nuevo,
                                     Long cambiadoPor, String comentario) {

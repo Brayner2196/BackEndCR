@@ -11,19 +11,23 @@ public record PQRHistorialResponse(
         EstadoPQR estadoAnterior,
         EstadoPQR estadoNuevo,
         Long cambiadoPor,
+        String cambiadoPorNombre,
+        String cambiadoPorRol,
         String comentario,
         String fechaCambio
 ) {
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
-    public static PQRHistorialResponse from(PQRHistorial h) {
+    public static PQRHistorialResponse from(PQRHistorial h, String nombre, String rol) {
         return new PQRHistorialResponse(
                 h.getId(),
                 h.getPqrId(),
                 h.getEstadoAnterior(),
                 h.getEstadoNuevo(),
                 h.getCambiadoPor(),
+                nombre,
+                rol,
                 h.getComentario(),
                 h.getFechaCambio() != null ? h.getFechaCambio().format(FORMATTER) : null
         );

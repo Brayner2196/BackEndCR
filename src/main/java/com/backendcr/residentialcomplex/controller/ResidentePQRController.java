@@ -1,6 +1,7 @@
 package com.backendcr.residentialcomplex.controller;
 
 import com.backendcr.residentialcomplex.config.SecurityUtils;
+import com.backendcr.residentialcomplex.dto.pqr.PQRHistorialResponse;
 import com.backendcr.residentialcomplex.dto.pqr.PQRRequest;
 import com.backendcr.residentialcomplex.dto.pqr.PQRResponse;
 import com.backendcr.residentialcomplex.service.PQRService;
@@ -33,5 +34,11 @@ public class ResidentePQRController {
     @GetMapping("/me")
     public List<PQRResponse> mias(@AuthenticationPrincipal String email) {
         return pqrService.listarPorResidente(securityUtils.resolverUsuarioId(email));
+    }
+
+    @GetMapping("/{id}/historial")
+    public List<PQRHistorialResponse> historial(@PathVariable Long id,
+                                                 @AuthenticationPrincipal String email) {
+        return pqrService.listarHistorialResidente(id, securityUtils.resolverUsuarioId(email));
     }
 }
