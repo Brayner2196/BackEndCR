@@ -87,7 +87,7 @@ public class PQRService {
             pqr.setEstado(EstadoPQR.RESUELTO);
         }
         PQR saved = pqrRepo.save(pqr);
-        registrarHistorial(saved.getId(), estadoAnterior, saved.getEstado(), adminId, "Respondida por administrador");
+        registrarHistorial(saved.getId(), estadoAnterior, saved.getEstado(), adminId, req.respuesta());
         return toResponse(saved);
     }
 
