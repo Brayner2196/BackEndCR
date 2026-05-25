@@ -605,6 +605,7 @@ public class TenantService {
                     escala_max           INT,
                     mostrar_votantes     BOOLEAN NOT NULL DEFAULT FALSE,
                     permite_cambiar_voto BOOLEAN NOT NULL DEFAULT FALSE,
+                    mostrar_porcentajes BOOLEAN NOT NULL DEFAULT FALSE,
                     fecha_inicio         TIMESTAMP,
                     fecha_fin            TIMESTAMP,
                     creado_por           BIGINT NOT NULL REFERENCES %s.usuarios(id),
