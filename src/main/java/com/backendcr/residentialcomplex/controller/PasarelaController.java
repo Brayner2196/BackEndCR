@@ -311,10 +311,8 @@ public class PasarelaController {
             String ref = root.path("data").path("transaction").path(referenceField).asText(null);
             if (ref == null) ref = root.path("data").path("payment").path(referenceField).asText(null);
             if (ref == null) ref = root.path(referenceField).asText(null);
-            if (ref != null && ref.contains("__")) {
-                return ref.split("__")[0];
-            } else if (ref != null && ref.contains("|")) {
-                return ref.split("\\|")[0]; // legado
+            if (ref != null && ref.contains("|")) {
+                return ref.split("\\|")[0];
             }
         } catch (Exception e) {
             log.debug("No se pudo extraer tenantId del payload: {}", e.getMessage());

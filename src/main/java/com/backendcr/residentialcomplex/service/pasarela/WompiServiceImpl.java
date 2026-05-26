@@ -25,6 +25,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -38,6 +39,15 @@ import java.util.Map;
  * Wompi API v1: https://docs.wompi.co
  *  - Para crear un link de pago: POST /v1/payment_links
  *  - Webhook: verifica firma HMAC-SHA256 con el events_secret del tenant
+ *
+ * Estrategia de referencia:
+ *  Wompi no preserva el campo `reference` personalizado que enviamos al crear el link;
+ *  lo sobreescribe con uno auto-generado ({linkId}_{timestamp}_{random}).
+ *  La solución es encodear los datos del cobro como query param `ref` en el redirect_url.
+ *  Wompi conserva el redirect_url intacto y lo retorna tanto en el webhook como
+ *  en GET /transactions/{id}, por lo que podemos leerlo desde ambos flujos.
+ *
+ *  Formato: redirect_url?ref=tenantId__cobroId__usuarioId
  */
 @Slf4j
 @Service
@@ -46,11 +56,10 @@ public class WompiServiceImpl implements PasarelaService {
 
     private static final String WOMPI_API_URL  = "https://sandbox.wompi.co/v1";
     private static final String WOMPI_PROD_URL = "https://production.wompi.co/v1";
-
-    // Wompi usa el mismo dominio de checkout para sandbox y producción.
-    // La diferencia es que en sandbox las llaves tienen prefijo pub_test_ y
-    // los IDs de link tienen prefijo test_. No existe checkout-sandbox.wompi.co.
     private static final String WOMPI_CHECKOUT_BASE = "https://checkout.wompi.co/l/";
+
+    /** Separador interno para el query param ref (los IDs nunca contienen __) */
+    private static final String SEP = "__";
 
     @Value("${app.base-url:https}")
     private String appBaseUrl;
@@ -101,27 +110,27 @@ public class WompiServiceImpl implements PasarelaService {
                 ? montoPersonalizado
                 : cobro.getMontoPendiente();
 
-        // Wompi trabaja en centavos (COP)
         long montoCentavos = monto.multiply(BigDecimal.valueOf(100)).longValue();
 
-        String baseUrl  = config.isSandbox() ? WOMPI_API_URL : WOMPI_PROD_URL;
-        // Separador __ para evitar conflictos con caracteres rechazados por Wompi (|)
-        String ref      = tenantId + "__" + cobroId + "__" + usuarioId;
-        // redirect_url debe ser HTTPS válido. Se usa el endpoint de retorno MP
-        // (interceptado por el WebView Flutter en _exitoPath=/api/mp/pago-exito).
-        // Si el tenant configuró su propia URL en TenantPasarela.successUrl, esa toma precedencia.
-        String redirect = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/mp/pago-exito");
+        String baseUrl = config.isSandbox() ? WOMPI_API_URL : WOMPI_PROD_URL;
+
+        // Encodear los datos del cobro en el redirect_url.
+        // Wompi conserva este campo intacto en el webhook y en GET /transactions/{id},
+        // lo que nos permite recuperar tenantId/cobroId/usuarioId sin tabla extra.
+        String ref        = tenantId + SEP + cobroId + SEP + usuarioId;
+        String baseRedirect = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/mp/pago-exito");
+        String redirect   = baseRedirect + (baseRedirect.contains("?") ? "&" : "?") + "ref=" + ref;
 
         try {
             String requestBody = objectMapper.writeValueAsString(Map.of(
-                    "name",           "Pago cobro #" + cobroId,
-                    "description",    "Cuota conjuntos residenciales - tenant " + tenantId,
-                    "single_use",     true,
+                    "name",             "Pago cobro #" + cobroId,
+                    "description",      "Cuota conjuntos residenciales - tenant " + tenantId,
+                    "single_use",       true,
                     "collect_shipping", false,
-                    "currency",       "COP",
-                    "amount_in_cents", montoCentavos,
-                    "redirect_url",   redirect,
-                    "reference",      ref
+                    "currency",         "COP",
+                    "amount_in_cents",  montoCentavos,
+                    "redirect_url",     redirect,
+                    "reference",        ref          // solo informativo en dashboard Wompi
             ));
 
             HttpClient client = HttpClient.newHttpClient();
@@ -143,10 +152,7 @@ public class WompiServiceImpl implements PasarelaService {
             JsonNode json = objectMapper.readTree(response.body());
             log.debug("Wompi response body: {}", response.body());
 
-            // Wompi devuelve solo el `id` del link; la URL de checkout se construye
-            // concatenando la base correspondiente (sandbox o producción) + el id.
             String linkId = json.path("data").path("id").asText("");
-
             if (linkId.isBlank()) {
                 log.error("Wompi body sin id de link: {}", response.body());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -154,8 +160,7 @@ public class WompiServiceImpl implements PasarelaService {
             }
 
             String checkoutUrl = WOMPI_CHECKOUT_BASE + linkId;
-
-            log.info("Wompi link creado para cobro {} tenant {}: {}", cobroId, tenantId, checkoutUrl);
+            log.info("Wompi link creado para cobro {} tenant {}: {} — redirect_url={}", cobroId, tenantId, checkoutUrl, redirect);
             return new CheckoutResponse(checkoutUrl, TipoPasarela.WOMPI);
 
         } catch (ResponseStatusException e) {
@@ -173,6 +178,9 @@ public class WompiServiceImpl implements PasarelaService {
      * Wompi envía eventos firmados con HMAC-SHA256 usando el events_secret.
      * Header: X-Event-Checksum
      * Formato: payload JSON con "event" y "data.transaction"
+     *
+     * La referencia se extrae del campo redirect_url de la transacción,
+     * donde guardamos ?ref=tenantId__cobroId__usuarioId al crear el link.
      */
     @Override
     public void procesarWebhook(TenantPasarela config, String payload, String signature) {
@@ -182,7 +190,6 @@ public class WompiServiceImpl implements PasarelaService {
         }
 
         try {
-            // Verificar firma si tenemos el secret
             if (config != null && config.getWebhookSecret() != null && !config.getWebhookSecret().isBlank()) {
                 if (!verificarFirmaWompi(payload, signature, config.getWebhookSecret())) {
                     log.warn("Firma Wompi inválida — payload rechazado");
@@ -199,32 +206,28 @@ public class WompiServiceImpl implements PasarelaService {
                 return;
             }
 
-            String status     = data.path("status").asText("");
-            String reference  = data.path("reference").asText("");
-            String wompiTxId  = data.path("id").asText("");
-            BigDecimal monto  = data.path("amount_in_cents").decimalValue()
+            String status    = data.path("status").asText("");
+            String wompiTxId = data.path("id").asText("");
+            BigDecimal monto = data.path("amount_in_cents").decimalValue()
                     .divide(BigDecimal.valueOf(100));
+            String redirectUrl = data.path("redirect_url").asText("");
 
-            log.info("Webhook Wompi - txId={} status={} reference={}", wompiTxId, status, reference);
+            log.info("Webhook Wompi - txId={} status={} redirectUrl={}", wompiTxId, status, redirectUrl);
 
             if (!"APPROVED".equals(status)) {
                 log.info("Transacción Wompi no aprobada (status={})", status);
                 return;
             }
 
-            // Soporta separador __ (nuevo) y | (legado) por compatibilidad
-            String sep = reference.contains("__") ? "__" : (reference.contains("|") ? "\\|" : null);
-            if (sep == null) {
-                log.warn("Referencia Wompi inválida (sin separador reconocido): {}", reference);
+            String[] partes = extraerRefDeUrl(redirectUrl);
+            if (partes == null) {
+                log.warn("Webhook Wompi: no se pudo extraer ref del redirect_url={}", redirectUrl);
                 return;
             }
 
-            String[] partes = reference.split(sep);
-            if (partes.length < 3) return;
-
-            String tenantId  = partes[0];
-            Long cobroId     = Long.parseLong(partes[1]);
-            Long usuarioId   = Long.parseLong(partes[2]);
+            String tenantId = partes[0];
+            Long cobroId    = Long.parseLong(partes[1]);
+            Long usuarioId  = Long.parseLong(partes[2]);
 
             TenantContext.setTenant(tenantId);
             try {
@@ -242,9 +245,9 @@ public class WompiServiceImpl implements PasarelaService {
     // ─── Confirmar Transacción (desde app Flutter) ───────────────────────────
 
     /**
-     * Consulta el estado de una transacción Wompi en tiempo real y la registra si está APPROVED.
-     * Se usa cuando el WebView intercepta la URL de éxito y necesita confirmación síncrona
-     * antes de que llegue el webhook asincrónico.
+     * Consulta el estado de la transacción en Wompi y la registra si está APPROVED.
+     * Se invoca cuando el WebView de Flutter intercepta la URL de éxito antes del webhook.
+     * La referencia se extrae del campo redirect_url de la transacción (mismo mecanismo que el webhook).
      */
     @Override
     public void confirmarTransaccion(TenantPasarela config, String transactionId) {
@@ -255,7 +258,6 @@ public class WompiServiceImpl implements PasarelaService {
         try {
             HttpClient client = HttpClient.newHttpClient();
 
-            // ── 1. Obtener detalles de la transacción ────────────────────────────
             HttpRequest txRequest = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/transactions/" + transactionId))
                     .header("Authorization", "Bearer " + config.getPrivateKey())
@@ -273,14 +275,12 @@ public class WompiServiceImpl implements PasarelaService {
 
             JsonNode txData = objectMapper.readTree(txResponse.body()).path("data");
 
-            String status       = txData.path("status").asText("");
-            BigDecimal monto    = txData.path("amount_in_cents").decimalValue()
+            String status      = txData.path("status").asText("");
+            BigDecimal monto   = txData.path("amount_in_cents").decimalValue()
                     .divide(BigDecimal.valueOf(100));
-            // NOTA: txData.reference es la referencia auto-generada por Wompi (ej: test_XYZ_timestamp_random).
-            // Nuestra referencia personalizada (tenantId|cobroId|usuarioId|WOMPI) está en el payment_link.
-            String paymentLinkId = txData.path("payment_link_id").asText("");
+            String redirectUrl = txData.path("redirect_url").asText("");
 
-            log.info("Wompi confirmar txId={} status={} paymentLinkId={}", transactionId, status, paymentLinkId);
+            log.info("Wompi confirmar txId={} status={} redirectUrl={}", transactionId, status, redirectUrl);
 
             if (!"APPROVED".equals(status)) {
                 log.warn("Transacción Wompi {} no aprobada (status={})", transactionId, status);
@@ -288,72 +288,18 @@ public class WompiServiceImpl implements PasarelaService {
                         "El pago Wompi no está aprobado (status=" + status + ")");
             }
 
-            // ── 2. Obtener la referencia personalizada desde el payment link ─────
-            // GET /v1/payment_links/{id} → data.reference = "tenantId|cobroId|usuarioId|WOMPI"
-            if (paymentLinkId.isBlank()) {
-                log.error("Wompi: transacción {} sin payment_link_id", transactionId);
+            String[] partes = extraerRefDeUrl(redirectUrl);
+            if (partes == null) {
+                log.warn("Wompi confirmar: no se pudo extraer ref del redirect_url={}", redirectUrl);
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "La transacción Wompi no tiene payment_link_id asociado");
-            }
-
-            HttpRequest linkRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl + "/payment_links/" + paymentLinkId))
-                    .header("Authorization", "Bearer " + config.getPrivateKey())
-                    .GET()
-                    .build();
-
-            HttpResponse<String> linkResponse = client.send(linkRequest, HttpResponse.BodyHandlers.ofString());
-            log.debug("Wompi payment_link {} httpStatus={}", paymentLinkId, linkResponse.statusCode());
-
-            if (linkResponse.statusCode() < 200 || linkResponse.statusCode() >= 300) {
-                log.error("Wompi: error obteniendo payment_link {}: {}", paymentLinkId, linkResponse.body());
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Error consultando link de pago Wompi");
-            }
-
-            // Log completo para diagnosticar en qué campo retorna Wompi nuestra referencia personalizada
-            String linkBody = linkResponse.body();
-            log.info("Wompi GET payment_links/{} body completo: {}", paymentLinkId, linkBody);
-
-            JsonNode linkData = objectMapper.readTree(linkBody).path("data");
-
-            // Wompi puede guardar nuestra referencia en distintos campos según versión/sandbox
-            String reference = linkData.path("reference").asText("");
-            if (reference.isBlank() || (!reference.contains("__") && !reference.contains("|"))) {
-                String alt = linkData.path("merchant_reference").asText("");
-                if (!alt.isBlank()) {
-                    log.info("Wompi: referencia encontrada en 'merchant_reference': {}", alt);
-                    reference = alt;
-                }
-            }
-            if (reference.isBlank() || (!reference.contains("__") && !reference.contains("|"))) {
-                String alt = linkData.path("custom_reference").asText("");
-                if (!alt.isBlank()) {
-                    log.info("Wompi: referencia encontrada en 'custom_reference': {}", alt);
-                    reference = alt;
-                }
-            }
-
-            log.info("Wompi referencia del payment_link {}: {}", paymentLinkId, reference);
-
-            // ── 3. Parsear la referencia y registrar el pago ─────────────────────
-            // Soporta separador __ (nuevo) y | (legado) por compatibilidad
-            String sep = reference.contains("__") ? "__" : (reference.contains("|") ? "\\|" : null);
-            if (sep == null) {
-                log.warn("Referencia Wompi inválida en payment_link {}: {}", paymentLinkId, reference);
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Referencia de pago Wompi inválida: " + reference);
-            }
-
-            String[] partes = reference.split(sep);
-            if (partes.length < 3) {
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Formato de referencia Wompi inválido: " + reference);
+                        "No se pudo resolver el cobro desde la transacción Wompi");
             }
 
             String tenantId = partes[0];
             Long cobroId    = Long.parseLong(partes[1]);
             Long usuarioId  = Long.parseLong(partes[2]);
+
+            log.info("Wompi confirmar: txId={} → tenant={} cobro={} usuario={}", transactionId, tenantId, cobroId, usuarioId);
 
             TenantContext.setTenant(tenantId);
             try {
@@ -373,6 +319,27 @@ public class WompiServiceImpl implements PasarelaService {
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    /**
+     * Extrae el query param "ref" del redirect_url y lo divide por SEP.
+     * Retorna [tenantId, cobroId, usuarioId] o null si no se puede parsear.
+     */
+    private String[] extraerRefDeUrl(String redirectUrl) {
+        if (redirectUrl == null || redirectUrl.isBlank()) return null;
+        try {
+            String query = redirectUrl.contains("?") ? redirectUrl.substring(redirectUrl.indexOf('?') + 1) : "";
+            for (String param : query.split("&")) {
+                if (param.startsWith("ref=")) {
+                    String ref = URLDecoder.decode(param.substring(4), StandardCharsets.UTF_8);
+                    String[] partes = ref.split(SEP);
+                    if (partes.length >= 3) return partes;
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error parseando redirect_url '{}': {}", redirectUrl, e.getMessage());
+        }
+        return null;
+    }
 
     private void validarConfig(TenantPasarela config) {
         if (config == null || config.getPrivateKey() == null || config.getPrivateKey().isBlank()) {
