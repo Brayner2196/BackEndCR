@@ -105,7 +105,8 @@ public class WompiServiceImpl implements PasarelaService {
         long montoCentavos = monto.multiply(BigDecimal.valueOf(100)).longValue();
 
         String baseUrl  = config.isSandbox() ? WOMPI_API_URL : WOMPI_PROD_URL;
-        String ref      = tenantId + "|" + cobroId + "|" + usuarioId + "|WOMPI";
+        // Separador __ para evitar conflictos con caracteres rechazados por Wompi (|)
+        String ref      = tenantId + "__" + cobroId + "__" + usuarioId;
         // redirect_url debe ser HTTPS válido. Se usa el endpoint de retorno MP
         // (interceptado por el WebView Flutter en _exitoPath=/api/mp/pago-exito).
         // Si el tenant configuró su propia URL en TenantPasarela.successUrl, esa toma precedencia.
@@ -211,12 +212,14 @@ public class WompiServiceImpl implements PasarelaService {
                 return;
             }
 
-            if (reference == null || !reference.contains("|")) {
-                log.warn("Referencia Wompi inválida: {}", reference);
+            // Soporta separador __ (nuevo) y | (legado) por compatibilidad
+            String sep = reference.contains("__") ? "__" : (reference.contains("|") ? "\\|" : null);
+            if (sep == null) {
+                log.warn("Referencia Wompi inválida (sin separador reconocido): {}", reference);
                 return;
             }
 
-            String[] partes = reference.split("\\|");
+            String[] partes = reference.split(sep);
             if (partes.length < 3) return;
 
             String tenantId  = partes[0];
@@ -308,19 +311,41 @@ public class WompiServiceImpl implements PasarelaService {
                         "Error consultando link de pago Wompi");
             }
 
-            String reference = objectMapper.readTree(linkResponse.body())
-                    .path("data").path("reference").asText("");
+            // Log completo para diagnosticar en qué campo retorna Wompi nuestra referencia personalizada
+            String linkBody = linkResponse.body();
+            log.info("Wompi GET payment_links/{} body completo: {}", paymentLinkId, linkBody);
+
+            JsonNode linkData = objectMapper.readTree(linkBody).path("data");
+
+            // Wompi puede guardar nuestra referencia en distintos campos según versión/sandbox
+            String reference = linkData.path("reference").asText("");
+            if (reference.isBlank() || (!reference.contains("__") && !reference.contains("|"))) {
+                String alt = linkData.path("merchant_reference").asText("");
+                if (!alt.isBlank()) {
+                    log.info("Wompi: referencia encontrada en 'merchant_reference': {}", alt);
+                    reference = alt;
+                }
+            }
+            if (reference.isBlank() || (!reference.contains("__") && !reference.contains("|"))) {
+                String alt = linkData.path("custom_reference").asText("");
+                if (!alt.isBlank()) {
+                    log.info("Wompi: referencia encontrada en 'custom_reference': {}", alt);
+                    reference = alt;
+                }
+            }
 
             log.info("Wompi referencia del payment_link {}: {}", paymentLinkId, reference);
 
             // ── 3. Parsear la referencia y registrar el pago ─────────────────────
-            if (reference == null || !reference.contains("|")) {
+            // Soporta separador __ (nuevo) y | (legado) por compatibilidad
+            String sep = reference.contains("__") ? "__" : (reference.contains("|") ? "\\|" : null);
+            if (sep == null) {
                 log.warn("Referencia Wompi inválida en payment_link {}: {}", paymentLinkId, reference);
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Referencia de pago Wompi inválida: " + reference);
             }
 
-            String[] partes = reference.split("\\|");
+            String[] partes = reference.split(sep);
             if (partes.length < 3) {
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Formato de referencia Wompi inválido: " + reference);

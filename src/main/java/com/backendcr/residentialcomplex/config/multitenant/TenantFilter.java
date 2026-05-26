@@ -28,6 +28,7 @@ public class TenantFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         return path.startsWith("/auth")
                 || path.startsWith("/api/tenants")
+                || path.startsWith("/api/pago/webhook/")   // webhooks Wompi, Bold, MP (sin tenant header)
                 || path.equals("/api/mp/webhook")
                 || path.startsWith("/api/mp/confirmar/")
                 || path.startsWith("/api/mp/pago-");
