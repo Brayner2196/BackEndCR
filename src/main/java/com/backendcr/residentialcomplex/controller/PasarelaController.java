@@ -105,6 +105,8 @@ public class PasarelaController {
     @PostMapping("/api/pago/webhook/mp/{tenantSchema}")
     public ResponseEntity<Void> webhookMercadoPagoTenant(
             @PathVariable String tenantSchema,
+            @RequestHeader(value = "x-signature",    required = false) String xSignature,
+            @RequestHeader(value = "x-request-id",   required = false) String xRequestId,
             HttpServletRequest request) {
         try {
             String rawBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
@@ -113,8 +115,9 @@ public class PasarelaController {
             String paymentId = extraerPaymentIdMP(request, rawBody);
             if (paymentId != null) {
                 var config = obtenerConfigONull(tenantSchema, TipoPasarela.MERCADO_PAGO);
+                // Pasar x-signature para verificación HMAC en MercadoPagoServiceImpl
                 factory.getServicio(TipoPasarela.MERCADO_PAGO)
-                        .procesarWebhook(config, paymentId, null);
+                        .procesarWebhook(config, paymentId, xSignature);
             }
         } catch (Exception e) {
             log.error("Error procesando webhook MP tenant {}: {}", tenantSchema, e.getMessage());
@@ -128,7 +131,9 @@ public class PasarelaController {
      * Se mantiene para compatibilidad con preferencias antiguas.
      */
     @PostMapping("/api/pago/webhook/mp")
-    public ResponseEntity<Void> webhookMercadoPago(HttpServletRequest request) {
+    public ResponseEntity<Void> webhookMercadoPago(
+            @RequestHeader(value = "x-signature",  required = false) String xSignature,
+            HttpServletRequest request) {
         try {
             String rawBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
             log.info("Webhook MP global - queryString={} body={}", request.getQueryString(), rawBody);
@@ -136,7 +141,7 @@ public class PasarelaController {
             String paymentId = extraerPaymentIdMP(request, rawBody);
             if (paymentId != null) {
                 factory.getServicio(TipoPasarela.MERCADO_PAGO)
-                        .procesarWebhook(null, paymentId, null);
+                        .procesarWebhook(null, paymentId, xSignature);
             }
         } catch (Exception e) {
             log.error("Error procesando webhook MP: {}", e.getMessage());

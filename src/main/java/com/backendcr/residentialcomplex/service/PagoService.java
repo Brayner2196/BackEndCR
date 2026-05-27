@@ -5,6 +5,8 @@ import com.backendcr.residentialcomplex.entity.*;
 import com.backendcr.residentialcomplex.entity.enums.*;
 import com.backendcr.residentialcomplex.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PagoService {
@@ -181,32 +184,47 @@ public class PagoService {
      * el mismo bean, Spring AOP no aplicaría el proxy y la transacción no iniciaría
      * en el momento correcto.
      */
+    /**
+     * Registra y verifica un pago de MercadoPago.
+     *
+     * Estrategia de idempotencia de dos capas:
+     *  1. PESSIMISTIC_WRITE lock al leer los pagos del cobro → serializa requests concurrentes.
+     *  2. UniqueConstraint en pagos.referencia → segunda línea de defensa a nivel DB.
+     *     Si dos threads pasan el lock al mismo tiempo (caso extremo), el segundo recibe
+     *     DataIntegrityViolationException que capturamos y descartamos silenciosamente.
+     */
     @Transactional
     public void registrarYVerificarPagoMP(Long cobroId, Long usuarioId, String paymentId, BigDecimal montoMP) {
-        // Idempotencia: ignorar si ya está verificado
-        boolean yaVerificado = pagoRepo.findAllByCobroId(cobroId).stream()
+        // Lock pesimista: el segundo request que llegue espera hasta que el primero libere
+        boolean yaVerificado = pagoRepo.findAllByCobroIdForUpdate(cobroId).stream()
                 .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
         if (yaVerificado) {
+            log.info("Pago MP paymentId={} ya verificado para cobro={}, ignorando duplicado", paymentId, cobroId);
             return;
         }
 
-        Pago pago = new Pago();
-        pago.setCobroId(cobroId);
-        pago.setUsuarioId(usuarioId);
-        pago.setMontoPagado(montoMP);
-        pago.setFechaPago(ColombiaTimeZone.hoy());
-        pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
-        pago.setReferencia("MP-" + paymentId);
-        pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
-        Pago saved = pagoRepo.save(pago);
+        try {
+            Pago pago = new Pago();
+            pago.setCobroId(cobroId);
+            pago.setUsuarioId(usuarioId);
+            pago.setMontoPagado(montoMP);
+            pago.setFechaPago(ColombiaTimeZone.hoy());
+            pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
+            pago.setReferencia("MP-" + paymentId);
+            pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
+            Pago saved = pagoRepo.save(pago);
 
-        VerificarPagoRequest req = new VerificarPagoRequest("Verificado automáticamente vía MercadoPago");
-        verificar(saved.getId(), req, null);
+            VerificarPagoRequest req = new VerificarPagoRequest("Verificado automáticamente vía MercadoPago");
+            verificar(saved.getId(), req, null);
+        } catch (DataIntegrityViolationException e) {
+            // Segunda capa: referencia duplicada a nivel DB (race condition extrema)
+            log.warn("Pago MP duplicado descartado para paymentId={} cobro={} — ya procesado", paymentId, cobroId);
+        }
     }
 
     /**
      * Método genérico para registrar y verificar pagos de pasarelas online (Wompi, Bold, etc.).
-     * Funciona igual que registrarYVerificarPagoMP pero acepta cualquier MetodoPago.
+     * Misma estrategia de idempotencia que registrarYVerificarPagoMP.
      *
      * IMPORTANTE: No es @Transactional a propósito — el TenantContext debe estar seteado
      * ANTES de que comience cualquier transacción de Hibernate.
@@ -215,27 +233,35 @@ public class PagoService {
     @Transactional
     public void registrarYVerificarPagoOnline(Long cobroId, Long usuarioId, String transaccionId,
                                                BigDecimal monto, MetodoPago metodoPago) {
-        // Idempotencia: ignorar si ya está verificado
-        boolean yaVerificado = pagoRepo.findAllByCobroId(cobroId).stream()
+        // Lock pesimista: serializa requests concurrentes del mismo cobro
+        boolean yaVerificado = pagoRepo.findAllByCobroIdForUpdate(cobroId).stream()
                 .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
         if (yaVerificado) {
+            log.info("Pago {} txId={} ya verificado para cobro={}, ignorando duplicado",
+                    metodoPago.name(), transaccionId, cobroId);
             return;
         }
 
-        Pago pago = new Pago();
-        pago.setCobroId(cobroId);
-        pago.setUsuarioId(usuarioId);
-        pago.setMontoPagado(monto);
-        pago.setFechaPago(ColombiaTimeZone.hoy());
-        pago.setMetodoPago(metodoPago);
-        pago.setReferencia(metodoPago.name() + "-" + transaccionId);
-        pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
-        Pago saved = pagoRepo.save(pago);
+        try {
+            Pago pago = new Pago();
+            pago.setCobroId(cobroId);
+            pago.setUsuarioId(usuarioId);
+            pago.setMontoPagado(monto);
+            pago.setFechaPago(ColombiaTimeZone.hoy());
+            pago.setMetodoPago(metodoPago);
+            pago.setReferencia(metodoPago.name() + "-" + transaccionId);
+            pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
+            Pago saved = pagoRepo.save(pago);
 
-        VerificarPagoRequest req = new VerificarPagoRequest(
-                "Verificado automáticamente vía " + metodoPago.name()
-        );
-        verificar(saved.getId(), req, null);
+            VerificarPagoRequest req = new VerificarPagoRequest(
+                    "Verificado automáticamente vía " + metodoPago.name()
+            );
+            verificar(saved.getId(), req, null);
+        } catch (DataIntegrityViolationException e) {
+            // Segunda capa: referencia duplicada a nivel DB (race condition extrema)
+            log.warn("Pago {} duplicado descartado para txId={} cobro={} — ya procesado",
+                    metodoPago.name(), transaccionId, cobroId);
+        }
     }
 
     /**

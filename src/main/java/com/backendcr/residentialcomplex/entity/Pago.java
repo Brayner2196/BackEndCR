@@ -10,7 +10,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "pagos")
+@Table(
+    name = "pagos",
+    uniqueConstraints = {
+        // Evita duplicados cuando el webhook y el WebView callback llegan simultáneamente.
+        // Si dos threads intentan guardar el mismo paymentId/transactionId, el segundo
+        // recibe DataIntegrityViolationException que PagoService captura y descarta.
+        @UniqueConstraint(name = "uk_pagos_referencia", columnNames = {"referencia"})
+    }
+)
 public class Pago {
 
     @Id
@@ -33,7 +41,8 @@ public class Pago {
     @Column(name = "metodo_pago", nullable = false, columnDefinition = "varchar(20)")
     private MetodoPago metodoPago;
 
-    @Column(length = 100)
+    // Longitud 150 para cubrir prefijos como "MP-", "WOMPI-", "BOLD-" + IDs largos
+    @Column(length = 150, unique = true)
     private String referencia;
 
     @Column(name = "url_comprobante", length = 500)

@@ -118,7 +118,8 @@ public class WompiServiceImpl implements PasarelaService {
         // Wompi conserva este campo intacto en el webhook y en GET /transactions/{id},
         // lo que nos permite recuperar tenantId/cobroId/usuarioId sin tabla extra.
         String ref        = tenantId + SEP + cobroId + SEP + usuarioId;
-        String baseRedirect = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/mp/pago-exito");
+        // Ruta genérica de retorno — NO usar /api/mp/* que es exclusivo de MercadoPago
+        String baseRedirect = resolverUrl(config.getSuccessUrl(), appBaseUrl + "/api/pago/exito");
         String redirect   = baseRedirect + (baseRedirect.contains("?") ? "&" : "?") + "ref=" + ref;
 
         try {

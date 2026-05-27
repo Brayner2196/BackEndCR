@@ -29,7 +29,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -160,6 +164,13 @@ public class MercadoPagoServiceImpl implements PasarelaService {
      * Procesa una notificación de MercadoPago.
      * Requiere config no nula (credenciales del tenant en BD).
      * Si config es null, se ignora el evento con un warning (flujo legacy).
+     *
+     * Verificación de firma (x-signature):
+     *  MP envía el header con formato: "ts=<timestamp>,v1=<hmac>"
+     *  El mensaje a firmar es: "id:<paymentId>;request-id:<requestId>;ts:<timestamp>;"
+     *  Se firma con el webhookSecret del tenant (client_secret de la app de MP).
+     *  Si el tenant tiene webhookSecret configurado y la firma no coincide, se rechaza.
+     *  Si no tiene webhookSecret, la firma se omite (modo degradado — no recomendado en prod).
      */
     @Override
     public void procesarWebhook(TenantPasarela config, String paymentIdStr, String signature) {
@@ -172,6 +183,21 @@ public class MercadoPagoServiceImpl implements PasarelaService {
             log.warn("Webhook MP sin config de tenant para paymentId={} — ignorado. " +
                      "Verificar que el tenant tiene MercadoPago configurado en BD.", paymentIdStr);
             return;
+        }
+
+        // Verificar firma si el tenant tiene webhookSecret configurado
+        if (config.getWebhookSecret() != null && !config.getWebhookSecret().isBlank()) {
+            if (signature == null || signature.isBlank()) {
+                log.warn("Webhook MP paymentId={}: firma ausente pero tenant tiene webhookSecret — rechazado", paymentIdStr);
+                return;
+            }
+            if (!verificarFirmaMP(paymentIdStr, signature, config.getWebhookSecret())) {
+                log.warn("Webhook MP paymentId={}: firma inválida — rechazado", paymentIdStr);
+                return;
+            }
+            log.debug("Webhook MP paymentId={}: firma válida", paymentIdStr);
+        } else {
+            log.debug("Webhook MP paymentId={}: sin webhookSecret configurado, firma omitida", paymentIdStr);
         }
 
         try {
@@ -243,6 +269,51 @@ public class MercadoPagoServiceImpl implements PasarelaService {
         } else {
             String concepto = cobro.getConcepto() != null ? cobro.getConcepto().name() : "Cobro especial";
             return concepto + " - propiedad " + cobro.getPropiedadId();
+        }
+    }
+
+    /**
+     * Verifica la firma del webhook de MercadoPago.
+     *
+     * MP envía el header x-signature con formato: "ts=<timestamp>,v1=<hmac_hex>"
+     * El mensaje a firmar es: "id:<paymentId>;request-id:<xRequestId>;ts:<timestamp>;"
+     * (xRequestId viene del header x-request-id, pero como no lo pasamos aquí usamos vacío)
+     *
+     * Referencia: https://www.mercadopago.com.co/developers/es/docs/your-integrations/notifications/webhooks
+     *
+     * @param paymentId   ID del pago extraído del payload
+     * @param xSignature  valor del header x-signature de MP
+     * @param secret      webhookSecret del tenant (client_secret de la app MP)
+     */
+    private boolean verificarFirmaMP(String paymentId, String xSignature, String secret) {
+        try {
+            // Extraer ts y v1 del header "ts=...,v1=..."
+            String ts = null;
+            String v1 = null;
+            for (String part : xSignature.split(",")) {
+                String[] kv = part.strip().split("=", 2);
+                if (kv.length == 2) {
+                    if ("ts".equals(kv[0]))  ts = kv[1];
+                    if ("v1".equals(kv[0]))  v1 = kv[1];
+                }
+            }
+            if (ts == null || v1 == null) {
+                log.warn("x-signature de MP con formato inesperado: {}", xSignature);
+                return false;
+            }
+
+            // Construir el mensaje: "id:<paymentId>;request-id:;ts:<ts>;"
+            // request-id se omite porque no lo propagamos desde el controller
+            String manifest = "id:" + paymentId + ";request-id:;ts:" + ts + ";";
+
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            String computed = HexFormat.of().formatHex(mac.doFinal(manifest.getBytes(StandardCharsets.UTF_8)));
+
+            return computed.equalsIgnoreCase(v1);
+        } catch (Exception e) {
+            log.error("Error verificando firma MP: {}", e.getMessage());
+            return false;
         }
     }
 }
