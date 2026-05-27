@@ -9,6 +9,7 @@ import com.backendcr.residentialcomplex.repository.*;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -364,16 +365,21 @@ public class CobroService {
     // ─── Historial paginado del residente (infinite scroll) ───────
 
     /**
-     * Devuelve un Page<CobroResponse> con TODOS los cobros del usuario
-     * (cualquier estado), ordenados por fechaGeneracion desc.
-     * Usar con page=0&size=5 para el primer cargue y aumentar page en scroll.
+     * Devuelve un Page<CobroResponse> con TODOS los cobros del usuario, ordenados por:
+     *  1º fecha_generacion DESC
+     *  2º anio DESC  (desempate por año del período)
+     *  3º mes  DESC  (desempate por mes: Feb antes que Ene cuando se generan el mismo día)
+     *
+     * El ORDER BY está fijo en la native query; el Pageable solo aporta page y size.
      */
     @Transactional(readOnly = true)
     public Page<CobroResponse> listarHistorialPaginado(Long usuarioId, Pageable pageable) {
         List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
                 .stream().map(UsuarioPropiedad::getPropiedadId).toList();
         if (propiedadIds.isEmpty()) return Page.empty(pageable);
-        Page<Cobro> page = cobroRepo.findAllByPropiedadIdInOrderByFechaGeneracionDesc(propiedadIds, pageable);
+        // PageRequest sin sort: la native query maneja el ORDER BY compuesto
+        Pageable sinSort = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        Page<Cobro> page = cobroRepo.findHistorialOrdenadoPorPeriodo(propiedadIds, sinSort);
         return page.map(c -> toResponseList(List.of(c)).get(0));
     }
 
