@@ -35,11 +35,19 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
 					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad", "/auth/refresh").permitAll()
-					// Webhooks pasarelas (sin auth — vienen de servicios externos)
+					// Webhooks y landing pages de pasarelas (sin auth — vienen de servicios externos o del WebView)
 					.requestMatchers(
-						"/api/mp/webhook", "/api/mp/confirmar/**",
+						// Landing pages MP (back_urls interceptadas por el WebView)
 						"/api/mp/pago-exito", "/api/mp/pago-fallo", "/api/mp/pago-pendiente",
-						"/api/pago/webhook/mp", "/api/pago/webhook/wompi", "/api/pago/webhook/bold",
+						// Landing page genérica (redirect_url de Wompi/Bold interceptada por el WebView)
+						// DEBE ser pública: el WebView la carga sin Bearer token si onNavigationRequest no intercepta
+						"/api/pago/exito",
+						// Webhooks MP (por-tenant y global, sin auth — vienen de servidores de MP)
+						"/api/pago/webhook/mp", "/api/pago/webhook/mp/**",
+						// Webhooks Wompi y Bold
+						"/api/pago/webhook/wompi", "/api/pago/webhook/bold",
+						// Confirmación rápida MP desde la app (sin auth — se valida vía paymentId en MP)
+						"/api/mp/webhook", "/api/mp/confirmar/**",
 						"/api/pago/confirmar/mp/**"
 					).permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
