@@ -2,11 +2,13 @@ package com.backendcr.residentialcomplex.controller;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.pasarela.*;
+import com.backendcr.residentialcomplex.entity.TenantPasarela;
 import com.backendcr.residentialcomplex.entity.enums.TipoPasarela;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.pasarela.PasarelaFactory;
 import com.backendcr.residentialcomplex.service.pasarela.PasarelaOrchestrator;
+import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -55,7 +57,7 @@ public class PasarelaController {
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
     private final ObjectMapper objectMapper;
-    private final com.backendcr.residentialcomplex.tenant.repository.TenantRepository tenantRepo;
+    private final TenantRepository tenantRepo;
 
     // ═════════════════════════════════════════════════════════════════════════
     // RESIDENTE — Pasarelas disponibles
@@ -186,7 +188,7 @@ public class PasarelaController {
             @RequestHeader(value = "X-Event-Checksum", required = false) String signature) {
         try {
             String payload = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
-            log.info("Webhook Wompi recibido, tamaño={}", payload.length());
+            log.info("Webhook Wompi ejecutado");
 
             // El tenant se extrae del campo reference dentro del payload
             // La implementación de WompiServiceImpl lo maneja internamente
@@ -198,8 +200,7 @@ public class PasarelaController {
                         : null
                     : null;
 
-            factory.getServicio(TipoPasarela.WOMPI)
-                    .procesarWebhook(config, payload, signature);
+            factory.getServicio(TipoPasarela.WOMPI).procesarWebhook(config, payload, signature);
         } catch (Exception e) {
             log.error("Error procesando webhook Wompi: {}", e.getMessage());
         }
@@ -300,7 +301,7 @@ public class PasarelaController {
                         "Tenant no encontrado para schema: " + schema));
     }
 
-    private com.backendcr.residentialcomplex.entity.TenantPasarela obtenerConfigONull(
+    private TenantPasarela obtenerConfigONull(
             String tenantSchema, TipoPasarela tipo) {
         try {
             return factory.getConfigTenant(tenantSchema, tipo);
