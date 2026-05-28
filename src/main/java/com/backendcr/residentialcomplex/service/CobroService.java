@@ -182,7 +182,7 @@ public class CobroService {
             if (!usuariosDePropiedad.isEmpty()) {
                 notificacionService.enviarAUsuarios(
                     usuariosDePropiedad,
-                    "💳 Tu cobro de " +c.concepto()+  " está listo",
+                    "💳 Tu cobro de " +c.concepto().toString().toLowerCase()+  " está listo",
                     "Tienes un cobro pendiente de $ " + df.format(c.montoTotal())  + " con límite " + c.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
                     java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()), "route", "pagos")
                 );
