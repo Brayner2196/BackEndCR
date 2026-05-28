@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface CobroRepository extends JpaRepository<Cobro, Long> {
+	
     List<Cobro> findAllByPeriodoId(Long periodoId);
     List<Cobro> findAllByPropiedadId(Long propiedadId);
     List<Cobro> findAllByPropiedadIdIn(List<Long> propiedadIds);
