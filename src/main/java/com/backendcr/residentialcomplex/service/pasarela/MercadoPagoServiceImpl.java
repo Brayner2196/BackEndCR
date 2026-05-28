@@ -148,8 +148,13 @@ public class MercadoPagoServiceImpl implements PasarelaService {
 
             log.info("Preferencia MP creada: {} para cobro {} tenant {}", preference.getId(), cobroId, tenantId);
 
-            System.out.println("Esto es sandBoxInitPoint "+ preference.getSandboxInitPoint() +" y esto es initPoint "+ preference.getInitPoint());	
-            String url = sandbox ? preference.getSandboxInitPoint() : preference.getInitPoint();
+            // SIEMPRE usar initPoint (www.mercadopago.com.co), incluso en sandbox.
+            // getSandboxInitPoint() → sandbox.mercadopago.com.co, que NO está en la
+            // whitelist CORS de api.mercadopago.com en Android WebView, causando errores
+            // de CORS al cargar secure-fields y rompiendo el formulario de tarjeta.
+            // MP enruta internamente las credenciales de prueba al entorno sandbox.
+            log.info("Preferencia MP - initPoint={} sandbox={}", preference.getInitPoint(), sandbox);
+            String url = preference.getInitPoint();
             return new CheckoutResponse(url, TipoPasarela.MERCADO_PAGO);
 
         } catch (MPException | MPApiException e) {
