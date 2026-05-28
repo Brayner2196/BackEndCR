@@ -170,9 +170,13 @@ public class PasarelaController {
      * Confirmación síncrona de pago Wompi desde la app Flutter.
      * Se invoca cuando el WebView intercepta la URL de éxito antes de que llegue el webhook.
      * Es idempotente: si el webhook ya procesó el pago, registrarYVerificarPagoOnline lo ignora.
+     *
+     * Sin @PreAuthorize: el JWT puede haber expirado durante el checkout (el pago ya se realizó).
+     * La autenticidad se valida contra la API de Wompi usando el transactionId + las credenciales
+     * del tenant (resueltas desde X-Tenant-ID header). Sin JWT no hay riesgo: no cambia nada
+     * que un transactionId desconocido no exista en Wompi.
      */
     @PostMapping("/api/pago/confirmar/wompi/{transactionId}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> confirmarWompi(@PathVariable String transactionId) {
         String tenantSchema = TenantContext.getTenant();
         var config = obtenerConfigONull(tenantSchema, TipoPasarela.WOMPI);

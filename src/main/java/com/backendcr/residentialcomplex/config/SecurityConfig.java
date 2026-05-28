@@ -46,9 +46,12 @@ public class SecurityConfig {
 						"/api/pago/webhook/mp", "/api/pago/webhook/mp/**",
 						// Webhooks Wompi y Bold
 						"/api/pago/webhook/wompi", "/api/pago/webhook/bold",
-						// Confirmación rápida MP desde la app (sin auth — se valida vía paymentId en MP)
+						// Confirmación rápida desde la app (best-effort antes del webhook)
+						// MP: sin auth porque el back valida directamente con la API de MP
+						// Wompi: sin auth por consistencia; el back valida con la API de Wompi usando el transactionId
 						"/api/mp/webhook", "/api/mp/confirmar/**",
-						"/api/pago/confirmar/mp/**"
+						"/api/pago/confirmar/mp/**",
+						"/api/pago/confirmar/wompi/**"
 					).permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
 					.requestMatchers("/api/super/**").hasRole("SUPER_ADMIN")

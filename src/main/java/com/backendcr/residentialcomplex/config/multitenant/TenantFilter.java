@@ -31,7 +31,8 @@ public class TenantFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/pago/webhook/")   // webhooks Wompi, Bold, MP (sin tenant header)
                 || path.equals("/api/mp/webhook")
                 || path.startsWith("/api/mp/confirmar/")
-                || path.startsWith("/api/mp/pago-");
+                || path.startsWith("/api/mp/pago-")
+                || path.equals("/api/pago/exito");         // landing page Wompi/Bold (redirige al WebView sin header de tenant)
     }
 
 	@Override

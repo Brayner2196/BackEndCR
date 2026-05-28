@@ -59,7 +59,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 	
 	@Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getServletPath().startsWith("/auth/");
+        String path = request.getServletPath();
+        return path.startsWith("/auth/")
+                // Confirmación best-effort de Wompi: no necesita JWT, solo X-Tenant-ID.
+                // El JWT puede haber expirado durante el checkout sin que eso invalide el pago.
+                || path.startsWith("/api/pago/confirmar/wompi/");
     }
 
 }
