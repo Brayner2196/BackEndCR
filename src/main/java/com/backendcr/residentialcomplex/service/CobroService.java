@@ -21,6 +21,8 @@ import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
 import java.time.ZoneId;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -164,6 +166,11 @@ public class CobroService {
             cobroRepo.save(cobro);
         }
         List<CobroResponse> cobros = listarPorPeriodo(periodo.getId());
+        
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setGroupingSeparator('.');
+
+        DecimalFormat df = new DecimalFormat("#,###", symbols);
 
         // Notificar a todos los usuarios vinculados a cada propiedad con su cobro específico
         cobros.forEach(c -> {
@@ -175,8 +182,8 @@ public class CobroService {
             if (!usuariosDePropiedad.isEmpty()) {
                 notificacionService.enviarAUsuarios(
                     usuariosDePropiedad,
-                    "💳 Tu cobro de administración está listo",
-                    "Tienes un cobro pendiente de $" + c.montoTotal() + " con límite " + c.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
+                    "💳 Tu cobro de " +c.concepto()+  " está listo",
+                    "Tienes un cobro pendiente de $ " + df.format(c.montoTotal())  + " con límite " + c.fechaLimitePago().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
                     java.util.Map.of("tipo", "COBRO_GENERADO", "cobroId", String.valueOf(c.id()), "route", "pagos")
                 );
             }
