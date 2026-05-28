@@ -148,6 +148,7 @@ public class MercadoPagoServiceImpl implements PasarelaService {
 
             log.info("Preferencia MP creada: {} para cobro {} tenant {}", preference.getId(), cobroId, tenantId);
 
+            System.out.println("Esto es sandBoxInitPoint "+ preference.getSandboxInitPoint() +" y esto es initPoint "+ preference.getInitPoint());	
             String url = sandbox ? preference.getSandboxInitPoint() : preference.getInitPoint();
             return new CheckoutResponse(url, TipoPasarela.MERCADO_PAGO);
 
