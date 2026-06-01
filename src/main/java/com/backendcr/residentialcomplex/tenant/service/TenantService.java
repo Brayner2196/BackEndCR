@@ -206,6 +206,15 @@ public class TenantService {
      * 2. inquilino_permisos
      * 2. publicaciones
      * 2. solicitudes
+     * 2. configuracion_plan_pago
+     * 2. planes_pago
+     * 2. cuotas_plan
+     * 2. presupuestos
+     * 2. categorias_presupuesto
+     * 2. gastos_registrados
+     * 2. configuracion_parqueadero
+     * 2. parqueaderos
+     * 2. vehiculos
      */
     public void crearTablasTenant(String schema) {
 
@@ -258,6 +267,7 @@ public class TenantService {
                     usuario_id   BIGINT NOT NULL,
                     propiedad_id BIGINT NOT NULL REFERENCES %s.propiedades(id),
                     es_principal BOOLEAN NOT NULL DEFAULT FALSE,
+                    rol          VARCHAR(20),
                     creado_en    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(usuario_id, propiedad_id)
                 )
@@ -791,6 +801,59 @@ public class TenantService {
                         )
                         """.formatted(schema, schema, schema));
                 log.info("Tabla gastos_registrados creada/verificada para tenant '{}'", schema);
+
+        // ── 29. configuracion_parqueadero ─────────────────────────────────
+        // Tabla singleton (una fila por tenant) con los parámetros globales
+        // de parqueaderos configurados por el TENANT_ADMIN.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.configuracion_parqueadero (
+                    id                           BIGSERIAL PRIMARY KEY,
+                    total_parqueaderos           INT     NOT NULL DEFAULT 0,
+                    parqueaderos_comunes         INT     NOT NULL DEFAULT 0,
+                    parqueaderos_privados        INT     NOT NULL DEFAULT 0,
+                    max_vehiculos_por_propiedad  INT     NOT NULL DEFAULT 2,
+                    permite_carro                BOOLEAN NOT NULL DEFAULT TRUE,
+                    permite_moto                 BOOLEAN NOT NULL DEFAULT TRUE,
+                    permite_bicicleta            BOOLEAN NOT NULL DEFAULT TRUE,
+                    requiere_aprobacion_vehiculo BOOLEAN NOT NULL DEFAULT FALSE,
+                    actualizado_en               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+        log.info("Tabla configuracion_parqueadero creada para tenant '{}'", schema);
+
+        // ── 30. parqueaderos ──────────────────────────────────────────────
+        // vehiculo_id es solo un campo de conveniencia (sin FK) para evitar
+        // la dependencia circular con la tabla vehiculos.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.parqueaderos (
+                    id            BIGSERIAL    PRIMARY KEY,
+                    identificador VARCHAR(30)  NOT NULL UNIQUE,
+                    tipo          VARCHAR(10)  NOT NULL,
+                    propiedad_id  BIGINT       REFERENCES %s.propiedades(id),
+                    vehiculo_id   BIGINT,
+                    creado_en     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla parqueaderos creada para tenant '{}'", schema);
+
+        // ── 31. vehiculos ─────────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.vehiculos (
+                    id             BIGSERIAL    PRIMARY KEY,
+                    placa          VARCHAR(15)  NOT NULL,
+                    tipo           VARCHAR(15)  NOT NULL,
+                    marca          VARCHAR(50),
+                    modelo         VARCHAR(50),
+                    color          VARCHAR(30),
+                    propiedad_id   BIGINT       NOT NULL REFERENCES %s.propiedades(id),
+                    parqueadero_id BIGINT       REFERENCES %s.parqueaderos(id),
+                    estado         VARCHAR(15)  NOT NULL DEFAULT 'PENDIENTE',
+                    motivo_rechazo VARCHAR(300),
+                    creado_en      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema, schema));
+        log.info("Tabla vehiculos creada para tenant '{}'", schema);
 
     }
 
