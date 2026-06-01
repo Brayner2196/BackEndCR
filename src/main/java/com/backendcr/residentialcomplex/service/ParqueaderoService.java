@@ -26,13 +26,11 @@ public class ParqueaderoService {
     private final PropiedadRepository propiedadRepo;
 
     // ─── Consultas ─────────────────────────────────────────────
+    // Solo existen registros PRIVADOS. Los comunales son solo un conteo
+    // en configuracion_parqueadero, no tienen registros individuales.
 
     public List<ParqueaderoResponse> listarTodos() {
         return parqueaderoRepo.findAll().stream().map(this::toResponse).toList();
-    }
-
-    public List<ParqueaderoResponse> listarPorTipo(TipoParqueadero tipo) {
-        return parqueaderoRepo.findAllByTipo(tipo).stream().map(this::toResponse).toList();
     }
 
     public List<ParqueaderoResponse> listarPorPropiedad(Long propiedadId) {
@@ -55,7 +53,7 @@ public class ParqueaderoService {
             } else {
                 Parqueadero p = new Parqueadero();
                 p.setIdentificador(item.identificador());
-                p.setTipo(item.tipo());
+                p.setTipo(TipoParqueadero.PRIVADO); // siempre privado
                 Parqueadero saved = parqueaderoRepo.save(p);
                 resultados.add(new ParqueaderoBulkResultado.ItemResultado(
                         item.identificador(), "CREADO", saved.getId()));

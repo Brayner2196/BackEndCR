@@ -3,7 +3,6 @@ package com.backendcr.residentialcomplex.controller;
 import com.backendcr.residentialcomplex.dto.parqueadero.*;
 import com.backendcr.residentialcomplex.dto.vehiculo.DecisionVehiculoRequest;
 import com.backendcr.residentialcomplex.dto.vehiculo.VehiculoResponse;
-import com.backendcr.residentialcomplex.entity.enums.TipoParqueadero;
 import com.backendcr.residentialcomplex.service.ConfiguracionParqueaderoService;
 import com.backendcr.residentialcomplex.service.ParqueaderoService;
 import com.backendcr.residentialcomplex.service.VehiculoService;
@@ -40,12 +39,11 @@ public class AdminParqueaderoController {
 
     // ─── Parqueaderos ──────────────────────────────────────────
 
+    // Solo existen parqueaderos PRIVADOS como registros individuales.
+    // Los comunales son un conteo en /configuracion.
     @GetMapping
-    public List<ParqueaderoResponse> listar(
-            @RequestParam(required = false) TipoParqueadero tipo) {
-        return tipo != null
-                ? parqueaderoService.listarPorTipo(tipo)
-                : parqueaderoService.listarTodos();
+    public List<ParqueaderoResponse> listar() {
+        return parqueaderoService.listarTodos();
     }
 
     @PostMapping("/bulk")
