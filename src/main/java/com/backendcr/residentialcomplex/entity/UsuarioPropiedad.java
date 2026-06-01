@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.backendcr.residentialcomplex.entity.enums.RolPropiedad;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -24,6 +26,10 @@ public class UsuarioPropiedad {
     @Column(name = "es_principal", nullable = false)
     private boolean esPrincipal = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rol", length = 20)
+    private RolPropiedad rol;
+
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
     private LocalDateTime creadoEn;
@@ -39,6 +45,9 @@ public class UsuarioPropiedad {
 
     public boolean isEsPrincipal() { return esPrincipal; }
     public void setEsPrincipal(boolean esPrincipal) { this.esPrincipal = esPrincipal; }
+
+    public RolPropiedad getRol() { return rol; }
+    public void setRol(RolPropiedad rol) { this.rol = rol; }
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
 }
