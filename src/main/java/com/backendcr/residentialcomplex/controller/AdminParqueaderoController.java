@@ -53,6 +53,13 @@ public class AdminParqueaderoController {
         return parqueaderoService.crearBulk(req);
     }
 
+    @PatchMapping("/{id}/propiedad")
+    public ParqueaderoResponse asignarPropiedad(
+            @PathVariable Long id,
+            @RequestBody AsignarPropiedadRequest req) {
+        return parqueaderoService.asignarPropiedad(id, req.propiedadId());
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {

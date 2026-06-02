@@ -64,6 +64,26 @@ public class ParqueaderoService {
         return new ParqueaderoBulkResultado(creados, duplicados, resultados);
     }
 
+    // ─── Asignación de propiedad (admin) ──────────────────────
+
+    @Transactional
+    public ParqueaderoResponse asignarPropiedad(Long id, Long propiedadId) {
+        Parqueadero p = parqueaderoRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Parqueadero no encontrado"));
+
+        // Si se reasigna a otra propiedad, liberar el vehículo anterior
+        if (p.getVehiculoId() != null
+                && (propiedadId == null || !propiedadId.equals(p.getPropiedadId()))) {
+            vehiculoRepo.findById(p.getVehiculoId())
+                    .ifPresent(v -> { v.setParqueaderoId(null); vehiculoRepo.save(v); });
+            p.setVehiculoId(null);
+        }
+
+        p.setPropiedadId(propiedadId);
+        return toResponse(parqueaderoRepo.save(p));
+    }
+
     // ─── Asignación de vehículo (propietario) ─────────────────
 
     @Transactional
