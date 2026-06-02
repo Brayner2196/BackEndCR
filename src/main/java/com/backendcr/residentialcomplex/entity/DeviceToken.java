@@ -5,13 +5,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Almacena los FCM tokens de cada dispositivo por usuario.
- * Un usuario puede tener varios dispositivos (móvil, tablet, etc.).
- */
 @Entity
-@Table(name = "device_tokens", schema = "public",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_id", "plataforma"})
+@Table(name = "device_tokens", 
+		schema = "public",
+		uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_id", "plataforma"})
 )
 public class DeviceToken {
 

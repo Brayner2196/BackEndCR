@@ -22,7 +22,7 @@ public class Parqueadero {
     @Column(nullable = false, length = 10)
     private TipoParqueadero tipo;
 
-    // Solo aplica si tipo = PRIVADO
+    // Solo aplica es parqueadero PRIVADO
     @Column(name = "propiedad_id")
     private Long propiedadId;
 
