@@ -38,15 +38,18 @@ public class ConfiguracionParqueaderoService {
         if (req.modeloPrivadoDefault() != null) {
             config.setModeloPrivadoDefault(req.modeloPrivadoDefault());
         }
+        config.setAceptaParqueaderoVisitantes(req.aceptaParqueaderoVisitantes());
+        config.setTotalParqueaderosVisitantes(req.totalParqueaderosVisitantes());
         return toResponse(repo.save(config));
     }
 
     // ── Helpers ───────────────────────────────────────────────
 
     private void validarTotales(ConfiguracionParqueaderoRequest req) {
-        if (req.parqueaderosComunes() + req.parqueaderosPrivados() > req.totalParqueaderos()) {
+        int visitantes = req.aceptaParqueaderoVisitantes() ? req.totalParqueaderosVisitantes() : 0;
+        if (req.parqueaderosComunes() + req.parqueaderosPrivados() + visitantes > req.totalParqueaderos()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La suma de comunes y privados no puede superar el total");
+                    "La suma de comunes, privados y visitantes no puede superar el total");
         }
     }
 
@@ -67,7 +70,9 @@ public class ConfiguracionParqueaderoService {
                 c.isPermiteMoto(),
                 c.isPermiteBicicleta(),
                 c.isRequiereAprobacionVehiculo(),
-                c.getModeloPrivadoDefault()
+                c.getModeloPrivadoDefault(),
+                c.isAceptaParqueaderoVisitantes(),
+                c.getTotalParqueaderosVisitantes()
         );
     }
 }

@@ -808,17 +808,19 @@ public class TenantService {
         // de parqueaderos configurados por el TENANT_ADMIN.
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.configuracion_parqueadero (
-                    id                           BIGSERIAL PRIMARY KEY,
-                    total_parqueaderos           INT     NOT NULL DEFAULT 0,
-                    parqueaderos_comunes         INT     NOT NULL DEFAULT 0,
-                    parqueaderos_privados        INT     NOT NULL DEFAULT 0,
-                    max_vehiculos_por_propiedad  INT     NOT NULL DEFAULT 2,
-                    modelo_privado_default       VARCHAR(20) NOT NULL DEFAULT 'ACCESORIO',
-                    permite_carro                BOOLEAN NOT NULL DEFAULT TRUE,
-                    permite_moto                 BOOLEAN NOT NULL DEFAULT TRUE,
-                    permite_bicicleta            BOOLEAN NOT NULL DEFAULT TRUE,
-                    requiere_aprobacion_vehiculo BOOLEAN NOT NULL DEFAULT FALSE,
-                    actualizado_en               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    id                              BIGSERIAL   PRIMARY KEY,
+                    total_parqueaderos              INT         NOT NULL DEFAULT 0,
+                    parqueaderos_comunes            INT         NOT NULL DEFAULT 0,
+                    parqueaderos_privados           INT         NOT NULL DEFAULT 0,
+                    max_vehiculos_por_propiedad     INT         NOT NULL DEFAULT 2,
+                    modelo_privado_default          VARCHAR(20) NOT NULL DEFAULT 'ACCESORIO',
+                    permite_carro                   BOOLEAN     NOT NULL DEFAULT TRUE,
+                    permite_moto                    BOOLEAN     NOT NULL DEFAULT TRUE,
+                    permite_bicicleta               BOOLEAN     NOT NULL DEFAULT TRUE,
+                    requiere_aprobacion_vehiculo    BOOLEAN     NOT NULL DEFAULT FALSE,
+                    acepta_parqueadero_visitantes   BOOLEAN     NOT NULL DEFAULT FALSE,
+                    total_parqueaderos_visitantes   INT         NOT NULL DEFAULT 0,
+                    actualizado_en                  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla configuracion_parqueadero creada para tenant '{}'", schema);
@@ -867,10 +869,12 @@ public class TenantService {
         for (int i = 0; i < tipos.size(); i++) {
             TipoPropiedadNodoDto nodo = tipos.get(i);
             Long nuevoId = jdbcTemplate.queryForObject(
-                    "INSERT INTO " + schema + ".tipos_propiedad (nombre, descripcion, parent_id, orden, es_facturable) " +
-                    "VALUES (?, ?, ?, ?, ?) RETURNING id",
+                    "INSERT INTO " + schema + ".tipos_propiedad " +
+                    "(nombre, descripcion, parent_id, orden, es_facturable, es_parqueadero) " +
+                    "VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
                     Long.class,
-                    nodo.nombre(), nodo.descripcion(), parentId, ordenBase + i, nodo.esFacturable());
+                    nodo.nombre(), nodo.descripcion(), parentId,
+                    ordenBase + i, nodo.esFacturable(), nodo.esParqueadero());
 
             if (nodo.hijos() != null && !nodo.hijos().isEmpty()) {
                 insertarTiposPropiedad(schema, nodo.hijos(), nuevoId, 0);

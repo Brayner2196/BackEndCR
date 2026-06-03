@@ -48,6 +48,14 @@ public class ConfiguracionParqueadero {
     @Column(name = "modelo_privado_default", nullable = false, length = 20)
     private ModeloParqueaderoPrivado modeloPrivadoDefault = ModeloParqueaderoPrivado.ACCESORIO;
 
+    /** ¿El conjunto habilita spots físicos para visitantes? */
+    @Column(name = "acepta_parqueadero_visitantes", nullable = false)
+    private boolean aceptaParqueaderoVisitantes = false;
+
+    /** Número de spots destinados a visitantes (relevante si aceptaParqueaderoVisitantes=true). */
+    @Column(name = "total_parqueaderos_visitantes", nullable = false)
+    private int totalParqueaderosVisitantes = 0;
+
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
     private LocalDateTime actualizadoEn;
@@ -82,6 +90,12 @@ public class ConfiguracionParqueadero {
 
     public ModeloParqueaderoPrivado getModeloPrivadoDefault() { return modeloPrivadoDefault; }
     public void setModeloPrivadoDefault(ModeloParqueaderoPrivado modeloPrivadoDefault) { this.modeloPrivadoDefault = modeloPrivadoDefault; }
+
+    public boolean isAceptaParqueaderoVisitantes() { return aceptaParqueaderoVisitantes; }
+    public void setAceptaParqueaderoVisitantes(boolean aceptaParqueaderoVisitantes) { this.aceptaParqueaderoVisitantes = aceptaParqueaderoVisitantes; }
+
+    public int getTotalParqueaderosVisitantes() { return totalParqueaderosVisitantes; }
+    public void setTotalParqueaderosVisitantes(int totalParqueaderosVisitantes) { this.totalParqueaderosVisitantes = totalParqueaderosVisitantes; }
 
     public LocalDateTime getActualizadoEn() { return actualizadoEn; }
 }

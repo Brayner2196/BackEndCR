@@ -13,5 +13,7 @@ public record ConfiguracionParqueaderoRequest(
         boolean permiteBicicleta,
         boolean requiereAprobacionVehiculo,
         /** Modelo aplicado al crear parqueaderos privados en bulk. Null → usa ACCESORIO. */
-        ModeloParqueaderoPrivado modeloPrivadoDefault
+        ModeloParqueaderoPrivado modeloPrivadoDefault,
+        boolean aceptaParqueaderoVisitantes,
+        @Min(0) int totalParqueaderosVisitantes
 ) {}

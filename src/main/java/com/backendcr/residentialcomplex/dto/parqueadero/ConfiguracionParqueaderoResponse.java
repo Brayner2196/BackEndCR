@@ -12,5 +12,7 @@ public record ConfiguracionParqueaderoResponse(
         boolean permiteMoto,
         boolean permiteBicicleta,
         boolean requiereAprobacionVehiculo,
-        ModeloParqueaderoPrivado modeloPrivadoDefault
+        ModeloParqueaderoPrivado modeloPrivadoDefault,
+        boolean aceptaParqueaderoVisitantes,
+        int totalParqueaderosVisitantes
 ) {}
