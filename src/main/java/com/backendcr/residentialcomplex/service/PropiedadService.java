@@ -16,12 +16,16 @@ import com.backendcr.residentialcomplex.dto.propiedad.PropiedadResponse;
 import com.backendcr.residentialcomplex.dto.propiedad.ResidenteResumenDto;
 import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 import com.backendcr.residentialcomplex.dto.propiedad.UsuarioPropiedadResponse;
+import com.backendcr.residentialcomplex.entity.Parqueadero;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.TipoPropiedad;
 import com.backendcr.residentialcomplex.entity.Usuario;
 import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPropiedad;
+import com.backendcr.residentialcomplex.entity.enums.ModeloParqueaderoPrivado;
+import com.backendcr.residentialcomplex.entity.enums.TipoParqueadero;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
+import com.backendcr.residentialcomplex.repository.ParqueaderoRepository;
 import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.TipoPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
@@ -35,6 +39,7 @@ public class PropiedadService {
 
     private final TipoPropiedadRepository tipoRepo;
     private final PropiedadRepository propiedadRepo;
+    private final ParqueaderoRepository parqueaderoRepo;
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
     private final UsuarioRepository usuarioRepo;
     private final IdentidadRepository identidadRepo;
@@ -61,6 +66,7 @@ public class PropiedadService {
         tipo.setOrden(request.orden());
         tipo.setActivo(true);
         tipo.setEsFacturable(request.esFacturable());
+        tipo.setEsParqueadero(request.esParqueadero());
         return toNodoDto(tipoRepo.save(tipo));
     }
 
@@ -71,6 +77,7 @@ public class PropiedadService {
         tipo.setDescripcion(request.descripcion());
         tipo.setOrden(request.orden());
         tipo.setEsFacturable(request.esFacturable());
+        tipo.setEsParqueadero(request.esParqueadero());
         return toNodoDto(tipoRepo.save(tipo));
     }
 
@@ -93,6 +100,20 @@ public class PropiedadService {
     public PropiedadResponse crear(PropiedadRequest request) {
         Long propiedadHojaId = resolverOCrearPath(request.propiedadPath());
         Propiedad hoja = propiedadRepo.findById(propiedadHojaId).orElseThrow();
+
+        // Si el tipo de propiedad hoja es un parqueadero, auto-crear el spot físico
+        tipoRepo.findById(hoja.getTipoId()).ifPresent(tipo -> {
+            if (tipo.isEsParqueadero()
+                    && !parqueaderoRepo.existsByPropiedadParqueaderoId(hoja.getId())) {
+                Parqueadero spot = new Parqueadero();
+                spot.setIdentificador(hoja.getIdentificador());
+                spot.setTipo(TipoParqueadero.PRIVADO);
+                spot.setModeloPropiedad(ModeloParqueaderoPrivado.INDEPENDIENTE);
+                spot.setPropiedadParqueaderoId(hoja.getId());
+                parqueaderoRepo.save(spot);
+            }
+        });
+
         return toPropiedadResponse(hoja, false);
     }
 
@@ -236,7 +257,8 @@ public class PropiedadService {
                 .toList();
         return new TipoPropiedadNodoDto(
                 tipo.getId(), tipo.getNombre(), tipo.getDescripcion(),
-                tipo.getParentId(), tipo.getOrden(), tipo.isActivo(), tipo.isEsFacturable(), hijosDto);
+                tipo.getParentId(), tipo.getOrden(), tipo.isActivo(),
+                tipo.isEsFacturable(), tipo.isEsParqueadero(), hijosDto);
     }
 
     private PropiedadResponse toPropiedadResponse(Propiedad p, boolean incluirResidentes) {

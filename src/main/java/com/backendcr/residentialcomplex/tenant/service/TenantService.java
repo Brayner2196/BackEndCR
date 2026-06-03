@@ -235,13 +235,14 @@ public class TenantService {
         // ── 2. tipos_propiedad ────────────────────────────────────────────
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.tipos_propiedad (
-                    id            BIGSERIAL PRIMARY KEY,
-                    nombre        VARCHAR(100) NOT NULL,
-                    descripcion   VARCHAR(255),
-                    parent_id     BIGINT REFERENCES %s.tipos_propiedad(id),
-                    orden         INT NOT NULL DEFAULT 0,
-                    es_facturable BOOLEAN NOT NULL DEFAULT FALSE,
-                    activo        BOOLEAN NOT NULL DEFAULT TRUE
+                    id             BIGSERIAL PRIMARY KEY,
+                    nombre         VARCHAR(100) NOT NULL,
+                    descripcion    VARCHAR(255),
+                    parent_id      BIGINT REFERENCES %s.tipos_propiedad(id),
+                    orden          INT NOT NULL DEFAULT 0,
+                    es_facturable  BOOLEAN NOT NULL DEFAULT FALSE,
+                    es_parqueadero BOOLEAN NOT NULL DEFAULT FALSE,
+                    activo         BOOLEAN NOT NULL DEFAULT TRUE
                 )
                 """.formatted(schema, schema));
         log.info("Tabla tipos_propiedad creada para tenant '{}'", schema);
@@ -812,6 +813,7 @@ public class TenantService {
                     parqueaderos_comunes         INT     NOT NULL DEFAULT 0,
                     parqueaderos_privados        INT     NOT NULL DEFAULT 0,
                     max_vehiculos_por_propiedad  INT     NOT NULL DEFAULT 2,
+                    modelo_privado_default       VARCHAR(20) NOT NULL DEFAULT 'ACCESORIO',
                     permite_carro                BOOLEAN NOT NULL DEFAULT TRUE,
                     permite_moto                 BOOLEAN NOT NULL DEFAULT TRUE,
                     permite_bicicleta            BOOLEAN NOT NULL DEFAULT TRUE,
@@ -826,12 +828,14 @@ public class TenantService {
         // la dependencia circular con la tabla vehiculos.
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.parqueaderos (
-                    id            BIGSERIAL    PRIMARY KEY,
-                    identificador VARCHAR(30)  NOT NULL UNIQUE,
-                    tipo          VARCHAR(10)  NOT NULL,
-                    propiedad_id  BIGINT       REFERENCES %s.propiedades(id),
-                    vehiculo_id   BIGINT,
-                    creado_en     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    id                       BIGSERIAL    PRIMARY KEY,
+                    identificador            VARCHAR(30)  NOT NULL UNIQUE,
+                    tipo                     VARCHAR(10)  NOT NULL,
+                    modelo_propiedad         VARCHAR(20) NULL,
+                    propiedad_parqueadero_id BIGINT NULL,
+                    propiedad_id             BIGINT       REFERENCES %s.propiedades(id),
+                    vehiculo_id              BIGINT,
+                    creado_en                TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         log.info("Tabla parqueaderos creada para tenant '{}'", schema);

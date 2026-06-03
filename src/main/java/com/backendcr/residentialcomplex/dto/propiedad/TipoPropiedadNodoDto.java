@@ -20,5 +20,8 @@ public record TipoPropiedadNodoDto(
 
         boolean esFacturable,
 
+        /** true → al crear una propiedad de este tipo se auto-crea un Parqueadero INDEPENDIENTE */
+        boolean esParqueadero,
+
         List<TipoPropiedadNodoDto> hijos
 ) {}

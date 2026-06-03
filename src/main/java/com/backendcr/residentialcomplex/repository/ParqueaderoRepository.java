@@ -16,4 +16,6 @@ public interface ParqueaderoRepository extends JpaRepository<Parqueadero, Long> 
     List<Parqueadero> findAllByPropiedadId(Long propiedadId);
 
     Optional<Parqueadero> findByVehiculoId(Long vehiculoId);
+
+    boolean existsByPropiedadParqueaderoId(Long propiedadParqueaderoId);
 }

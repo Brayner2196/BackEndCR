@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.dto.parqueadero;
 
+import com.backendcr.residentialcomplex.entity.enums.ModeloParqueaderoPrivado;
 import jakarta.validation.constraints.Min;
 
 public record ConfiguracionParqueaderoRequest(
@@ -10,5 +11,7 @@ public record ConfiguracionParqueaderoRequest(
         boolean permiteCarro,
         boolean permiteMoto,
         boolean permiteBicicleta,
-        boolean requiereAprobacionVehiculo
+        boolean requiereAprobacionVehiculo,
+        /** Modelo aplicado al crear parqueaderos privados en bulk. Null → usa ACCESORIO. */
+        ModeloParqueaderoPrivado modeloPrivadoDefault
 ) {}

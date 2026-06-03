@@ -22,13 +22,14 @@ public class TipoPropiedad {
     @Column(name="es_facturable", nullable = false)
     private boolean esFacturable = true;
 
+    @Column(name = "es_parqueadero", nullable = false)
+    private boolean esParqueadero = false;
+
     @Column(nullable = false)
     private int orden = 0;
 
     @Column(nullable = false)
     private boolean activo = true;
-    
-    
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -47,8 +48,10 @@ public class TipoPropiedad {
 
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
-    
-	public boolean isEsFacturable() { return esFacturable; }
-	public void setEsFacturable(boolean esFacturable) {	this.esFacturable = esFacturable; }
-    
+
+    public boolean isEsFacturable() { return esFacturable; }
+    public void setEsFacturable(boolean esFacturable) { this.esFacturable = esFacturable; }
+
+    public boolean isEsParqueadero() { return esParqueadero; }
+    public void setEsParqueadero(boolean esParqueadero) { this.esParqueadero = esParqueadero; }
 }

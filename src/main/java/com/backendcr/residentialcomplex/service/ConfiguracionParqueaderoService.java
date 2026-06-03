@@ -35,6 +35,9 @@ public class ConfiguracionParqueaderoService {
         config.setPermiteMoto(req.permiteMoto());
         config.setPermiteBicicleta(req.permiteBicicleta());
         config.setRequiereAprobacionVehiculo(req.requiereAprobacionVehiculo());
+        if (req.modeloPrivadoDefault() != null) {
+            config.setModeloPrivadoDefault(req.modeloPrivadoDefault());
+        }
         return toResponse(repo.save(config));
     }
 
@@ -63,7 +66,8 @@ public class ConfiguracionParqueaderoService {
                 c.isPermiteCarro(),
                 c.isPermiteMoto(),
                 c.isPermiteBicicleta(),
-                c.isRequiereAprobacionVehiculo()
+                c.isRequiereAprobacionVehiculo(),
+                c.getModeloPrivadoDefault()
         );
     }
 }

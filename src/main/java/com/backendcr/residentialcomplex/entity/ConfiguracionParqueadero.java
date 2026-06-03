@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.entity;
 
+import com.backendcr.residentialcomplex.entity.enums.ModeloParqueaderoPrivado;
 import jakarta.persistence.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -38,6 +39,15 @@ public class ConfiguracionParqueadero {
     @Column(name = "requiere_aprobacion_vehiculo", nullable = false)
     private boolean requiereAprobacionVehiculo = false;
 
+    /**
+     * Modelo por defecto al crear parqueaderos privados en bulk.
+     * ACCESORIO     → se asignan a un apartamento (comportamiento clásico).
+     * INDEPENDIENTE → cada spot es una propiedad facturable propia.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "modelo_privado_default", nullable = false, length = 20)
+    private ModeloParqueaderoPrivado modeloPrivadoDefault = ModeloParqueaderoPrivado.ACCESORIO;
+
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
     private LocalDateTime actualizadoEn;
@@ -69,6 +79,9 @@ public class ConfiguracionParqueadero {
 
     public boolean isRequiereAprobacionVehiculo() { return requiereAprobacionVehiculo; }
     public void setRequiereAprobacionVehiculo(boolean requiereAprobacionVehiculo) { this.requiereAprobacionVehiculo = requiereAprobacionVehiculo; }
+
+    public ModeloParqueaderoPrivado getModeloPrivadoDefault() { return modeloPrivadoDefault; }
+    public void setModeloPrivadoDefault(ModeloParqueaderoPrivado modeloPrivadoDefault) { this.modeloPrivadoDefault = modeloPrivadoDefault; }
 
     public LocalDateTime getActualizadoEn() { return actualizadoEn; }
 }

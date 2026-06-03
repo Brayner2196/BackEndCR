@@ -1,5 +1,7 @@
 package com.backendcr.residentialcomplex.dto.parqueadero;
 
+import com.backendcr.residentialcomplex.entity.enums.ModeloParqueaderoPrivado;
+
 public record ConfiguracionParqueaderoResponse(
         Long id,
         int totalParqueaderos,
@@ -9,5 +11,6 @@ public record ConfiguracionParqueaderoResponse(
         boolean permiteCarro,
         boolean permiteMoto,
         boolean permiteBicicleta,
-        boolean requiereAprobacionVehiculo
+        boolean requiereAprobacionVehiculo,
+        ModeloParqueaderoPrivado modeloPrivadoDefault
 ) {}

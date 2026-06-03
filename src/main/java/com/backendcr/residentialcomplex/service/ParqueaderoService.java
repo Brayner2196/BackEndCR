@@ -1,10 +1,13 @@
 package com.backendcr.residentialcomplex.service;
 
 import com.backendcr.residentialcomplex.dto.parqueadero.*;
+import com.backendcr.residentialcomplex.entity.ConfiguracionParqueadero;
 import com.backendcr.residentialcomplex.entity.Parqueadero;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Vehiculo;
+import com.backendcr.residentialcomplex.entity.enums.ModeloParqueaderoPrivado;
 import com.backendcr.residentialcomplex.entity.enums.TipoParqueadero;
+import com.backendcr.residentialcomplex.repository.ConfiguracionParqueaderoRepository;
 import com.backendcr.residentialcomplex.repository.ParqueaderoRepository;
 import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.VehiculoRepository;
@@ -24,6 +27,7 @@ public class ParqueaderoService {
     private final ParqueaderoRepository parqueaderoRepo;
     private final VehiculoRepository vehiculoRepo;
     private final PropiedadRepository propiedadRepo;
+    private final ConfiguracionParqueaderoRepository configRepo;
 
     // ─── Consultas ─────────────────────────────────────────────
     // Solo existen registros PRIVADOS. Los comunales son solo un conteo
@@ -41,6 +45,11 @@ public class ParqueaderoService {
 
     @Transactional
     public ParqueaderoBulkResultado crearBulk(ParqueaderoBulkRequest req) {
+        // Leer el modelo configurado para este tenant (default ACCESORIO si no hay config)
+        ModeloParqueaderoPrivado modelo = configRepo.findFirstBy()
+                .map(ConfiguracionParqueadero::getModeloPrivadoDefault)
+                .orElse(ModeloParqueaderoPrivado.ACCESORIO);
+
         List<ParqueaderoBulkResultado.ItemResultado> resultados = new ArrayList<>();
         int creados = 0;
         int duplicados = 0;
@@ -53,7 +62,8 @@ public class ParqueaderoService {
             } else {
                 Parqueadero p = new Parqueadero();
                 p.setIdentificador(item.identificador());
-                p.setTipo(TipoParqueadero.PRIVADO); // siempre privado
+                p.setTipo(TipoParqueadero.PRIVADO);
+                p.setModeloPropiedad(modelo);
                 Parqueadero saved = parqueaderoRepo.save(p);
                 resultados.add(new ParqueaderoBulkResultado.ItemResultado(
                         item.identificador(), "CREADO", saved.getId()));
@@ -157,8 +167,10 @@ public class ParqueaderoService {
                 p.getId(),
                 p.getIdentificador(),
                 p.getTipo(),
+                p.getModeloPropiedad(),
                 p.getPropiedadId(),
                 propiedadIdentificador,
+                p.getPropiedadParqueaderoId(),
                 p.getVehiculoId(),
                 vehiculoPlaca,
                 vehiculoTipo
