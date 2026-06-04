@@ -185,8 +185,9 @@ public class PropiedadService {
                     if (p == null) return null;
                     String path = construirPathTexto(p);
                     String tipoRaiz = obtenerNombreTipoRaiz(p);
+                    String pathCorto = construirPathCorto(p);
                     boolean esParqueadero = obtenerEsParqueaderoRaiz(p);
-                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, tipoRaiz, p.getEstado(), up.isEsPrincipal(), esParqueadero);
+                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, pathCorto, tipoRaiz, p.getEstado(), up.isEsPrincipal(), esParqueadero);
                 })
                 .filter(r -> r != null)
                 .toList();
@@ -283,6 +284,19 @@ public class PropiedadService {
 
         return new PropiedadResponse(p.getId(), p.getTipoId(), nombreTipo,
                 p.getParentId(), p.getIdentificador(), path, p.getEstado(), residentes);
+    }
+
+    /** Versión corta del path: concatena solo los identificadores sin separador.
+     *  Ej: "Torre A / Piso 1 / Apartamento 01" → "A101" */
+    private String construirPathCorto(Propiedad hoja) {
+        List<String> partes = new ArrayList<>();
+        Propiedad actual = hoja;
+        while (actual != null) {
+            partes.add(0, actual.getIdentificador());
+            if (actual.getParentId() == null) break;
+            actual = propiedadRepo.findById(actual.getParentId()).orElse(null);
+        }
+        return String.join("", partes);
     }
 
     private String construirPathTexto(Propiedad hoja) {

@@ -6,6 +6,7 @@ public record UsuarioPropiedadResponse(
         Long id,
         Long propiedadId,
         String pathTexto,
+        String pathCorto,
         String nombreTipoRaiz,
         EstadoPropiedad estadoPropiedad,
         boolean esPrincipal,
