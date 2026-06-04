@@ -94,32 +94,57 @@ public class ParqueaderoService {
         return toResponse(parqueaderoRepo.save(p));
     }
 
-    // ─── Asignación de vehículo (propietario) ─────────────────
+    // ─── Asignación / desasignación de vehículo (propietario) ────
 
     @Transactional
     public ParqueaderoResponse asignarVehiculo(Long parqueaderoId, Long vehiculoId, Long propiedadId) {
         Parqueadero parqueadero = parqueaderoRepo.findById(parqueaderoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parqueadero no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Parqueadero no encontrado"));
 
-        // Validar que el parqueadero pertenece a la propiedad del usuario
-        if (!propiedadId.equals(parqueadero.getPropiedadId())) {
+        // Validar pertenencia según el modelo del parqueadero:
+        //   ACCESORIO     → propiedadId del spot coincide con el del residente
+        //   INDEPENDIENTE → propiedadParqueaderoId coincide (el residente es dueño de la propiedad-parqueadero)
+        //   null (legacy) → se trata como ACCESORIO
+        boolean esIndependiente =
+                parqueadero.getModeloPropiedad() == ModeloParqueaderoPrivado.INDEPENDIENTE;
+
+        boolean perteneceAlResidente = esIndependiente
+                ? propiedadId.equals(parqueadero.getPropiedadParqueaderoId())
+                : propiedadId.equals(parqueadero.getPropiedadId());
+
+        if (!perteneceAlResidente) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Este parqueadero no pertenece a tu propiedad");
         }
 
-        // Validar que el vehículo pertenece a la misma propiedad
-        Vehiculo vehiculo = vehiculoRepo.findById(vehiculoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehículo no encontrado"));
-
-        if (!propiedadId.equals(vehiculo.getPropiedadId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "El vehículo no pertenece a tu propiedad");
-        }
-
-        // Liberar asignación previa si existe
+        // ── Liberar vehículo anterior si existe ───────────────────
         if (parqueadero.getVehiculoId() != null) {
             vehiculoRepo.findById(parqueadero.getVehiculoId())
                     .ifPresent(v -> { v.setParqueaderoId(null); vehiculoRepo.save(v); });
+        }
+
+        // ── Desasignar: vehiculoId null → limpiar y salir ─────────
+        if (vehiculoId == null) {
+            parqueadero.setVehiculoId(null);
+            return toResponse(parqueaderoRepo.save(parqueadero));
+        }
+
+        // ── Asignar: validar que el vehículo sea del residente ────
+        Vehiculo vehiculo = vehiculoRepo.findById(vehiculoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Vehículo no encontrado"));
+
+        // El vehículo siempre está ligado al apartamento/propiedad del residente.
+        // Para INDEPENDIENTE el residente puede tener vehículos en su apto (propiedadId)
+        // y en su propiedad-parqueadero; aceptamos ambos casos.
+        boolean vehiculoEsDelResidente = propiedadId.equals(vehiculo.getPropiedadId())
+                || (esIndependiente && propiedadId.equals(parqueadero.getPropiedadParqueaderoId())
+                        && vehiculo.getPropiedadId() != null);
+
+        if (!vehiculoEsDelResidente) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El vehículo no pertenece a tu propiedad");
         }
 
         parqueadero.setVehiculoId(vehiculoId);
