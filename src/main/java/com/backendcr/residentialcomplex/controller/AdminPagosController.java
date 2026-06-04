@@ -180,13 +180,14 @@ public class AdminPagosController {
 
     @GetMapping("/usuarios/{id}/cobros")
     public List<CobroResponse> cobrosPorUsuario(@PathVariable Long id) {
-        return cobroService.listarPorUsuario(id);
+        // null → retorna cobros de todas las propiedades del usuario
+        return cobroService.listarPorUsuario(id, null);
     }
 
     @GetMapping("/usuarios/{id}/estado-cuenta")
-    public EstadoCuentaResponse estadoCuentaUsuario(
-            @PathVariable Long id) {
-        return cobroService.estadoCuenta(id);
+    public EstadoCuentaResponse estadoCuentaUsuario(@PathVariable Long id) {
+        // null → consolida todas las propiedades del usuario
+        return cobroService.estadoCuenta(id, null);
     }
 
     // ─── Abonos ───────────────────────────────────────────────────
