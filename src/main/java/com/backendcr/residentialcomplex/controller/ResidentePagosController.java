@@ -36,34 +36,40 @@ public class ResidentePagosController {
     private final UsuarioRepository usuarioRepo;
 
     @GetMapping("/estado-cuenta")
-    public EstadoCuentaResponse estadoCuenta(@AuthenticationPrincipal String email) {
-        return cobroService.estadoCuenta(resolverUsuarioId(email));
+    public EstadoCuentaResponse estadoCuenta(
+            @AuthenticationPrincipal String email,
+            @RequestParam(required = false) Long propiedadId) {
+        return cobroService.estadoCuenta(resolverUsuarioId(email), propiedadId);
     }
 
     @GetMapping("/cobros")
     public List<CobroResponse> misCobros(
             @AuthenticationPrincipal String email,
-            @RequestParam(required = false) EstadoCobro estado) {
+            @RequestParam(required = false) EstadoCobro estado,
+            @RequestParam(required = false) Long propiedadId) {
         Long usuarioId = resolverUsuarioId(email);
         return estado != null
-                ? cobroService.listarPorUsuarioYEstado(usuarioId, estado)
-                : cobroService.listarPorUsuario(usuarioId);
+                ? cobroService.listarPorUsuarioYEstado(usuarioId, estado, propiedadId)
+                : cobroService.listarPorUsuario(usuarioId, propiedadId);
     }
 
     @GetMapping("/cobros/historial")
-    public List<CobroResponse> historial(@AuthenticationPrincipal String email) {
-        return cobroService.listarPorUsuarioYEstado(resolverUsuarioId(email), EstadoCobro.PAGADO);
+    public List<CobroResponse> historial(
+            @AuthenticationPrincipal String email,
+            @RequestParam(required = false) Long propiedadId) {
+        return cobroService.listarPorUsuarioYEstado(resolverUsuarioId(email), EstadoCobro.PAGADO, propiedadId);
     }
 
     /**
-     * Historial paginado de todos los cobros del residente, de más reciente a más antiguo.
-     * GET /api/residente/cobros/historial-paginado?page=0&size=5
+     * Historial paginado filtrado por propiedad activa.
+     * GET /api/residente/cobros/historial-paginado?page=0&size=5&propiedadId=X
      */
     @GetMapping("/cobros/historial-paginado")
     public Page<CobroResponse> historialPaginado(
             @AuthenticationPrincipal String email,
-            @PageableDefault(size = 5, sort = "fechaGeneracion", direction = Sort.Direction.DESC) Pageable pageable) {
-        return cobroService.listarHistorialPaginado(resolverUsuarioId(email), pageable);
+            @PageableDefault(size = 5, sort = "fechaGeneracion", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(required = false) Long propiedadId) {
+        return cobroService.listarHistorialPaginado(resolverUsuarioId(email), pageable, propiedadId);
     }
 
     @PostMapping("/pagos")
@@ -73,8 +79,10 @@ public class ResidentePagosController {
     }
 
     @GetMapping("/pagos")
-    public List<PagoResponse> misPagos(@AuthenticationPrincipal String email) {
-        return pagoService.listarPorUsuario(resolverUsuarioId(email));
+    public List<PagoResponse> misPagos(
+            @AuthenticationPrincipal String email,
+            @RequestParam(required = false) Long propiedadId) {
+        return pagoService.listarPorUsuario(resolverUsuarioId(email), propiedadId);
     }
 
     /**

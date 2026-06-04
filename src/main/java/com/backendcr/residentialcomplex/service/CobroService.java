@@ -103,14 +103,22 @@ public class CobroService {
         return toResponseList(cobroRepo.findAllByEstado(estado));
     }
 
-    public List<CobroResponse> listarPorUsuario(Long usuarioId) {
-    	List<UsuarioPropiedad> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId);
-        return toResponseList(cobroRepo.findAllByPropiedadIdIn(propiedadIds.stream().map(UsuarioPropiedad::getPropiedadId).toList()));
+    public List<CobroResponse> listarPorUsuario(Long usuarioId, Long propiedadId) {
+        if (propiedadId != null) {
+            return toResponseList(cobroRepo.findAllByPropiedadId(propiedadId));
+        }
+        List<Long> ids = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+                .stream().map(UsuarioPropiedad::getPropiedadId).toList();
+        return toResponseList(cobroRepo.findAllByPropiedadIdIn(ids));
     }
 
-    public List<CobroResponse> listarPorUsuarioYEstado(Long usuarioId, EstadoCobro estado) {
-    	List<UsuarioPropiedad> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId);
-        return toResponseList(cobroRepo.findAllByPropiedadIdInAndEstado(propiedadIds.stream().map(UsuarioPropiedad::getPropiedadId).toList(), estado));
+    public List<CobroResponse> listarPorUsuarioYEstado(Long usuarioId, EstadoCobro estado, Long propiedadId) {
+        if (propiedadId != null) {
+            return toResponseList(cobroRepo.findAllByPropiedadIdInAndEstado(List.of(propiedadId), estado));
+        }
+        List<Long> ids = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+                .stream().map(UsuarioPropiedad::getPropiedadId).toList();
+        return toResponseList(cobroRepo.findAllByPropiedadIdInAndEstado(ids, estado));
     }
 
     /** Obtiene un único cobro validando que el usuario tenga acceso a la propiedad del cobro. */
@@ -380,21 +388,24 @@ public class CobroService {
      * El ORDER BY está fijo en la native query; el Pageable solo aporta page y size.
      */
     @Transactional(readOnly = true)
-    public Page<CobroResponse> listarHistorialPaginado(Long usuarioId, Pageable pageable) {
-        List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
-                .stream().map(UsuarioPropiedad::getPropiedadId).toList();
-        if (propiedadIds.isEmpty()) return Page.empty(pageable);
-        // PageRequest sin sort: la native query maneja el ORDER BY compuesto
+    public Page<CobroResponse> listarHistorialPaginado(Long usuarioId, Pageable pageable, Long propiedadId) {
+        List<Long> ids = propiedadId != null
+                ? List.of(propiedadId)
+                : usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+                        .stream().map(UsuarioPropiedad::getPropiedadId).toList();
+        if (ids.isEmpty()) return Page.empty(pageable);
         Pageable sinSort = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        Page<Cobro> page = cobroRepo.findHistorialOrdenadoPorPeriodo(propiedadIds, sinSort);
+        Page<Cobro> page = cobroRepo.findHistorialOrdenadoPorPeriodo(ids, sinSort);
         return page.map(c -> toResponseList(List.of(c)).get(0));
     }
 
     // ─── Estado de cuenta del residente ───────────────────────────
 
-    public EstadoCuentaResponse estadoCuenta(Long usuarioId) {
-    	List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(usuarioId)
-				.stream().map(UsuarioPropiedad::getPropiedadId).toList();
+    public EstadoCuentaResponse estadoCuenta(Long usuarioId, Long propiedadId) {
+        List<Long> propiedadIds = propiedadId != null
+                ? List.of(propiedadId)
+                : usuarioPropiedadRepo.findByUsuarioId(usuarioId)
+                        .stream().map(UsuarioPropiedad::getPropiedadId).toList();
         List<Cobro> activos = cobroRepo.findAllByPropiedadIdIn(propiedadIds).stream()
                 .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
                           || c.getEstado() == EstadoCobro.PARCIAL

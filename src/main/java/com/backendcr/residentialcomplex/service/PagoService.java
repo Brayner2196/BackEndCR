@@ -40,8 +40,16 @@ public class PagoService {
         return pagoRepo.findAllByEstado(estado).stream().map(this::toResponse).toList();
     }
 
-    public List<PagoResponse> listarPorUsuario(Long usuarioId) {
-        return pagoRepo.findAllByUsuarioId(usuarioId).stream().map(this::toResponse).toList();
+    public List<PagoResponse> listarPorUsuario(Long usuarioId, Long propiedadId) {
+        List<PagoResponse> todos = pagoRepo.findAllByUsuarioId(usuarioId)
+                .stream().map(this::toResponse).toList();
+        if (propiedadId == null) return todos;
+        // Filtrar en memoria: mantener solo los pagos cuyo cobro pertenece a la propiedad
+        Set<Long> cobroIdsDeLaPropiedad = cobroRepo.findAllByPropiedadId(propiedadId)
+                .stream().map(c -> c.getId()).collect(java.util.stream.Collectors.toSet());
+        return todos.stream()
+                .filter(p -> cobroIdsDeLaPropiedad.contains(p.cobroId()))
+                .toList();
     }
 
     /**
