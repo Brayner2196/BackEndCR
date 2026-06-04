@@ -8,5 +8,6 @@ public record UsuarioPropiedadResponse(
         String pathTexto,
         String nombreTipoRaiz,
         EstadoPropiedad estadoPropiedad,
-        boolean esPrincipal
+        boolean esPrincipal,
+        boolean esParqueadero
 ) {}

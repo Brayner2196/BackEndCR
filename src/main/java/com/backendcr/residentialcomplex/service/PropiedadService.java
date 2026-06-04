@@ -185,7 +185,8 @@ public class PropiedadService {
                     if (p == null) return null;
                     String path = construirPathTexto(p);
                     String tipoRaiz = obtenerNombreTipoRaiz(p);
-                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, tipoRaiz, p.getEstado(),  up.isEsPrincipal());
+                    boolean esParqueadero = obtenerEsParqueaderoRaiz(p);
+                    return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, tipoRaiz, p.getEstado(), up.isEsPrincipal(), esParqueadero);
                 })
                 .filter(r -> r != null)
                 .toList();
@@ -303,5 +304,13 @@ public class PropiedadService {
             actual = propiedadRepo.findById(actual.getParentId()).orElse(actual);
         }
         return tipoRepo.findById(actual.getTipoId()).map(TipoPropiedad::getNombre).orElse("?");
+    }
+
+    private boolean obtenerEsParqueaderoRaiz(Propiedad hoja) {
+        Propiedad actual = hoja;
+        while (actual.getParentId() != null) {
+            actual = propiedadRepo.findById(actual.getParentId()).orElse(actual);
+        }
+        return tipoRepo.findById(actual.getTipoId()).map(TipoPropiedad::isEsParqueadero).orElse(false);
     }
 }
