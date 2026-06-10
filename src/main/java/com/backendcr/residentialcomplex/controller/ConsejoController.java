@@ -1,13 +1,17 @@
 package com.backendcr.residentialcomplex.controller;
 
+import com.backendcr.residentialcomplex.dto.consejo.ConsejoEstadisticasResponse;
 import com.backendcr.residentialcomplex.dto.consejo.MiembroConsejoResponse;
 import com.backendcr.residentialcomplex.dto.pqr.PQRResponse;
+import com.backendcr.residentialcomplex.service.ConsejoEstadisticasService;
 import com.backendcr.residentialcomplex.service.ConsejoService;
 import com.backendcr.residentialcomplex.service.PQRService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -21,6 +25,7 @@ public class ConsejoController {
 
     private final ConsejoService consejoService;
     private final PQRService pqrService;
+    private final ConsejoEstadisticasService estadisticasService;
 
     /**
      * Directorio público del consejo — cualquier residente autenticado puede verlo.
@@ -40,5 +45,24 @@ public class ConsejoController {
     public List<PQRResponse> todasLasPqrs(
             @RequestParam(required = false) String estado) {
         return pqrService.listarTodasParaConsejo(estado);
+    }
+
+    /**
+     * Estadísticas agregadas de PQRs, Anuncios y Votaciones en un rango de fechas.
+     * Por defecto: últimos 30 días.
+     * Parámetros: desde (yyyy-MM-dd), hasta (yyyy-MM-dd).
+     */
+    @GetMapping("/estadisticas")
+    @PreAuthorize("hasAnyRole('CONSEJERO','TENANT_ADMIN')")
+    public ConsejoEstadisticasResponse estadisticas(
+            @RequestParam(required = false) String desde,
+            @RequestParam(required = false) String hasta) {
+        LocalDateTime d = desde != null
+                ? LocalDate.parse(desde).atStartOfDay()
+                : LocalDateTime.now().minusDays(30);
+        LocalDateTime h = hasta != null
+                ? LocalDate.parse(hasta).atTime(23, 59, 59)
+                : LocalDateTime.now();
+        return estadisticasService.calcular(d, h);
     }
 }
