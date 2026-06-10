@@ -26,12 +26,28 @@ public class JwtService {
 		return Keys.hmacShaKeyFor(secret.getBytes());
 	}
 
-	// Genera el token con toda la info del usuario
+	// Genera el token con toda la info del usuario (sin rol consejo)
 	public String generarToken(Long id, String email, String rol, String tenantId) {
-		return Jwts.builder().subject(email).claims(Map.of("id", id, "rol", rol, "tenantId", tenantId // ← schema del
-																										// tenant dentro
-																										// del token
-		)).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + expirationMs)).signWith(getKey())
+		return generarToken(id, email, rol, tenantId, false, null);
+	}
+
+	// Genera el token incluyendo si el usuario es consejero activo y su cargo
+	public String generarToken(Long id, String email, String rol, String tenantId,
+			boolean esConsejero, String cargoConsejo) {
+		var claims = new java.util.HashMap<String, Object>();
+		claims.put("id", id);
+		claims.put("rol", rol);
+		claims.put("tenantId", tenantId);
+		claims.put("esConsejero", esConsejero);
+		if (cargoConsejo != null) {
+			claims.put("cargoConsejo", cargoConsejo);
+		}
+		return Jwts.builder()
+				.subject(email)
+				.claims(claims)
+				.issuedAt(new Date())
+				.expiration(new Date(System.currentTimeMillis() + expirationMs))
+				.signWith(getKey())
 				.compact();
 	}
 
@@ -55,6 +71,15 @@ public class JwtService {
 
 	public Long extraerId(String token) {
 		return extraerClaims(token).get("id", Long.class);
+	}
+
+	public boolean extraerEsConsejero(String token) {
+		Boolean val = extraerClaims(token).get("esConsejero", Boolean.class);
+		return Boolean.TRUE.equals(val);
+	}
+
+	public String extraerCargoConsejo(String token) {
+		return extraerClaims(token).get("cargoConsejo", String.class);
 	}
 
 	public boolean tokenValido(String token) {

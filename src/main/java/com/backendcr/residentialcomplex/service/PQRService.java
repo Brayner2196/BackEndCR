@@ -36,6 +36,17 @@ public class PQRService {
         return pqrRepo.findAll().stream().map(this::toResponse).toList();
     }
 
+    /** Alias para el ConsejoController — filtra por estado si se indica. */
+    public List<PQRResponse> listarTodasParaConsejo(String estado) {
+        if (estado != null && !estado.isBlank()) {
+            try {
+                EstadoPQR filtro = EstadoPQR.valueOf(estado.toUpperCase());
+                return listarPorEstado(filtro);
+            } catch (IllegalArgumentException ignored) { /* estado inválido → retorna todas */ }
+        }
+        return listarTodas();
+    }
+
     public List<PQRResponse> listarPorEstado(EstadoPQR estado) {
         return pqrRepo.findAllByEstado(estado).stream().map(this::toResponse).toList();
     }

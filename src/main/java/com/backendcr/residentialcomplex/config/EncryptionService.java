@@ -12,15 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-/**
- * Servicio de cifrado AES-256-GCM para proteger credenciales sensibles en BD.
- *
- * Algoritmo: AES-256-GCM (autenticado — detecta manipulación)
- * Formato almacenado: Base64(iv[12] + ciphertext + authTag[16])
- *
- * La clave maestra viene de la variable de entorno ENCRYPTION_SECRET
- * y NUNCA se persiste en base de datos.
- */
+
 @Component
 public class EncryptionService {
 

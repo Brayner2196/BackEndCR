@@ -16,6 +16,8 @@ import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
+import com.backendcr.residentialcomplex.repository.MiembroConsejoRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.PropiedadService;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 
@@ -33,6 +35,8 @@ public class AuthService {
 	private final JdbcTemplate jdbcTemplate;
 	private final PropiedadService propiedadService;
 	private final UsuarioPropiedadRepository usuarioPropiedadRepository;
+	private final UsuarioRepository usuarioRepository;
+	private final MiembroConsejoRepository miembroConsejoRepository;
 
 	public Object login(LoginRequest request) {
 		
@@ -233,20 +237,65 @@ public class AuthService {
 		}
 
 		String tenantId = identidad.getTenantId() != null ? identidad.getTenantId() : "public";
-		String nuevoToken = jwtService.generarToken(identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId);
+
+		// Re-evaluar membresía del consejo para que el token refreshado refleje cambios
+		boolean esConsejero = false;
+		String cargoConsejo = null;
+		if (!"public".equals(tenantId)) {
+			try {
+				TenantContext.setTenant(tenantId);
+				Long usuarioId = usuarioRepository.findByIdentidadId(identidad.getId())
+						.map(u -> u.getId()).orElse(null);
+				if (usuarioId != null) {
+					var membresia = miembroConsejoRepository.findByUsuarioIdAndActivoTrue(usuarioId);
+					if (membresia.isPresent()) {
+						esConsejero = true;
+						cargoConsejo = membresia.get().getCargo().name();
+					}
+				}
+			} finally {
+				TenantContext.clear();
+			}
+		}
+
+		String nuevoToken = jwtService.generarToken(
+				identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId,
+				esConsejero, cargoConsejo);
 
 		return new RefreshResponse(nuevoToken, nuevoRt.getToken());
 	}
 
 	private LoginResponse generarLoginResponse(Identidad identidad, String tenantId, String nombreConjunto) {
-		String token = jwtService.generarToken(identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId);
+		// Verificar membresía activa en el consejo (solo para tenants reales)
+		boolean esConsejero = false;
+		String cargoConsejo = null;
+		if (tenantId != null && !"public".equals(tenantId)) {
+			try {
+				TenantContext.setTenant(tenantId);
+				Long usuarioId = usuarioRepository.findByIdentidadId(identidad.getId())
+						.map(u -> u.getId()).orElse(null);
+				if (usuarioId != null) {
+					var membresía = miembroConsejoRepository.findByUsuarioIdAndActivoTrue(usuarioId);
+					if (membresía.isPresent()) {
+						esConsejero = true;
+						cargoConsejo = membresía.get().getCargo().name();
+					}
+				}
+			} finally {
+				TenantContext.clear();
+			}
+		}
+
+		String token = jwtService.generarToken(
+				identidad.getId(), identidad.getEmail(), identidad.getRol(), tenantId,
+				esConsejero, cargoConsejo);
 		String refreshToken = refreshTokenService.crear(identidad.getId()).getToken();
 		String nombre = obtenerNombreDesdeSchema(tenantId, identidad.getId());
 		String timezone = tenantRepository.findBySchemaName(tenantId)
 				.map(t -> t.getTimezone() != null ? t.getTimezone() : "America/Bogota")
 				.orElse(null); // null para SUPER_ADMIN (tenantId = "public")
 		return new LoginResponse(token, refreshToken, identidad.getEmail(), identidad.getRol(),
-				tenantId, nombreConjunto, nombre, timezone);
+				tenantId, nombreConjunto, nombre, timezone, esConsejero, cargoConsejo);
 	}
 
 }

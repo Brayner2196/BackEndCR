@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/anuncios")
-@PreAuthorize("hasRole('TENANT_ADMIN')")
+@PreAuthorize("hasAnyRole('TENANT_ADMIN','CONSEJERO')")
 @RequiredArgsConstructor
 public class AdminAnuncioController {
 
@@ -46,13 +46,17 @@ public class AdminAnuncioController {
         return anuncioService.cambiarEstado(id, req);
     }
 
+    /** Solo TENANT_ADMIN puede eliminar anuncios. */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {
         anuncioService.eliminar(id);
     }
 
+    /** Solo TENANT_ADMIN ve estadísticas de vistas. */
     @GetMapping("/{id}/vistas")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public List<AnuncioVistaResponse> vistas(@PathVariable Long id) {
         return anuncioService.listarVistas(id);
     }

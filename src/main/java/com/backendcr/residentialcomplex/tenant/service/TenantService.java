@@ -861,6 +861,22 @@ public class TenantService {
                 """.formatted(schema, schema, schema));
         log.info("Tabla vehiculos creada para tenant '{}'", schema);
 
+        // ── 32. miembro_consejo ───────────────────────────────────────────────
+        // Rol superpuesto: un PROPIETARIO o INQUILINO puede también ser consejero.
+        // Un usuario tiene máximo un registro activo a la vez.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.miembro_consejo (
+                    id           BIGSERIAL   PRIMARY KEY,
+                    usuario_id   BIGINT      NOT NULL REFERENCES %s.usuarios(id),
+                    cargo        VARCHAR(20) NOT NULL,
+                    fecha_inicio DATE        NOT NULL,
+                    fecha_fin    DATE,
+                    activo       BOOLEAN     NOT NULL DEFAULT TRUE,
+                    creado_en    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla miembro_consejo creada para tenant '{}'", schema);
+
     }
 
 

@@ -4,6 +4,7 @@ import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.entity.enums.PermisoInquilino;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.InquilinoPermisoRepository;
+import com.backendcr.residentialcomplex.repository.MiembroConsejoRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ public class PermisoValidator {
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
     private final InquilinoPermisoRepository permisoRepo;
+    private final MiembroConsejoRepository miembroConsejoRepo;
 
     /**
      * Verifica si el usuario autenticado (por email) tiene el permiso indicado.
@@ -45,5 +47,22 @@ public class PermisoValidator {
                             PermisoInquilino.valueOf(permiso))
             ).orElse(false);
         }).orElse(false);
+    }
+
+    /**
+     * Verifica si el usuario autenticado tiene membresía activa en el consejo comunal.
+     * Útil como fallback en controladores que no requieren claim JWT.
+     *
+     * @param email email del principal autenticado
+     */
+    public boolean esConsejeroActivo(String email) {
+        String tenantId = TenantContext.getTenant();
+        if (tenantId == null) return false;
+
+        return identidadRepo.findByEmailAndTenantId(email, tenantId).map(identidad ->
+                usuarioRepo.findByIdentidadId(identidad.getId()).map(usuario ->
+                        miembroConsejoRepo.existsByUsuarioIdAndActivoTrue(usuario.getId())
+                ).orElse(false)
+        ).orElse(false);
     }
 }

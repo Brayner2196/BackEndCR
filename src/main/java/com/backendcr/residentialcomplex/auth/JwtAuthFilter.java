@@ -45,11 +45,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		}
 
 		String email = jwtService.extraerEmail(token);
-		String rol = jwtService.extraerRol(token); // "SUPER_ADMIN"
+		String rol = jwtService.extraerRol(token);
+		boolean esConsejero = jwtService.extraerEsConsejero(token);
 
-		List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol));
+		// El rol base siempre va; ROLE_CONSEJERO se agrega si el claim lo indica.
+		// Así @PreAuthorize("hasRole('CONSEJERO')") funciona sin cambiar Identidad.rol.
+		var authorities = new java.util.ArrayList<SimpleGrantedAuthority>();
+		authorities.add(new SimpleGrantedAuthority("ROLE_" + rol));
+		if (esConsejero) {
+			authorities.add(new SimpleGrantedAuthority("ROLE_CONSEJERO"));
+		}
 
-		UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
+		UsernamePasswordAuthenticationToken auth =
+				new UsernamePasswordAuthenticationToken(email, null, authorities);
 
 		SecurityContextHolder.getContext().setAuthentication(auth);
 
