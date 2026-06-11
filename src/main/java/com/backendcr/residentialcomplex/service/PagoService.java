@@ -203,11 +203,16 @@ public class PagoService {
      */
     @Transactional
     public void registrarYVerificarPagoMP(Long cobroId, Long usuarioId, String paymentId, BigDecimal montoMP) {
-        // Lock pesimista: el segundo request que llegue espera hasta que el primero libere
-        boolean yaVerificado = pagoRepo.findAllByCobroIdForUpdate(cobroId).stream()
-                .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
-        if (yaVerificado) {
-            log.info("Pago MP paymentId={} ya verificado para cobro={}, ignorando duplicado", paymentId, cobroId);
+        String referencia = "MP-" + paymentId;
+
+        // Lock pesimista: el segundo request que llegue espera hasta que el primero libere.
+        // La idempotencia se evalúa por la referencia ÚNICA de la transacción, no por
+        // "ya hay un pago verificado en el cobro" — de lo contrario, un segundo pago legítimo
+        // (p. ej. el saldo restante de una deuda ya parcialmente pagada) se descartaría.
+        boolean duplicado = pagoRepo.findAllByCobroIdForUpdate(cobroId).stream()
+                .anyMatch(p -> referencia.equals(p.getReferencia()));
+        if (duplicado) {
+            log.info("Pago MP paymentId={} ya registrado para cobro={}, ignorando duplicado", paymentId, cobroId);
             return;
         }
 
@@ -218,7 +223,7 @@ public class PagoService {
             pago.setMontoPagado(montoMP);
             pago.setFechaPago(ColombiaTimeZone.hoy());
             pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
-            pago.setReferencia("MP-" + paymentId);
+            pago.setReferencia(referencia);
             pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
             Pago saved = pagoRepo.save(pago);
 
@@ -241,11 +246,16 @@ public class PagoService {
     @Transactional
     public void registrarYVerificarPagoOnline(Long cobroId, Long usuarioId, String transaccionId,
                                                BigDecimal monto, MetodoPago metodoPago) {
-        // Lock pesimista: serializa requests concurrentes del mismo cobro
-        boolean yaVerificado = pagoRepo.findAllByCobroIdForUpdate(cobroId).stream()
-                .anyMatch(p -> p.getEstado() == EstadoPago.VERIFICADO);
-        if (yaVerificado) {
-            log.info("Pago {} txId={} ya verificado para cobro={}, ignorando duplicado",
+        String referencia = metodoPago.name() + "-" + transaccionId;
+
+        // Lock pesimista: serializa requests concurrentes del mismo cobro (webhook + callback
+        // del WebView del MISMO pago). La idempotencia se evalúa por la referencia ÚNICA de la
+        // transacción, no por "ya hay un pago verificado en el cobro" — de lo contrario, un
+        // segundo pago legítimo (el saldo restante de una deuda parcial) se descartaría.
+        boolean duplicado = pagoRepo.findAllByCobroIdForUpdate(cobroId).stream()
+                .anyMatch(p -> referencia.equals(p.getReferencia()));
+        if (duplicado) {
+            log.info("Pago {} txId={} ya registrado para cobro={}, ignorando duplicado",
                     metodoPago.name(), transaccionId, cobroId);
             return;
         }
@@ -257,7 +267,7 @@ public class PagoService {
             pago.setMontoPagado(monto);
             pago.setFechaPago(ColombiaTimeZone.hoy());
             pago.setMetodoPago(metodoPago);
-            pago.setReferencia(metodoPago.name() + "-" + transaccionId);
+            pago.setReferencia(referencia);
             pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
             Pago saved = pagoRepo.save(pago);
 
