@@ -298,9 +298,12 @@ public class CobroService {
         Map<Long, String> tipoNombreMap = new HashMap<>();
         tipoPropiedadRepository.findAll().forEach(t -> tipoNombreMap.put(t.getId(), t.getNombre()));
 
-        // Agrupar: key = "tipoNombre|periodicidad", value = {count, monto}
+        // Agrupar: key = "tipoNombre|periodicidad", value = lista de propiedades del grupo
         record GrupoKey(String nombreTipo, String periodicidad) {}
-        Map<GrupoKey, BigDecimal[]> grupos = new LinkedHashMap<>(); // [0]=monto, [1]=count
+        Map<GrupoKey, List<CobroPreviewResponse.PropiedadDetalle>> grupos = new LinkedHashMap<>();
+
+        // Cache de pathTexto para no recalcular cadenas de ancestros repetidas
+        Map<Long, String> pathCache = new HashMap<>();
 
         int totalPendientes = 0;
         for (Propiedad prop : props) {
@@ -320,9 +323,9 @@ public class CobroService {
 
             String nombreTipo = tipoNombreMap.getOrDefault(prop.getTipoId(), "?");
             GrupoKey key = new GrupoKey(nombreTipo, periodicidad);
-            grupos.computeIfAbsent(key, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
-            grupos.get(key)[0] = monto; // monto por unidad (último visto, todos iguales en el grupo)
-            grupos.get(key)[1] = grupos.get(key)[1].add(BigDecimal.ONE); // count
+            String pathTexto = construirPathTexto(prop, tipoNombreMap, pathCache);
+            grupos.computeIfAbsent(key, k -> new ArrayList<>())
+                    .add(new CobroPreviewResponse.PropiedadDetalle(prop.getId(), pathTexto, monto));
             totalPendientes++;
         }
 
@@ -331,13 +334,21 @@ public class CobroService {
         }
 
         List<CobroPreviewResponse.DetalleGrupo> detalles = grupos.entrySet().stream()
-                .map(e -> new CobroPreviewResponse.DetalleGrupo(
-                        e.getKey().nombreTipo(),
-                        e.getKey().periodicidad(),
-                        e.getValue()[1].intValue(),
-                        e.getValue()[0],
-                        e.getValue()[0].multiply(e.getValue()[1])
-                ))
+                .map(e -> {
+                    List<CobroPreviewResponse.PropiedadDetalle> lista = e.getValue();
+                    BigDecimal subtotal = lista.stream()
+                            .map(CobroPreviewResponse.PropiedadDetalle::monto)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    BigDecimal montoPorUnidad = lista.isEmpty() ? BigDecimal.ZERO : lista.get(0).monto();
+                    return new CobroPreviewResponse.DetalleGrupo(
+                            e.getKey().nombreTipo(),
+                            e.getKey().periodicidad(),
+                            lista.size(),
+                            montoPorUnidad,
+                            subtotal,
+                            lista
+                    );
+                })
                 .toList();
 
         BigDecimal montoTotal = detalles.stream()
@@ -353,6 +364,31 @@ public class CobroService {
                 detalles,
                 advertencias
         );
+    }
+
+    /**
+     * Construye la ruta legible de una propiedad recorriendo sus ancestros,
+     * p. ej. "Torre 1 / Apartamento 101". Usa un cache para evitar recalcular
+     * cadenas de ancestros compartidas entre varias propiedades.
+     */
+    private String construirPathTexto(Propiedad hoja,
+                                      Map<Long, String> tipoNombreMap,
+                                      Map<Long, String> cache) {
+        if (hoja == null) return "";
+        String cached = cache.get(hoja.getId());
+        if (cached != null) return cached;
+
+        List<String> partes = new ArrayList<>();
+        Propiedad actual = hoja;
+        while (actual != null) {
+            String nombreTipo = tipoNombreMap.getOrDefault(actual.getTipoId(), "?");
+            partes.add(0, nombreTipo + " " + actual.getIdentificador());
+            if (actual.getParentId() == null) break;
+            actual = propiedadRepo.findById(actual.getParentId()).orElse(null);
+        }
+        String path = String.join(" / ", partes);
+        cache.put(hoja.getId(), path);
+        return path;
     }
 
     // ─── Job automático de mora — corre cada día a la 1 AM UTC ──────

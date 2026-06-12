@@ -22,6 +22,14 @@ public record CobroPreviewResponse(
             String periodicidad,
             int cantidad,
             BigDecimal montoPorUnidad,
-            BigDecimal subtotal
+            BigDecimal subtotal,
+            List<PropiedadDetalle> propiedades
+    ) {}
+
+    /** Detalle por propiedad individual dentro de un grupo. */
+    public record PropiedadDetalle(
+            Long propiedadId,
+            String pathTexto,
+            BigDecimal monto
     ) {}
 }
