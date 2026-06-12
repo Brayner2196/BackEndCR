@@ -1,17 +1,20 @@
 package com.backendcr.residentialcomplex.service.reserva;
 
 import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.dto.cartera.ResultadoRestriccion;
 import com.backendcr.residentialcomplex.entity.Cobro;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Reserva;
 import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.entity.ZonaComun;
+import com.backendcr.residentialcomplex.entity.enums.AccionRestringible;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCobro;
 import com.backendcr.residentialcomplex.entity.enums.RolPropiedad;
 import com.backendcr.residentialcomplex.repository.CobroRepository;
 import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.ReservaRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
+import com.backendcr.residentialcomplex.service.cartera.RestriccionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -39,6 +42,7 @@ public class ReglasReservaValidator {
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
     private final CobroRepository cobroRepo;
     private final PropiedadRepository propiedadRepo;
+    private final RestriccionService restriccionService;
 
     // ── Cuota por residente (max_reservas_semana / max_reservas_mes) ──────────
 
@@ -99,6 +103,14 @@ public class ReglasReservaValidator {
                 && !propiedadEnTorre(propiedadId, zona.getSoloTorre())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Esta zona está restringida a: " + zona.getSoloTorre());
+        }
+
+        // Restricción por estado de cartera configurada por el conjunto.
+        // Degradación segura: si no hay configuración, no bloquea.
+        ResultadoRestriccion r = restriccionService.verificar(
+                propiedadId, AccionRestringible.RESERVAR_ZONA_COMUN);
+        if (!r.permitido()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, r.mensaje());
         }
     }
 

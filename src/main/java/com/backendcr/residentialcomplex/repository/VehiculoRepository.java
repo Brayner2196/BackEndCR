@@ -5,10 +5,14 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoVehiculo;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface VehiculoRepository extends JpaRepository<Vehiculo, Long> {
 
     List<Vehiculo> findAllByPropiedadId(Long propiedadId);
+
+    /** Búsqueda por placa para el flujo del vigilante (ignora mayúsculas). */
+    Optional<Vehiculo> findFirstByPlacaIgnoreCase(String placa);
 
     List<Vehiculo> findAllByEstado(EstadoVehiculo estado);
 
