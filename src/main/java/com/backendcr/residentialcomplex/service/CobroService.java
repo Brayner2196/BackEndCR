@@ -222,6 +222,29 @@ public class CobroService {
         return toResponse(cobroRepo.save(cobro));
     }
 
+    /**
+     * Genera un cobro derivado de la aprobación de una reserva de zona común.
+     * Es un cobro especial (sin período) con concepto ZONA_COMUN.
+     * Si el monto es nulo o no positivo, no genera nada.
+     */
+    @Transactional
+    public void generarCobroPorReserva(Long propiedadId, BigDecimal monto,
+                                       LocalDate fechaLimite, String descripcion) {
+        if (monto == null || monto.signum() <= 0) return;
+        Cobro cobro = new Cobro();
+        cobro.setPeriodoId(null);
+        cobro.setPropiedadId(propiedadId);
+        cobro.setConcepto(ConceptoCobro.ZONA_COMUN);
+        cobro.setDescripcion(descripcion);
+        cobro.setMontoBase(monto);
+        cobro.setMontoMora(BigDecimal.ZERO);
+        cobro.setMontoTotal(monto);
+        cobro.setFechaGeneracion(ColombiaTimeZone.hoy());
+        cobro.setFechaLimitePago(fechaLimite != null ? fechaLimite : ColombiaTimeZone.hoy());
+        cobro.setEstado(EstadoCobro.PENDIENTE);
+        cobroRepo.save(cobro);
+    }
+
     @Transactional
     public CobroResponse exonerar(Long id, ExonerarCobroRequest req, Long adminId) {
         Cobro cobro = cobroRepo.findById(id)

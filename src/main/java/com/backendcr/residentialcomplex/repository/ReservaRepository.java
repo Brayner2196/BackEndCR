@@ -35,4 +35,23 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("horaInicio") LocalTime horaInicio,
             @Param("horaFin") LocalTime horaFin
     );
+
+    /**
+     * Cuenta las reservas activas (PENDIENTE o APROBADA) de un residente en una
+     * zona dentro de un rango de fechas [desde, hasta]. Usado para validar las
+     * cuotas por residente (máximo por semana / por mes).
+     */
+    @Query("""
+            SELECT COUNT(r) FROM Reserva r
+            WHERE r.residenteId = :residenteId
+              AND r.zonaComunId = :zonaId
+              AND r.estado IN ('PENDIENTE', 'APROBADA')
+              AND r.fecha BETWEEN :desde AND :hasta
+            """)
+    long countActivasResidenteZonaEnRango(
+            @Param("residenteId") Long residenteId,
+            @Param("zonaId") Long zonaId,
+            @Param("desde") LocalDate desde,
+            @Param("hasta") LocalDate hasta
+    );
 }

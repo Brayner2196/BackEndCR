@@ -46,6 +46,8 @@ public class ReservaService {
     private final ExcepcionZonaComunRepository excepcionRepo;
     private final HorarioGrupoZonaRepository horarioGrupoRepo;
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
+    private final com.backendcr.residentialcomplex.service.reserva.ReglasReservaValidator reglas;
+    private final CobroService cobroService;
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -234,18 +236,7 @@ public class ReservaService {
                     "No se puede reservar con más de " + zona.getAnticipacionMaxDias() + " días de anticipación");
         }
 
-        // 8. Aforo: reservas activas solapadas < capacidad
-        if (zona.getCapacidad() > 0) {
-            long ocupadas = reservaRepo.countSolapamientos(
-                    zona.getId(), req.fecha(), req.horaInicio(), req.horaFin());
-            if (ocupadas >= zona.getCapacidad()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "El aforo máximo (" + zona.getCapacidad() + ") ya está cubierto para ese horario");
-            }
-        }
-
-        // 9. Crear reserva
-        // Resolver propiedadId: usar el del request si viene, sino tomar la primera propiedad del residente
+        // 8. Resolver propiedadId: usar el del request si viene, sino la primera del residente
         Long propiedadId = req.propiedadId();
         if (propiedadId == null) {
             propiedadId = usuarioPropiedadRepo.findByUsuarioId(residenteId)
@@ -255,6 +246,32 @@ public class ReservaService {
                             "El residente no tiene ninguna propiedad asignada"));
         }
 
+        // 9. Cuotas por residente (semana / mes) y restricciones de acceso
+        reglas.validarCuotas(zona, residenteId, req.fecha());
+        reglas.validarAcceso(zona, residenteId, propiedadId);
+
+        // 10. Aforo: reservas activas solapadas < capacidad.
+        //     Se amplía la ventana con el buffer de limpieza para respetar el
+        //     tiempo entre reservas configurado en la zona.
+        if (zona.getCapacidad() > 0) {
+            int buffer = zona.getBufferLimpiezaMinutos();
+            LocalTime inicioChk = req.horaInicio();
+            LocalTime finChk = req.horaFin();
+            if (buffer > 0) {
+                inicioChk = req.horaInicio().isAfter(LocalTime.MIN.plusMinutes(buffer))
+                        ? req.horaInicio().minusMinutes(buffer) : LocalTime.MIN;
+                finChk = req.horaFin().isBefore(LocalTime.MAX.minusMinutes(buffer))
+                        ? req.horaFin().plusMinutes(buffer) : LocalTime.MAX;
+            }
+            long ocupadas = reservaRepo.countSolapamientos(
+                    zona.getId(), req.fecha(), inicioChk, finChk);
+            if (ocupadas >= zona.getCapacidad()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El aforo máximo (" + zona.getCapacidad() + ") ya está cubierto para ese horario");
+            }
+        }
+
+        // 11. Crear reserva
         Reserva r = new Reserva();
         r.setZonaComunId(req.zonaComunId());
         r.setResidenteId(residenteId);
@@ -278,7 +295,9 @@ public class ReservaService {
         r.setDecididoPor(adminId);
         r.setMotivoDecision(req != null ? req.motivo() : null);
         r.setFechaDecision(ColombiaTimeZone.ahora());
-        return toResponse(reservaRepo.save(r));
+        ReservaResponse resp = toResponse(reservaRepo.save(r));
+        generarCobroSiAplica(r);
+        return resp;
     }
 
     @Transactional
@@ -303,6 +322,9 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "La reserva ya está " + r.getEstado());
         }
+        // Validar ventana de cancelación configurada en la zona
+        zonaRepo.findById(r.getZonaComunId())
+                .ifPresent(zona -> reglas.validarVentanaCancelacion(zona, r));
         r.setEstado(EstadoReserva.CANCELADA);
         r.setFechaDecision(ColombiaTimeZone.ahora());
         return toResponse(reservaRepo.save(r));
@@ -391,6 +413,38 @@ public class ReservaService {
 
     private String diaEnEspanol(DayOfWeek dow) {
         return DIAS_ESP.getOrDefault(dow, dow.name());
+    }
+
+    /**
+     * Genera el cobro de la reserva si la zona tiene costo.
+     * FIJA → tarifa; POR_HORA → tarifa × horas. POR_PERSONA queda pendiente
+     * (requiere capturar el número de personas en la reserva). El depósito
+     * reembolsable tampoco se cobra aún (falta lógica de liberación/reembolso).
+     */
+    private void generarCobroSiAplica(Reserva r) {
+        ZonaComun zona = zonaRepo.findById(r.getZonaComunId()).orElse(null);
+        if (zona == null || !zona.isTieneCosto() || zona.getTarifaMonto() == null) return;
+
+        com.backendcr.residentialcomplex.entity.enums.ModoTarifa modo =
+                zona.getModoTarifa() != null
+                        ? zona.getModoTarifa()
+                        : com.backendcr.residentialcomplex.entity.enums.ModoTarifa.FIJA;
+
+        java.math.BigDecimal monto;
+        switch (modo) {
+            case POR_HORA -> {
+                long minutos = ChronoUnit.MINUTES.between(r.getHoraInicio(), r.getHoraFin());
+                monto = zona.getTarifaMonto()
+                        .multiply(java.math.BigDecimal.valueOf(minutos))
+                        .divide(java.math.BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
+            }
+            case FIJA -> monto = zona.getTarifaMonto();
+            default -> { return; } // POR_PERSONA: pendiente (sin número de personas)
+        }
+
+        String desc = "Reserva " + zona.getNombre() + " · " + r.getFecha()
+                + " " + r.getHoraInicio() + "–" + r.getHoraFin();
+        cobroService.generarCobroPorReserva(r.getPropiedadId(), monto, r.getFecha(), desc);
     }
 
     private void validarPendiente(Reserva r) {
