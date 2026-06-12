@@ -34,14 +34,14 @@ public class RestriccionService {
     /** Forma detallada: incluye estado y mensaje configurado para mostrar al usuario. */
     public ResultadoRestriccion verificar(Long propiedadId, AccionRestringible accion) {
         Optional<EstadoCarteraPropiedad> snapOpt = snapshotRepo.findByPropiedadId(propiedadId);
-        if (snapOpt.isEmpty()) return ResultadoRestriccion.permitido();
+        if (snapOpt.isEmpty()) return ResultadoRestriccion.permitir();
 
         EstadoCartera estado = estadoRepo.findById(snapOpt.get().getEstadoCarteraId()).orElse(null);
-        if (estado == null) return ResultadoRestriccion.permitido();
+        if (estado == null) return ResultadoRestriccion.permitir();
 
         Optional<RestriccionEstado> restriccion =
                 restriccionRepo.findByEstadoCarteraIdAndAccion(estado.getId(), accion);
-        if (restriccion.isEmpty()) return ResultadoRestriccion.permitido();
+        if (restriccion.isEmpty()) return ResultadoRestriccion.permitir();
 
         String mensaje = restriccion.get().getMensaje() != null
                 ? restriccion.get().getMensaje()

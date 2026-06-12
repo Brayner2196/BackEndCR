@@ -11,7 +11,7 @@ public record ResultadoRestriccion(
         String mensaje
 ) {
     /** Acción permitida (sin restricción o sin configuración). */
-    public static ResultadoRestriccion permitido() {
+    public static ResultadoRestriccion permitir() {
         return new ResultadoRestriccion(true, null, null, null);
     }
 

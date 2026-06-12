@@ -1,6 +1,8 @@
 package com.backendcr.residentialcomplex.tenant.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -220,19 +222,30 @@ public class TenantService {
      * Re-ejecuta {@link #crearTablasTenant(String)} sobre TODOS los tenants
      * existentes. Como las sentencias usan {@code CREATE TABLE IF NOT EXISTS}, es
      * idempotente: solo crea las tablas que falten (p. ej. las nuevas de cartera)
-     * sin afectar las ya existentes. Pensado para aplicar migraciones de esquema
-     * a conjuntos ya creados.
+     * sin afectar las ya existentes.
      *
-     * @return número de tenants procesados.
+     * IMPORTANTE: NO se anota {@code @Transactional}. Cada {@code CREATE TABLE} se
+     * auto-confirma y cada tenant se procesa de forma aislada: si uno falla, no
+     * aborta el resto (evita el "current transaction is aborted" de PostgreSQL) y
+     * el error de ese schema se reporta en la respuesta.
+     *
+     * @return mapa con {@code tenantsProcesados} (int) y {@code errores} (lista).
      */
-    @Transactional
-    public int reprovisionarTodosLosTenants() {
+    public Map<String, Object> reprovisionarTodosLosTenants() {
         List<Tenant> tenants = tenantRepository.findAll();
+        int procesados = 0;
+        List<String> errores = new ArrayList<>();
         for (Tenant t : tenants) {
-            crearTablasTenant(t.getSchemaName());
-            log.info("Tenant '{}' reprovisionado (tablas faltantes creadas)", t.getSchemaName());
+            try {
+                crearTablasTenant(t.getSchemaName());
+                procesados++;
+                log.info("Tenant '{}' reprovisionado (tablas faltantes creadas)", t.getSchemaName());
+            } catch (Exception e) {
+                log.error("Error reprovisionando '{}': {}", t.getSchemaName(), e.getMessage());
+                errores.add(t.getSchemaName() + ": " + e.getMessage());
+            }
         }
-        return tenants.size();
+        return Map.of("tenantsProcesados", procesados, "errores", errores);
     }
 
     public void crearTablasTenant(String schema) {

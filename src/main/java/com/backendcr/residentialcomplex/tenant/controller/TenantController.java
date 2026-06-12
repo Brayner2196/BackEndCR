@@ -45,8 +45,8 @@ public class TenantController {
      * tras desplegar cambios de esquema.
      */
     @PostMapping("/reprovisionar")
-    public Map<String, Integer> reprovisionar() {
-        return Map.of("tenantsProcesados", tenantService.reprovisionarTodosLosTenants());
+    public Map<String, Object> reprovisionar() {
+        return tenantService.reprovisionarTodosLosTenants();
     }
 
     @GetMapping("/{id}")
