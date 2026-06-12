@@ -1,6 +1,7 @@
 package com.backendcr.residentialcomplex.tenant.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +37,16 @@ public class TenantController {
     @GetMapping
     public List<TenantResponse> obtenerTenants() {
         return tenantService.obtenerTenants();
+    }
+
+    /**
+     * Re-provisiona el esquema de TODOS los tenants (idempotente): crea las
+     * tablas que falten, como las nuevas del sistema de cartera. Ejecutar una vez
+     * tras desplegar cambios de esquema.
+     */
+    @PostMapping("/reprovisionar")
+    public Map<String, Integer> reprovisionar() {
+        return Map.of("tenantsProcesados", tenantService.reprovisionarTodosLosTenants());
     }
 
     @GetMapping("/{id}")

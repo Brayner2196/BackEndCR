@@ -216,6 +216,25 @@ public class TenantService {
      * 2. parqueaderos
      * 2. vehiculos
      */
+    /**
+     * Re-ejecuta {@link #crearTablasTenant(String)} sobre TODOS los tenants
+     * existentes. Como las sentencias usan {@code CREATE TABLE IF NOT EXISTS}, es
+     * idempotente: solo crea las tablas que falten (p. ej. las nuevas de cartera)
+     * sin afectar las ya existentes. Pensado para aplicar migraciones de esquema
+     * a conjuntos ya creados.
+     *
+     * @return número de tenants procesados.
+     */
+    @Transactional
+    public int reprovisionarTodosLosTenants() {
+        List<Tenant> tenants = tenantRepository.findAll();
+        for (Tenant t : tenants) {
+            crearTablasTenant(t.getSchemaName());
+            log.info("Tenant '{}' reprovisionado (tablas faltantes creadas)", t.getSchemaName());
+        }
+        return tenants.size();
+    }
+
     public void crearTablasTenant(String schema) {
 
         // ── 1. usuarios ───────────────────────────────────────────────────
@@ -876,6 +895,87 @@ public class TenantService {
                 )
                 """.formatted(schema, schema));
         log.info("Tabla miembro_consejo creada para tenant '{}'", schema);
+
+        // ── 33. estados_cartera ───────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.estados_cartera (
+                    id          BIGSERIAL    PRIMARY KEY,
+                    codigo      VARCHAR(40)  NOT NULL UNIQUE,
+                    nombre      VARCHAR(80)  NOT NULL,
+                    descripcion VARCHAR(300),
+                    severidad   INT          NOT NULL DEFAULT 0,
+                    color       VARCHAR(9),
+                    es_positivo BOOLEAN      NOT NULL DEFAULT FALSE,
+                    activo      BOOLEAN      NOT NULL DEFAULT TRUE,
+                    creado_en   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+        log.info("Tabla estados_cartera creada para tenant '{}'", schema);
+
+        // ── 34. reglas_estado_cartera ─────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.reglas_estado_cartera (
+                    id                BIGSERIAL    PRIMARY KEY,
+                    estado_cartera_id BIGINT       NOT NULL REFERENCES %s.estados_cartera(id),
+                    nombre            VARCHAR(120) NOT NULL,
+                    operador_logico   VARCHAR(5)   NOT NULL DEFAULT 'AND',
+                    orden             INT          NOT NULL DEFAULT 0,
+                    activa            BOOLEAN      NOT NULL DEFAULT TRUE
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla reglas_estado_cartera creada para tenant '{}'", schema);
+
+        // ── 35. condiciones_regla ─────────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.condiciones_regla (
+                    id        BIGSERIAL     PRIMARY KEY,
+                    regla_id  BIGINT        NOT NULL REFERENCES %s.reglas_estado_cartera(id),
+                    campo     VARCHAR(30)   NOT NULL,
+                    operador  VARCHAR(15)   NOT NULL,
+                    valor     NUMERIC(16,2) NOT NULL
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla condiciones_regla creada para tenant '{}'", schema);
+
+        // ── 36. restricciones_estado ──────────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.restricciones_estado (
+                    id                BIGSERIAL    PRIMARY KEY,
+                    estado_cartera_id BIGINT       NOT NULL REFERENCES %s.estados_cartera(id),
+                    accion            VARCHAR(40)  NOT NULL,
+                    mensaje           VARCHAR(200),
+                    UNIQUE(estado_cartera_id, accion)
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla restricciones_estado creada para tenant '{}'", schema);
+
+        // ── 37. estado_cartera_propiedad (snapshot vigente) ───────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.estado_cartera_propiedad (
+                    id                BIGSERIAL     PRIMARY KEY,
+                    propiedad_id      BIGINT        NOT NULL REFERENCES %s.propiedades(id),
+                    estado_cartera_id BIGINT        NOT NULL REFERENCES %s.estados_cartera(id),
+                    dias_vencido_max  INT           NOT NULL DEFAULT 0,
+                    monto_adeudado    NUMERIC(16,2) DEFAULT 0,
+                    calculado_en      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(propiedad_id)
+                )
+                """.formatted(schema, schema, schema));
+        log.info("Tabla estado_cartera_propiedad creada para tenant '{}'", schema);
+
+        // ── 38. historial_estado_cartera ──────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.historial_estado_cartera (
+                    id                 BIGSERIAL     PRIMARY KEY,
+                    propiedad_id       BIGINT        NOT NULL REFERENCES %s.propiedades(id),
+                    estado_anterior_id BIGINT        REFERENCES %s.estados_cartera(id),
+                    estado_nuevo_id    BIGINT        NOT NULL REFERENCES %s.estados_cartera(id),
+                    dias_vencido_max   INT           NOT NULL,
+                    monto_adeudado     NUMERIC(16,2),
+                    creado_en          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema, schema, schema));
+        log.info("Tabla historial_estado_cartera creada para tenant '{}'", schema);
 
     }
 
