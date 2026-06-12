@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * Consulta y recálculo del estado de cartera de una propiedad (admin).
  * La configuración de estados/reglas/restricciones (CRUD) es Fase 2.
@@ -17,6 +19,12 @@ import org.springframework.web.bind.annotation.*;
 public class CarteraController {
 
     private final EvaluadorCarteraService evaluador;
+
+    /** Estado de cartera vigente de todas las propiedades (para badges en listas). */
+    @GetMapping("/estados-cartera")
+    public List<EstadoCarteraResponse> listarEstados() {
+        return evaluador.listarEstadosVigentes();
+    }
 
     @GetMapping("/{id}/estado-cartera")
     public EstadoCarteraResponse consultar(@PathVariable Long id) {

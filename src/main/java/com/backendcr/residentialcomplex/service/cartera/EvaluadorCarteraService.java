@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -162,6 +163,33 @@ public class EvaluadorCarteraService {
     public EstadoCarteraResponse recalcularYConsultar(Long propiedadId) {
         recalcular(propiedadId);
         return consultarEstado(propiedadId);
+    }
+
+    /**
+     * Lista el estado de cartera vigente de todas las propiedades que tienen
+     * snapshot. Pensado para pintar badges en listas (morosidad, propiedades)
+     * sin hacer una consulta por propiedad.
+     */
+    @Transactional(readOnly = true)
+    public List<EstadoCarteraResponse> listarEstadosVigentes() {
+        List<EstadoCarteraPropiedad> snapshots = snapshotRepo.findAll();
+        if (snapshots.isEmpty()) return List.of();
+
+        Map<Long, EstadoCartera> estadosPorId = estadoRepo.findAll().stream()
+                .collect(java.util.stream.Collectors.toMap(EstadoCartera::getId, e -> e));
+
+        return snapshots.stream().map(snap -> {
+            EstadoCartera e = estadosPorId.get(snap.getEstadoCarteraId());
+            return new EstadoCarteraResponse(
+                    snap.getPropiedadId(),
+                    e != null ? e.getCodigo() : null,
+                    e != null ? e.getNombre() : null,
+                    e != null ? e.getColor() : null,
+                    e != null && e.isEsPositivo(),
+                    snap.getDiasVencidoMax(),
+                    snap.getMontoAdeudado(),
+                    snap.getCalculadoEn());
+        }).toList();
     }
 
     // ─── Job diario — corre tras el cálculo de moras (1 AM) ───────────────

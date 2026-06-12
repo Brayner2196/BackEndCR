@@ -12,4 +12,6 @@ public interface RestriccionEstadoRepository extends JpaRepository<RestriccionEs
     Optional<RestriccionEstado> findByEstadoCarteraIdAndAccion(Long estadoCarteraId, AccionRestringible accion);
 
     List<RestriccionEstado> findByEstadoCarteraId(Long estadoCarteraId);
+
+    void deleteByEstadoCarteraId(Long estadoCarteraId);
 }

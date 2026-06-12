@@ -8,4 +8,8 @@ import java.util.List;
 public interface ReglaEstadoCarteraRepository extends JpaRepository<ReglaEstadoCartera, Long> {
 
     List<ReglaEstadoCartera> findByEstadoCarteraIdAndActivaTrueOrderByOrdenAsc(Long estadoCarteraId);
+
+    List<ReglaEstadoCartera> findByEstadoCarteraIdOrderByOrdenAsc(Long estadoCarteraId);
+
+    void deleteByEstadoCarteraId(Long estadoCarteraId);
 }

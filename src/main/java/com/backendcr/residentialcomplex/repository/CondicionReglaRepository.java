@@ -8,4 +8,6 @@ import java.util.List;
 public interface CondicionReglaRepository extends JpaRepository<CondicionRegla, Long> {
 
     List<CondicionRegla> findByReglaId(Long reglaId);
+
+    void deleteByReglaId(Long reglaId);
 }
