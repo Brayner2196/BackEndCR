@@ -27,6 +27,7 @@ public class ParqueaderoService {
     private final ParqueaderoRepository parqueaderoRepo;
     private final VehiculoRepository vehiculoRepo;
     private final PropiedadRepository propiedadRepo;
+    private final PropiedadService propiedadService;
     private final ConfiguracionParqueaderoRepository configRepo;
 
     // ─── Consultas ─────────────────────────────────────────────
@@ -183,6 +184,8 @@ public class ParqueaderoService {
             propiedadIdentificador = propiedadRepo.findById(propiedadRefId)
                     .map(Propiedad::getIdentificador).orElse(null);
         }
+        // Path corto de la propiedad asociada (para mostrar a qué propiedad pertenece)
+        String propiedadPath = propiedadService.pathCortoDePropiedad(propiedadRefId);
 
         String vehiculoPlaca = null;
         String vehiculoTipo = null;
@@ -201,6 +204,7 @@ public class ParqueaderoService {
                 p.getModeloPropiedad(),
                 p.getPropiedadId(),
                 propiedadIdentificador,
+                propiedadPath,
                 p.getPropiedadParqueaderoId(),
                 p.getVehiculoId(),
                 vehiculoPlaca,

@@ -12,6 +12,8 @@ public record ParqueaderoResponse(
         /** ACCESORIO: ID del apartamento. INDEPENDIENTE: ID de apartamento relacionado (opcional) */
         Long propiedadId,
         String propiedadIdentificador,
+        /** Path corto de la propiedad asociada (ACCESORIO: apto / INDEPENDIENTE: propiedad-parqueadero) */
+        String propiedadPath,
         /** INDEPENDIENTE: ID de la Propiedad-parqueadero en el árbol de tipos */
         Long propiedadParqueaderoId,
         Long vehiculoId,

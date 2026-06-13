@@ -290,6 +290,13 @@ public class PropiedadService {
                 esFacturable, esParqueadero, p.getEstado(), residentes);
     }
 
+    /** Path corto de una propiedad por id (reutilizable). Null si no existe. */
+    public String pathCortoDePropiedad(Long propiedadId) {
+        if (propiedadId == null) return null;
+        return propiedadRepo.findById(propiedadId)
+                .map(this::construirPathCorto).orElse(null);
+    }
+
     /** Versión corta del path: concatena solo los identificadores sin separador.
      *  Ej: "Torre A / Piso 1 / Apartamento 01" → "A101" */
     private String construirPathCorto(Propiedad hoja) {
