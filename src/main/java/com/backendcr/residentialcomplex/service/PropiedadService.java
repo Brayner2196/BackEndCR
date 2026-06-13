@@ -264,9 +264,12 @@ public class PropiedadService {
     }
 
     private PropiedadResponse toPropiedadResponse(Propiedad p, boolean incluirResidentes) {
-        String nombreTipo = tipoRepo.findById(p.getTipoId())
-                .map(TipoPropiedad::getNombre).orElse("?");
-        String path = construirPathTexto(p);
+        TipoPropiedad tipoHoja = tipoRepo.findById(p.getTipoId()).orElse(null);
+        String nombreTipo     = tipoHoja != null ? tipoHoja.getNombre() : "?";
+        boolean esFacturable  = tipoHoja != null && tipoHoja.isEsFacturable();
+        boolean esParqueadero = tipoHoja != null && tipoHoja.isEsParqueadero();
+        String path      = construirPathTexto(p);
+        String pathCorto = construirPathCorto(p);
 
         List<ResidenteResumenDto> residentes = Collections.emptyList();
         if (incluirResidentes) {
@@ -283,7 +286,8 @@ public class PropiedadService {
         }
 
         return new PropiedadResponse(p.getId(), p.getTipoId(), nombreTipo,
-                p.getParentId(), p.getIdentificador(), path, p.getEstado(), residentes);
+                p.getParentId(), p.getIdentificador(), path, pathCorto,
+                esFacturable, esParqueadero, p.getEstado(), residentes);
     }
 
     /** Versión corta del path: concatena solo los identificadores sin separador.

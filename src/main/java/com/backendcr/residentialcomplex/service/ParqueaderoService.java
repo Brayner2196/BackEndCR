@@ -172,9 +172,15 @@ public class ParqueaderoService {
     // ─── Helper toResponse ─────────────────────────────────────
 
     private ParqueaderoResponse toResponse(Parqueadero p) {
+        // El identificador de la propiedad puede provenir de:
+        //   ACCESORIO     → propiedadId (apartamento dueño)
+        //   INDEPENDIENTE → propiedadParqueaderoId (propiedad-parqueadero en el árbol)
+        Long propiedadRefId = p.getPropiedadId() != null
+                ? p.getPropiedadId()
+                : p.getPropiedadParqueaderoId();
         String propiedadIdentificador = null;
-        if (p.getPropiedadId() != null) {
-            propiedadIdentificador = propiedadRepo.findById(p.getPropiedadId())
+        if (propiedadRefId != null) {
+            propiedadIdentificador = propiedadRepo.findById(propiedadRefId)
                     .map(Propiedad::getIdentificador).orElse(null);
         }
 

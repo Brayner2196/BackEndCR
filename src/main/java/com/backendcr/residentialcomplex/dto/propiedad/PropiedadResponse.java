@@ -11,6 +11,9 @@ public record PropiedadResponse(
         Long parentId,
         String identificador,
         String pathTexto,
+        String pathTextoCorto,
+        boolean esFacturable,
+        boolean esParqueadero,
         EstadoPropiedad estado,
         List<ResidenteResumenDto> residentes
 ) {}
