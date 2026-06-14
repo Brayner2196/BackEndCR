@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Respuesta de un residente a una votación.
@@ -44,11 +44,11 @@ public class VotoResidente {
 
     @CreationTimestamp
     @Column(name = "votado_en", nullable = false, updatable = false)
-    private LocalDateTime votadoEn;
+    private Instant votadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -71,6 +71,6 @@ public class VotoResidente {
     public String getRespuestaTexto() { return respuestaTexto; }
     public void setRespuestaTexto(String respuestaTexto) { this.respuestaTexto = respuestaTexto; }
 
-    public LocalDateTime getVotadoEn() { return votadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getVotadoEn() { return votadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

@@ -12,11 +12,13 @@ import com.backendcr.residentialcomplex.repository.AnuncioVistaRepository;
 import com.backendcr.residentialcomplex.repository.PQRRepository;
 import com.backendcr.residentialcomplex.repository.VotacionRepository;
 import com.backendcr.residentialcomplex.repository.VotoResidenteRepository;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,7 @@ public class ConsejoEstadisticasService {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    public ConsejoEstadisticasResponse calcular(LocalDateTime desde, LocalDateTime hasta) {
+    public ConsejoEstadisticasResponse calcular(Instant desde, Instant hasta) {
 
         // ── PQRs ─────────────────────────────────────────────────────────────
         List<PQR> pqrs = pqrRepository.findByCreadoEnBetween(desde, hasta);
@@ -85,8 +87,8 @@ public class ConsejoEstadisticasService {
 
         // ── Respuesta ────────────────────────────────────────────────────────
         return new ConsejoEstadisticasResponse(
-                desde.format(FMT),
-                hasta.format(FMT),
+                LocalDate.ofInstant(desde, TenantClock.zona()).format(FMT),
+                LocalDate.ofInstant(hasta, TenantClock.zona()).format(FMT),
                 pqrs.size(),
                 pqrPorEstado,
                 pqrPorTipo,

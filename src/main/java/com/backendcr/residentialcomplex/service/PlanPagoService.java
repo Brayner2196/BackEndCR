@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.dto.planpago.*;
 import com.backendcr.residentialcomplex.entity.*;
 import com.backendcr.residentialcomplex.entity.enums.EstadoCuotaPlan;
@@ -14,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,7 +58,7 @@ public class PlanPagoService {
         if (req.aprobar()) {
             plan.setEstado(EstadoPlan.ACTIVO);
             plan.setAprobadoPor(adminId);
-            plan.setFechaDecision(LocalDateTime.now());
+            plan.setFechaDecision(TenantClock.ahora());
             plan.setNotaAdmin(req.notaAdmin());
             planRepo.save(plan);
             generarCuotas(plan);
@@ -70,7 +70,7 @@ public class PlanPagoService {
             plan.setEstado(EstadoPlan.RECHAZADO);
             plan.setMotivoRechazo(req.motivoRechazo());
             plan.setNotaAdmin(req.notaAdmin());
-            plan.setFechaDecision(LocalDateTime.now());
+            plan.setFechaDecision(TenantClock.ahora());
             planRepo.save(plan);
         }
         return toResponse(plan, true);
@@ -89,7 +89,7 @@ public class PlanPagoService {
         }
 
         cuota.setEstado(EstadoCuotaPlan.PAGADA);
-        cuota.setFechaPago(LocalDate.now());
+        cuota.setFechaPago(TenantClock.hoy());
         cuota.setNotaPago(notaPago);
         cuotaRepo.save(cuota);
 
@@ -186,7 +186,7 @@ public class PlanPagoService {
         // Aprobación automática
         if (config.isAprobacionAutomatica()) {
             plan.setEstado(EstadoPlan.ACTIVO);
-            plan.setFechaDecision(LocalDateTime.now());
+            plan.setFechaDecision(TenantClock.ahora());
         }
 
         planRepo.save(plan);
@@ -230,7 +230,7 @@ public class PlanPagoService {
                     ? plan.getMontoTotalPlan().subtract(acumulado)
                     : montoPorCuota;
             cuota.setMonto(monto);
-            cuota.setFechaVencimiento(LocalDate.now().plusMonths(i));
+            cuota.setFechaVencimiento(TenantClock.hoy().plusMonths(i));
             cuotas.add(cuota);
             acumulado = acumulado.add(monto);
         }

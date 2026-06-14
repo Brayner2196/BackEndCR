@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "configuracion_mora")
@@ -35,7 +35,7 @@ public class ConfiguracionMora {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -51,5 +51,5 @@ public class ConfiguracionMora {
     public void setActivo(boolean activo) { this.activo = activo; }
     public LocalDate getFechaVigencia() { return fechaVigencia; }
     public void setFechaVigencia(LocalDate d) { this.fechaVigencia = d; }
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

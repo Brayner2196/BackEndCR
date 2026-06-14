@@ -1,6 +1,6 @@
 package com.backendcr.residentialcomplex.service.reserva;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.dto.cartera.ResultadoRestriccion;
 import com.backendcr.residentialcomplex.entity.Cobro;
 import com.backendcr.residentialcomplex.entity.Propiedad;
@@ -119,7 +119,7 @@ public class ReglasReservaValidator {
         List<Long> propiedadIds = usuarioPropiedadRepo.findByUsuarioId(residenteId)
                 .stream().map(UsuarioPropiedad::getPropiedadId).toList();
         if (propiedadIds.isEmpty()) return false;
-        LocalDate hoy = ColombiaTimeZone.hoy();
+        LocalDate hoy = TenantClock.hoy();
         return cobroRepo.findAllByPropiedadIdIn(propiedadIds).stream().anyMatch(c ->
                 c.getEstado() == EstadoCobro.VENCIDO
                         || ((c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.PARCIAL)
@@ -157,7 +157,7 @@ public class ReglasReservaValidator {
     public void validarVentanaCancelacion(ZonaComun zona, Reserva reserva) {
         if (zona.getCancelacionHorasAntes() == null) return;
         LocalDateTime inicio = LocalDateTime.of(reserva.getFecha(), reserva.getHoraInicio());
-        long horasRestantes = ChronoUnit.HOURS.between(ColombiaTimeZone.ahora(), inicio);
+        long horasRestantes = ChronoUnit.HOURS.between(TenantClock.ahoraEnZona(), inicio);
         if (horasRestantes < zona.getCancelacionHorasAntes()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Solo se puede cancelar con al menos "

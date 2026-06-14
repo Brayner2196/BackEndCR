@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Saldo a favor acumulado por propiedad.
@@ -30,11 +30,11 @@ public class SaldoFavor {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,6 +44,6 @@ public class SaldoFavor {
     public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
     public BigDecimal getSaldo() { return saldo != null ? saldo : BigDecimal.ZERO; }
     public void setSaldo(BigDecimal saldo) { this.saldo = saldo; }
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

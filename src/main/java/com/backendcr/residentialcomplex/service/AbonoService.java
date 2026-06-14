@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +54,7 @@ public class AbonoService {
         Abono abono = obtenerYValidar(id);
         abono.setEstado(EstadoPago.VERIFICADO);
         abono.setVerificadoPor(adminId);
-        abono.setFechaVerificacion(ColombiaTimeZone.ahora());
+        abono.setFechaVerificacion(TenantClock.ahora());
         if (req.notas() != null) abono.setNotas(req.notas());
         abonoRepo.save(abono);
 
@@ -67,7 +67,7 @@ public class AbonoService {
         Abono abono = obtenerYValidar(id);
         abono.setEstado(EstadoPago.RECHAZADO);
         abono.setVerificadoPor(adminId);
-        abono.setFechaVerificacion(ColombiaTimeZone.ahora());
+        abono.setFechaVerificacion(TenantClock.ahora());
         abono.setMotivoRechazo(req.motivoRechazo());
         return toResponse(abonoRepo.save(abono), List.of());
     }

@@ -6,7 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 
 @Entity
@@ -49,15 +49,15 @@ public class Reserva {
     private String motivoDecision;
 
     @Column(name = "fecha_decision")
-    private LocalDateTime fechaDecision;
+    private Instant fechaDecision;
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -92,9 +92,9 @@ public class Reserva {
     public String getMotivoDecision() { return motivoDecision; }
     public void setMotivoDecision(String motivoDecision) { this.motivoDecision = motivoDecision; }
 
-    public LocalDateTime getFechaDecision() { return fechaDecision; }
-    public void setFechaDecision(LocalDateTime fechaDecision) { this.fechaDecision = fechaDecision; }
+    public Instant getFechaDecision() { return fechaDecision; }
+    public void setFechaDecision(Instant fechaDecision) { this.fechaDecision = fechaDecision; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

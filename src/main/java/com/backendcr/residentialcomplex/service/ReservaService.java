@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse;
 import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse.FranjaDisponibilidad;
 import com.backendcr.residentialcomplex.dto.reserva.DisponibilidadZonaResponse.RangoOcupado;
@@ -222,7 +222,7 @@ public class ReservaService {
         }
 
         // 7. Validar anticipación
-        long diasAnticipacion = ChronoUnit.DAYS.between(ColombiaTimeZone.hoy(), req.fecha());
+        long diasAnticipacion = ChronoUnit.DAYS.between(TenantClock.hoy(), req.fecha());
         if (diasAnticipacion < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "No se pueden crear reservas para fechas pasadas");
@@ -294,7 +294,7 @@ public class ReservaService {
         r.setEstado(EstadoReserva.APROBADA);
         r.setDecididoPor(adminId);
         r.setMotivoDecision(req != null ? req.motivo() : null);
-        r.setFechaDecision(ColombiaTimeZone.ahora());
+        r.setFechaDecision(TenantClock.ahora());
         ReservaResponse resp = toResponse(reservaRepo.save(r));
         generarCobroSiAplica(r);
         return resp;
@@ -307,7 +307,7 @@ public class ReservaService {
         r.setEstado(EstadoReserva.RECHAZADA);
         r.setDecididoPor(adminId);
         r.setMotivoDecision(req != null ? req.motivo() : null);
-        r.setFechaDecision(ColombiaTimeZone.ahora());
+        r.setFechaDecision(TenantClock.ahora());
         return toResponse(reservaRepo.save(r));
     }
 
@@ -326,7 +326,7 @@ public class ReservaService {
         zonaRepo.findById(r.getZonaComunId())
                 .ifPresent(zona -> reglas.validarVentanaCancelacion(zona, r));
         r.setEstado(EstadoReserva.CANCELADA);
-        r.setFechaDecision(ColombiaTimeZone.ahora());
+        r.setFechaDecision(TenantClock.ahora());
         return toResponse(reservaRepo.save(r));
     }
 

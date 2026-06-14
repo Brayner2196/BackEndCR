@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.entity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "device_tokens", 
@@ -30,7 +30,7 @@ public class DeviceToken {
 
     @UpdateTimestamp
     @Column(name = "actualizado_en")
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     public DeviceToken() {}
 
@@ -55,5 +55,5 @@ public class DeviceToken {
     public String getPlataforma() { return plataforma; }
     public void setPlataforma(String plataforma) { this.plataforma = plataforma; }
 
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

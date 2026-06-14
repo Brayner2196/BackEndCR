@@ -5,7 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Presupuesto anual del conjunto residencial.
@@ -41,11 +41,11 @@ public class Presupuesto {
 
     @CreationTimestamp
     @Column(name = "creado_en", updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en")
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     // ── Getters / Setters ──────────────────────────────────────────────────────
 
@@ -66,6 +66,6 @@ public class Presupuesto {
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

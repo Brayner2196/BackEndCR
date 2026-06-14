@@ -1,6 +1,6 @@
 package com.backendcr.residentialcomplex.entity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -32,7 +32,7 @@ public class UsuarioPropiedad {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -49,5 +49,5 @@ public class UsuarioPropiedad {
     public RolPropiedad getRol() { return rol; }
     public void setRol(RolPropiedad rol) { this.rol = rol; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

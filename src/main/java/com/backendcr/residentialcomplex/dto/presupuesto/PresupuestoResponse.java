@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.dto.presupuesto;
 import com.backendcr.residentialcomplex.entity.Presupuesto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record PresupuestoResponse(
@@ -16,8 +16,8 @@ public record PresupuestoResponse(
         BigDecimal montoTotalPendiente,
         double porcentajeEjecucionGeneral,
         boolean activo,
-        LocalDateTime creadoEn,
-        LocalDateTime actualizadoEn,
+        Instant creadoEn,
+        Instant actualizadoEn,
         List<CategoriaPresupuestoResponse> categorias
 ) {
     /** Lista (sin categorías detalladas) */

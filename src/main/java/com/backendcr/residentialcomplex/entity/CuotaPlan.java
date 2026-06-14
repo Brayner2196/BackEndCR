@@ -6,7 +6,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Cuota individual dentro de un PlanPago.
@@ -45,7 +45,7 @@ public class CuotaPlan {
 
     @UpdateTimestamp
     @Column(name = "actualizado_en")
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     // ── Getters / Setters ──────────────────────────────────────────
 
@@ -73,5 +73,5 @@ public class CuotaPlan {
     public String getNotaPago() { return notaPago; }
     public void setNotaPago(String notaPago) { this.notaPago = notaPago; }
 
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

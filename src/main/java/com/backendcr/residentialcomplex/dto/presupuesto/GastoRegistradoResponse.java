@@ -4,7 +4,7 @@ import com.backendcr.residentialcomplex.entity.GastoRegistrado;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record GastoRegistradoResponse(
         Long id,
@@ -14,7 +14,7 @@ public record GastoRegistradoResponse(
         LocalDate fecha,
         String comprobante,
         Long registradoPor,
-        LocalDateTime creadoEn
+        Instant creadoEn
 ) {
     public static GastoRegistradoResponse from(GastoRegistrado g) {
         return new GastoRegistradoResponse(

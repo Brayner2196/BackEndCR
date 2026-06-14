@@ -7,7 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "abonos")
@@ -50,18 +50,18 @@ public class Abono {
     private Long verificadoPor;
 
     @Column(name = "fecha_verificacion")
-    private LocalDateTime fechaVerificacion;
+    private Instant fechaVerificacion;
 
     @Column(name = "motivo_rechazo", length = 300)
     private String motivoRechazo;
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -85,10 +85,10 @@ public class Abono {
     public void setEstado(EstadoPago estado) { this.estado = estado; }
     public Long getVerificadoPor() { return verificadoPor; }
     public void setVerificadoPor(Long verificadoPor) { this.verificadoPor = verificadoPor; }
-    public LocalDateTime getFechaVerificacion() { return fechaVerificacion; }
-    public void setFechaVerificacion(LocalDateTime fechaVerificacion) { this.fechaVerificacion = fechaVerificacion; }
+    public Instant getFechaVerificacion() { return fechaVerificacion; }
+    public void setFechaVerificacion(Instant fechaVerificacion) { this.fechaVerificacion = fechaVerificacion; }
     public String getMotivoRechazo() { return motivoRechazo; }
     public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

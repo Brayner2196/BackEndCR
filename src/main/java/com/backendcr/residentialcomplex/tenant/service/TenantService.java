@@ -258,8 +258,8 @@ public class TenantService {
                     identidad_id   BIGINT NOT NULL,
                     telefono       VARCHAR(20),
                     estado         VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
-                    creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla usuarios creada para tenant '{}'", schema);
@@ -287,8 +287,8 @@ public class TenantService {
                     identificador  VARCHAR(50) NOT NULL,
                     parent_id      BIGINT REFERENCES %s.propiedades(id),
                     estado         VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE',
-                    creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
         log.info("Tabla propiedades creada para tenant '{}'", schema);
@@ -301,7 +301,7 @@ public class TenantService {
                     propiedad_id BIGINT NOT NULL REFERENCES %s.propiedades(id),
                     es_principal BOOLEAN NOT NULL DEFAULT FALSE,
                     rol          VARCHAR(20),
-                    creado_en    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    creado_en    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(usuario_id, propiedad_id)
                 )
                 """.formatted(schema, schema));
@@ -319,9 +319,9 @@ public class TenantService {
                     propiedad_id     BIGINT,
                     respuesta_admin  VARCHAR(500),
                     respondido_por   BIGINT,
-                    fecha_respuesta  TIMESTAMP,
-                    creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    fecha_respuesta  TIMESTAMPTZ,
+                    creado_en        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla pqrs creada para tenant '{}'", schema);
@@ -336,7 +336,7 @@ public class TenantService {
                     estado_nuevo    VARCHAR(20) NOT NULL,
                     cambiado_por    BIGINT,
                     comentario      VARCHAR(500),
-                    fecha_cambio    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    fecha_cambio    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         log.info("Tabla pqr_historial creada para tenant '{}'", schema);
@@ -349,10 +349,10 @@ public class TenantService {
                     contenido      VARCHAR(2500) NOT NULL,
                     estado         VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
                     creado_por     BIGINT NOT NULL REFERENCES %s.usuarios(id),
-                    fecha_inicio   TIMESTAMP,
-                    fecha_fin      TIMESTAMP,
-                    creado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    fecha_inicio   TIMESTAMPTZ,
+                    fecha_fin      TIMESTAMPTZ,
+                    creado_en      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         log.info("Tabla anuncios creada para tenant '{}'", schema);
@@ -364,7 +364,7 @@ public class TenantService {
                     anuncio_id       BIGINT NOT NULL REFERENCES %s.anuncios(id),
                     residente_id     BIGINT NOT NULL REFERENCES %s.usuarios(id),
                     residente_nombre VARCHAR(150),
-                    visto_en         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    visto_en         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(anuncio_id, residente_id)
                 )
                 """.formatted(schema, schema, schema));
@@ -422,7 +422,7 @@ public class TenantService {
                     suspendida               BOOLEAN      NOT NULL DEFAULT FALSE,
                     motivo_suspension        VARCHAR(300),
 
-                    creado_en                TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en                TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla zonas_comunes creada para tenant '{}'", schema);
@@ -462,7 +462,7 @@ public class TenantService {
                     hora_apertura TIME,
                     hora_cierre   TIME,
                     motivo        VARCHAR(300),
-                    creado_en     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en     TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         log.info("Tabla excepciones_zonas_comunes creada para tenant '{}'", schema);
@@ -481,9 +481,9 @@ public class TenantService {
                     observaciones    VARCHAR(500),
                     decidido_por     BIGINT REFERENCES %s.usuarios(id),
                     motivo_decision  VARCHAR(300),
-                    fecha_decision   TIMESTAMP,
-                    creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    fecha_decision   TIMESTAMPTZ,
+                    creado_en        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema, schema, schema));
         log.info("Tabla reservas creada para tenant '{}'", schema);
@@ -499,7 +499,7 @@ public class TenantService {
                     fecha_limite_pago   DATE NOT NULL,
                     estado              VARCHAR(20) NOT NULL DEFAULT 'ABIERTO',
                     creado_por          BIGINT NOT NULL REFERENCES %s.usuarios(id),
-                    creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    creado_en           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(anio, mes)
                 )
                 """.formatted(schema, schema));
@@ -522,8 +522,8 @@ public class TenantService {
                     fecha_vigencia_desde        DATE NOT NULL,
                     fecha_vigencia_hasta        DATE,
                     activo                      BOOLEAN NOT NULL DEFAULT TRUE,
-                    creado_en                   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en                   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema, schema));
         log.info("Tabla configuracion_cuotas creada para tenant '{}'", schema);
@@ -538,7 +538,7 @@ public class TenantService {
                     monto_fijo          NUMERIC(12,0),
                     activo              BOOLEAN NOT NULL DEFAULT TRUE,
                     fecha_vigencia      DATE NOT NULL,
-                    creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla configuracion_mora creada para tenant '{}'", schema);
@@ -562,8 +562,8 @@ public class TenantService {
                     estado               VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
                     exonerado_por        BIGINT,
                     nota_exoneracion     VARCHAR(300),
-                    creado_en            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en            TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
         log.info("Tabla cobros creada para tenant '{}'", schema);
@@ -581,10 +581,10 @@ public class TenantService {
                     url_comprobante     VARCHAR(500),
                     estado              VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE_VERIFICACION',
                     verificado_por      BIGINT REFERENCES %s.usuarios(id),
-                    fecha_verificacion  TIMESTAMP,
+                    fecha_verificacion  TIMESTAMPTZ,
                     motivo_rechazo      VARCHAR(300),
-                    creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema, schema));
         	log.info("Tabla pagos creada para tenant '{}'", schema);
@@ -603,10 +603,10 @@ public class TenantService {
                     notas               VARCHAR(500),
                     estado              VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE_VERIFICACION',
                     verificado_por      BIGINT,
-                    fecha_verificacion  TIMESTAMP,
+                    fecha_verificacion  TIMESTAMPTZ,
                     motivo_rechazo      VARCHAR(300),
-                    creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
         log.info("Tabla abonos creada para tenant '{}'", schema);
@@ -619,7 +619,7 @@ public class TenantService {
                     cobro_id        BIGINT REFERENCES %s.cobros(id),
                     monto_aplicado  NUMERIC(12,0) NOT NULL,
                     descripcion     VARCHAR(100),
-                    creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
         	log.info("Tabla movimientos_abono creada para tenant '{}'", schema);
@@ -631,8 +631,8 @@ public class TenantService {
                     propiedad_id    BIGINT NOT NULL UNIQUE REFERENCES %s.propiedades(id),
                     usuario_id      BIGINT NOT NULL,
                     saldo           NUMERIC(12,0) NOT NULL DEFAULT 0,
-                    creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         	log.info("Tabla saldos_favor creada para tenant '{}'", schema);
@@ -649,11 +649,11 @@ public class TenantService {
                     mostrar_votantes     BOOLEAN NOT NULL DEFAULT FALSE,
                     permite_cambiar_voto BOOLEAN NOT NULL DEFAULT FALSE,
                     mostrar_porcentajes BOOLEAN NOT NULL DEFAULT FALSE,
-                    fecha_inicio         TIMESTAMP,
-                    fecha_fin            TIMESTAMP,
+                    fecha_inicio         TIMESTAMPTZ,
+                    fecha_fin            TIMESTAMPTZ,
                     creado_por           BIGINT NOT NULL REFERENCES %s.usuarios(id),
-                    creado_en            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en            TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         	log.info("Tabla votaciones creada para tenant '{}'", schema);
@@ -679,8 +679,8 @@ public class TenantService {
                     opcion_id        BIGINT REFERENCES %s.opciones_votacion(id),
                     valor_numerico   INT,
                     respuesta_texto  VARCHAR(1000),
-                    votado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    votado_en        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema,schema));
         	log.info("Tabla votos_residentes creada para tenant '{}'", schema);
@@ -713,8 +713,8 @@ public class TenantService {
                     acepta_domicilio BOOLEAN NOT NULL DEFAULT FALSE,
                     metodos_pago	 VARCHAR(300),
                     estado		     VARCHAR(20) NOT NULL DEFAULT 'ACTIVA',
-                    creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
         	log.info("Tabla publicaciones creada para tenant '{}'", schema);
@@ -735,8 +735,8 @@ public class TenantService {
                         cantidad		   INT NOT NULL,
                         notas			   VARCHAR(300),
                         estado             VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
-                        creado_en        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        actualizado_en   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        creado_en        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        actualizado_en   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                     """.formatted(schema, schema, schema, schema));
             	log.info("Tabla solicitudes creada para tenant '{}'", schema);
@@ -750,7 +750,7 @@ public class TenantService {
                             porcentaje_recargo          NUMERIC(5,2) NOT NULL DEFAULT 0,
                             mora_congelada_durante_plan BOOLEAN NOT NULL DEFAULT FALSE,
                             aprobacion_automatica       BOOLEAN NOT NULL DEFAULT FALSE,
-                            actualizado_en              TIMESTAMP
+                            actualizado_en              TIMESTAMPTZ
                         )
                         """.formatted(schema));
                 log.info("Tabla configuracion_plan_pago creada/verificada para tenant '{}'", schema);
@@ -770,9 +770,9 @@ public class TenantService {
                             motivo_rechazo      VARCHAR(300),
                             nota_admin          VARCHAR(300),
                             aprobado_por        BIGINT,
-                            fecha_decision      TIMESTAMP,
-                            creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            actualizado_en      TIMESTAMP
+                            fecha_decision      TIMESTAMPTZ,
+                            creado_en           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            actualizado_en      TIMESTAMPTZ
                         )
                         """.formatted(schema));
                 log.info("Tabla planes_pago creada/verificada para tenant '{}'", schema);
@@ -787,7 +787,7 @@ public class TenantService {
                             estado           VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
                             fecha_pago       DATE,
                             nota_pago        VARCHAR(300),
-                            actualizado_en   TIMESTAMP
+                            actualizado_en   TIMESTAMPTZ
                         )
                         """.formatted(schema, schema));
                 log.info("Tabla cuotas_plan creada/verificada para tenant '{}'", schema);
@@ -799,8 +799,8 @@ public class TenantService {
                             titulo                      VARCHAR(150),
                             monto_total_presupuestado   NUMERIC(15,0) NOT NULL DEFAULT 0,
                             activo                      BOOLEAN NOT NULL DEFAULT FALSE,
-                            creado_en                   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            actualizado_en              TIMESTAMP
+                            creado_en                   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            actualizado_en              TIMESTAMPTZ
                         )
                         """.formatted(schema));
                 log.info("Tabla presupuestos creada/verificada para tenant '{}'", schema);
@@ -814,8 +814,8 @@ public class TenantService {
                             monto_asignado  NUMERIC(15,0) NOT NULL,
                             color           VARCHAR(10),
                             icono           VARCHAR(80),
-                            creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            actualizado_en  TIMESTAMP
+                            creado_en       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            actualizado_en  TIMESTAMPTZ
                         )
                         """.formatted(schema, schema));
                 log.info("Tabla categorias_presupuesto creada/verificada para tenant '{}'", schema);
@@ -830,7 +830,7 @@ public class TenantService {
                             fecha           DATE NOT NULL,
                             comprobante     VARCHAR(500),
                             registrado_por  BIGINT NOT NULL,
-                            creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                            creado_en       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                         )
                         """.formatted(schema, schema, schema));
                 log.info("Tabla gastos_registrados creada/verificada para tenant '{}'", schema);
@@ -852,7 +852,7 @@ public class TenantService {
                     requiere_aprobacion_vehiculo    BOOLEAN     NOT NULL DEFAULT FALSE,
                     acepta_parqueadero_visitantes   BOOLEAN     NOT NULL DEFAULT FALSE,
                     total_parqueaderos_visitantes   INT         NOT NULL DEFAULT 0,
-                    actualizado_en                  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    actualizado_en                  TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla configuracion_parqueadero creada para tenant '{}'", schema);
@@ -869,7 +869,7 @@ public class TenantService {
                     propiedad_parqueadero_id BIGINT NULL,
                     propiedad_id             BIGINT       REFERENCES %s.propiedades(id),
                     vehiculo_id              BIGINT,
-                    creado_en                TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en                TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         log.info("Tabla parqueaderos creada para tenant '{}'", schema);
@@ -887,8 +887,8 @@ public class TenantService {
                     parqueadero_id BIGINT       REFERENCES %s.parqueaderos(id),
                     estado         VARCHAR(15)  NOT NULL DEFAULT 'PENDIENTE',
                     motivo_rechazo VARCHAR(300),
-                    creado_en      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    actualizado_en TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en      TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
         log.info("Tabla vehiculos creada para tenant '{}'", schema);
@@ -904,7 +904,7 @@ public class TenantService {
                     fecha_inicio DATE        NOT NULL,
                     fecha_fin    DATE,
                     activo       BOOLEAN     NOT NULL DEFAULT TRUE,
-                    creado_en    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en    TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema));
         log.info("Tabla miembro_consejo creada para tenant '{}'", schema);
@@ -920,7 +920,7 @@ public class TenantService {
                     color       VARCHAR(9),
                     es_positivo BOOLEAN      NOT NULL DEFAULT FALSE,
                     activo      BOOLEAN      NOT NULL DEFAULT TRUE,
-                    creado_en   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en   TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
         log.info("Tabla estados_cartera creada para tenant '{}'", schema);
@@ -970,7 +970,7 @@ public class TenantService {
                     estado_cartera_id BIGINT        NOT NULL REFERENCES %s.estados_cartera(id),
                     dias_vencido_max  INT           NOT NULL DEFAULT 0,
                     monto_adeudado    NUMERIC(16,2) DEFAULT 0,
-                    calculado_en      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    calculado_en      TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(propiedad_id)
                 )
                 """.formatted(schema, schema, schema));
@@ -985,7 +985,7 @@ public class TenantService {
                     estado_nuevo_id    BIGINT        NOT NULL REFERENCES %s.estados_cartera(id),
                     dias_vencido_max   INT           NOT NULL,
                     monto_adeudado     NUMERIC(16,2),
-                    creado_en          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    creado_en          TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema, schema));
         log.info("Tabla historial_estado_cartera creada para tenant '{}'", schema);

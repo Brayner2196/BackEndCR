@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.entity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Estado de cartera configurable por el conjunto (tenant). Define un nivel
@@ -48,7 +48,7 @@ public class EstadoCartera {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -74,5 +74,5 @@ public class EstadoCartera {
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

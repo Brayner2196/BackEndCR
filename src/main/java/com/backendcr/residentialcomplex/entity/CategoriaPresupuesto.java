@@ -5,7 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Categoría de gasto dentro de un presupuesto anual.
@@ -42,11 +42,11 @@ public class CategoriaPresupuesto {
 
     @CreationTimestamp
     @Column(name = "creado_en", updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en")
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     // ── Getters / Setters ──────────────────────────────────────────────────────
 
@@ -71,6 +71,6 @@ public class CategoriaPresupuesto {
     public String getIcono() { return icono; }
     public void setIcono(String icono) { this.icono = icono; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

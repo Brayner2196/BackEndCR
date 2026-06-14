@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -126,7 +126,7 @@ public class PagoService {
         Pago pago = obtenerYValidar(id);
         pago.setEstado(EstadoPago.VERIFICADO);
         pago.setVerificadoPor(adminId);
-        pago.setFechaVerificacion(ColombiaTimeZone.ahora());
+        pago.setFechaVerificacion(TenantClock.ahora());
         pagoRepo.save(pago);
 
         Cobro cobro = cobroRepo.findById(pago.getCobroId())
@@ -221,7 +221,7 @@ public class PagoService {
             pago.setCobroId(cobroId);
             pago.setUsuarioId(usuarioId);
             pago.setMontoPagado(montoMP);
-            pago.setFechaPago(ColombiaTimeZone.hoy());
+            pago.setFechaPago(TenantClock.hoy());
             pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
             pago.setReferencia(referencia);
             pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
@@ -265,7 +265,7 @@ public class PagoService {
             pago.setCobroId(cobroId);
             pago.setUsuarioId(usuarioId);
             pago.setMontoPagado(monto);
-            pago.setFechaPago(ColombiaTimeZone.hoy());
+            pago.setFechaPago(TenantClock.hoy());
             pago.setMetodoPago(metodoPago);
             pago.setReferencia(referencia);
             pago.setEstado(EstadoPago.PENDIENTE_VERIFICACION);
@@ -299,7 +299,7 @@ public class PagoService {
         Pago pago = obtenerYValidar(id);
         pago.setEstado(EstadoPago.RECHAZADO);
         pago.setVerificadoPor(adminId);
-        pago.setFechaVerificacion(ColombiaTimeZone.ahora());
+        pago.setFechaVerificacion(TenantClock.ahora());
         pago.setMotivoRechazo(req.motivoRechazo());
         return toResponse(pagoRepo.save(pago));
     }

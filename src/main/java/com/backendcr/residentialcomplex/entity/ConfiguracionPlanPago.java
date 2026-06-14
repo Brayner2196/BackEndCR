@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Configuración global del módulo de planes de pago para el tenant.
@@ -49,7 +49,7 @@ public class ConfiguracionPlanPago {
 
     @UpdateTimestamp
     @Column(name = "actualizado_en")
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     // ── Getters / Setters ──────────────────────────────────────────
 
@@ -82,5 +82,5 @@ public class ConfiguracionPlanPago {
         this.aprobacionAutomatica = aprobacionAutomatica;
     }
 
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

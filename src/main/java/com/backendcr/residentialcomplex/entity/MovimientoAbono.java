@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.entity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Registra cómo se distribuyó cada abono entre los cobros (lógica FIFO).
@@ -32,7 +32,7 @@ public class MovimientoAbono {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,5 +44,5 @@ public class MovimientoAbono {
     public void setMontoAplicado(BigDecimal montoAplicado) { this.montoAplicado = montoAplicado; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

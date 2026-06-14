@@ -4,7 +4,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoPeriodo;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "periodos_cobro")
@@ -38,7 +38,7 @@ public class PeriodoCobro {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -54,7 +54,7 @@ public class PeriodoCobro {
     public void setFechaLimitePago(LocalDate d) { this.fechaLimitePago = d; }
     public EstadoPeriodo getEstado() { return estado; }
     public void setEstado(EstadoPeriodo estado) { this.estado = estado; }
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
      public Long getCreadoPor() { return creadoPor; }
 	 public void setCreadoPor(Long creadoPor) { this.creadoPor = creadoPor; }
 }

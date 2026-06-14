@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.dto.planpago;
 import com.backendcr.residentialcomplex.entity.PlanPago;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record PlanPagoResponse(
@@ -21,8 +21,8 @@ public record PlanPagoResponse(
         String observaciones,
         String motivoRechazo,
         String notaAdmin,
-        LocalDateTime fechaDecision,
-        LocalDateTime creadoEn,
+        Instant fechaDecision,
+        Instant creadoEn,
         List<CuotaPlanResponse> cuotas
 ) {
     /** Sin cuotas — para listados. */

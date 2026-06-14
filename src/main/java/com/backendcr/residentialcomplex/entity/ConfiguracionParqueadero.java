@@ -4,7 +4,7 @@ import com.backendcr.residentialcomplex.entity.enums.ModeloParqueaderoPrivado;
 import jakarta.persistence.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "configuracion_parqueadero")
@@ -58,7 +58,7 @@ public class ConfiguracionParqueadero {
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     // ── Getters / Setters ─────────────────────────────────────
 
@@ -97,5 +97,5 @@ public class ConfiguracionParqueadero {
     public int getTotalParqueaderosVisitantes() { return totalParqueaderosVisitantes; }
     public void setTotalParqueaderosVisitantes(int totalParqueaderosVisitantes) { this.totalParqueaderosVisitantes = totalParqueaderosVisitantes; }
 
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

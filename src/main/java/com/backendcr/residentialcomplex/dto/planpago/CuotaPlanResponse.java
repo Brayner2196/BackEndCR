@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.dto.planpago;
 
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.entity.CuotaPlan;
 
 import java.math.BigDecimal;
@@ -18,7 +19,7 @@ public record CuotaPlanResponse(
 ) {
     public static CuotaPlanResponse from(CuotaPlan e) {
         boolean vencida = e.getEstado().name().equals("PENDIENTE")
-                && e.getFechaVencimiento().isBefore(LocalDate.now());
+                && e.getFechaVencimiento().isBefore(TenantClock.hoy());
         return new CuotaPlanResponse(
                 e.getId(),
                 e.getPlanId(),

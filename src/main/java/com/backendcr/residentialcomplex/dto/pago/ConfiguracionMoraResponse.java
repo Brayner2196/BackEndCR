@@ -4,7 +4,7 @@ import com.backendcr.residentialcomplex.entity.ConfiguracionMora;
 import com.backendcr.residentialcomplex.entity.enums.TipoCalculoMora;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ConfiguracionMoraResponse(
         Long id,
@@ -14,7 +14,7 @@ public record ConfiguracionMoraResponse(
         int diasGracia,
         boolean activo,
         LocalDate fechaVigencia,
-        LocalDateTime creadoEn
+        Instant creadoEn
 ) {
     public static ConfiguracionMoraResponse from(ConfiguracionMora e) {
         return new ConfiguracionMoraResponse(

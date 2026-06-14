@@ -6,12 +6,14 @@ import com.backendcr.residentialcomplex.dto.pqr.PQRResponse;
 import com.backendcr.residentialcomplex.service.ConsejoEstadisticasService;
 import com.backendcr.residentialcomplex.service.ConsejoService;
 import com.backendcr.residentialcomplex.service.PQRService;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -57,12 +59,12 @@ public class ConsejoController {
     public ConsejoEstadisticasResponse estadisticas(
             @RequestParam(required = false) String desde,
             @RequestParam(required = false) String hasta) {
-        LocalDateTime d = desde != null
-                ? LocalDate.parse(desde).atStartOfDay()
-                : LocalDateTime.now().minusDays(30);
-        LocalDateTime h = hasta != null
-                ? LocalDate.parse(hasta).atTime(23, 59, 59)
-                : LocalDateTime.now();
+        Instant d = desde != null
+                ? LocalDate.parse(desde).atStartOfDay(TenantClock.zona()).toInstant()
+                : TenantClock.ahora().minus(Duration.ofDays(30));
+        Instant h = hasta != null
+                ? LocalDate.parse(hasta).atTime(23, 59, 59).atZone(TenantClock.zona()).toInstant()
+                : TenantClock.ahora();
         return estadisticasService.calcular(d, h);
     }
 }

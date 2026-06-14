@@ -5,7 +5,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoSolicitud;
 import com.backendcr.residentialcomplex.entity.enums.TipoSolicitud;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record SolicitudResponse(
         Long id,
@@ -20,7 +20,7 @@ public record SolicitudResponse(
         int cantidad,
         String notas,
         EstadoSolicitud estado,
-        LocalDateTime creadoEn
+        Instant creadoEn
 ) {
     public static SolicitudResponse from(Solicitud s) {
         return new SolicitudResponse(

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import java.time.ZoneId;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -168,7 +168,7 @@ public class CobroService {
             cobro.setMontoBase(monto);
             cobro.setMontoMora(BigDecimal.ZERO);
             cobro.setMontoTotal(monto);
-            cobro.setFechaGeneracion(ColombiaTimeZone.hoy());
+            cobro.setFechaGeneracion(TenantClock.hoy());
             cobro.setFechaLimitePago(periodo.getFechaLimitePago());
             cobro.setEstado(EstadoCobro.PENDIENTE);
             cobroRepo.save(cobro);
@@ -216,7 +216,7 @@ public class CobroService {
         cobro.setMontoBase(req.monto());
         cobro.setMontoMora(BigDecimal.ZERO);
         cobro.setMontoTotal(req.monto());
-        cobro.setFechaGeneracion(ColombiaTimeZone.hoy());
+        cobro.setFechaGeneracion(TenantClock.hoy());
         cobro.setFechaLimitePago(req.fechaLimitePago());
         cobro.setEstado(EstadoCobro.PENDIENTE);
         return toResponse(cobroRepo.save(cobro));
@@ -239,8 +239,8 @@ public class CobroService {
         cobro.setMontoBase(monto);
         cobro.setMontoMora(BigDecimal.ZERO);
         cobro.setMontoTotal(monto);
-        cobro.setFechaGeneracion(ColombiaTimeZone.hoy());
-        cobro.setFechaLimitePago(fechaLimite != null ? fechaLimite : ColombiaTimeZone.hoy());
+        cobro.setFechaGeneracion(TenantClock.hoy());
+        cobro.setFechaLimitePago(fechaLimite != null ? fechaLimite : TenantClock.hoy());
         cobro.setEstado(EstadoCobro.PENDIENTE);
         cobroRepo.save(cobro);
     }
@@ -265,7 +265,7 @@ public class CobroService {
         List<PeriodoCobro> periodos = periodoRepo.findAllByOrderByAnioDescMesDesc();
         int anio, mes;
         if (periodos.isEmpty()) {
-            LocalDate next = ColombiaTimeZone.hoy().plusMonths(1);
+            LocalDate next = TenantClock.hoy().plusMonths(1);
             anio = next.getYear();
             mes  = next.getMonthValue();
         } else {
@@ -611,7 +611,7 @@ public class CobroService {
             EstadoCobro estadoCobro = c.getEstado();
             if (c.getEstado() != null
                     && (c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.PARCIAL)
-                    && c.getFechaLimitePago().isBefore(ColombiaTimeZone.hoy())) {
+                    && c.getFechaLimitePago().isBefore(TenantClock.hoy())) {
                 estadoCobro = EstadoCobro.VENCIDO;
             }
 

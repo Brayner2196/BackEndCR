@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.votacion.*;
 import com.backendcr.residentialcomplex.entity.*;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -171,9 +171,9 @@ public class VotacionService {
         v.setMostrarVotantes(req.mostrarVotantes());
         v.setPermiteCambiarVoto(req.permiteCambiarVoto());
         v.setMostrarPorcentajes(req.mostrarPorcentajes());
-        if (req.fechaInicio() != null) v.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
+        if (req.fechaInicio() != null) v.setFechaInicio(TenantClock.aInstante(req.fechaInicio()));
         else v.setFechaInicio(null);
-        if (req.fechaFin() != null) v.setFechaFin(LocalDateTime.parse(req.fechaFin()));
+        if (req.fechaFin() != null) v.setFechaFin(TenantClock.aInstante(req.fechaFin()));
         else v.setFechaFin(null);
     }
 

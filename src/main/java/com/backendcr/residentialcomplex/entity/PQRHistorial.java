@@ -4,7 +4,7 @@ import com.backendcr.residentialcomplex.entity.enums.EstadoPQR;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "pqr_historial")
@@ -33,7 +33,7 @@ public class PQRHistorial {
 
     @CreationTimestamp
     @Column(name = "fecha_cambio", nullable = false, updatable = false)
-    private LocalDateTime fechaCambio;
+    private Instant fechaCambio;
 
     public PQRHistorial() {}
 
@@ -57,5 +57,5 @@ public class PQRHistorial {
     public void setCambiadoPor(Long cambiadoPor) { this.cambiadoPor = cambiadoPor; }
     public String getComentario() { return comentario; }
     public void setComentario(String comentario) { this.comentario = comentario; }
-    public LocalDateTime getFechaCambio() { return fechaCambio; }
+    public Instant getFechaCambio() { return fechaCambio; }
 }

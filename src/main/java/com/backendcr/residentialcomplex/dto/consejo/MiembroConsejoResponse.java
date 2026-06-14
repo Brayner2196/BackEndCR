@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.dto.consejo;
 import com.backendcr.residentialcomplex.entity.enums.CargoConsejo;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record MiembroConsejoResponse(
         Long id,
@@ -13,5 +13,5 @@ public record MiembroConsejoResponse(
         LocalDate fechaInicio,
         LocalDate fechaFin,
         boolean activo,
-        LocalDateTime creadoEn
+        Instant creadoEn
 ) {}

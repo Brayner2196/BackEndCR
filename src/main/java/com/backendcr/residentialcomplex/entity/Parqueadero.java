@@ -5,7 +5,7 @@ import com.backendcr.residentialcomplex.entity.enums.TipoParqueadero;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "parqueaderos",
@@ -52,7 +52,7 @@ public class Parqueadero {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     // ── Getters / Setters ─────────────────────────────────────
 
@@ -76,5 +76,5 @@ public class Parqueadero {
     public Long getVehiculoId() { return vehiculoId; }
     public void setVehiculoId(Long vehiculoId) { this.vehiculoId = vehiculoId; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

@@ -5,7 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Gasto individual registrado por el admin contra una categoría del presupuesto.
@@ -44,7 +44,7 @@ public class GastoRegistrado {
 
     @CreationTimestamp
     @Column(name = "creado_en", updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     // ── Getters / Setters ──────────────────────────────────────────────────────
 
@@ -72,5 +72,5 @@ public class GastoRegistrado {
     public Long getRegistradoPor() { return registradoPor; }
     public void setRegistradoPor(Long registradoPor) { this.registradoPor = registradoPor; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

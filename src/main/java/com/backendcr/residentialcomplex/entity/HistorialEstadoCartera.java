@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Auditoría: una fila por cada transición de estado de cartera de una propiedad.
@@ -35,7 +35,7 @@ public class HistorialEstadoCartera {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -55,5 +55,5 @@ public class HistorialEstadoCartera {
     public BigDecimal getMontoAdeudado() { return montoAdeudado; }
     public void setMontoAdeudado(BigDecimal montoAdeudado) { this.montoAdeudado = montoAdeudado; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

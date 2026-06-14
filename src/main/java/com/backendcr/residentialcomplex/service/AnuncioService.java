@@ -1,5 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.anuncio.*;
 import com.backendcr.residentialcomplex.entity.Anuncio;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -42,8 +42,8 @@ public class AnuncioService {
         a.setContenido(req.contenido());
         a.setCreadoPor(adminId);
         a.setEstado(EstadoAnuncio.ACTIVO);
-        if (req.fechaInicio() != null) a.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
-        if (req.fechaFin() != null) a.setFechaFin(LocalDateTime.parse(req.fechaFin()));
+        if (req.fechaInicio() != null) a.setFechaInicio(TenantClock.aInstante(req.fechaInicio()));
+        if (req.fechaFin() != null) a.setFechaFin(TenantClock.aInstante(req.fechaFin()));
         AnuncioResponse response = toResponse(anuncioRepo.save(a), null, false);
 
         notificacionService.enviarATenant(
@@ -61,9 +61,9 @@ public class AnuncioService {
         Anuncio a = obtener(id);
         a.setTitulo(req.titulo());
         a.setContenido(req.contenido());
-        if (req.fechaInicio() != null) a.setFechaInicio(LocalDateTime.parse(req.fechaInicio()));
+        if (req.fechaInicio() != null) a.setFechaInicio(TenantClock.aInstante(req.fechaInicio()));
         else a.setFechaInicio(null);
-        if (req.fechaFin() != null) a.setFechaFin(LocalDateTime.parse(req.fechaFin()));
+        if (req.fechaFin() != null) a.setFechaFin(TenantClock.aInstante(req.fechaFin()));
         else a.setFechaFin(null);
         return toResponse(anuncioRepo.save(a), null, false);
     }

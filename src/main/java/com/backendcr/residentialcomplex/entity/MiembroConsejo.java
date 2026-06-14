@@ -1,7 +1,7 @@
 package com.backendcr.residentialcomplex.entity;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -42,7 +42,7 @@ public class MiembroConsejo {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     // ─── Getters / Setters ────────────────────────────────────────────────────
 
@@ -64,5 +64,5 @@ public class MiembroConsejo {
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

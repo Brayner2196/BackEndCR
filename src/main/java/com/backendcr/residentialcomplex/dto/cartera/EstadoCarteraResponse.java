@@ -1,7 +1,7 @@
 package com.backendcr.residentialcomplex.dto.cartera;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Estado de cartera vigente de una propiedad. */
 public record EstadoCarteraResponse(
@@ -12,5 +12,5 @@ public record EstadoCarteraResponse(
         boolean esPositivo,
         int diasVencidoMax,
         BigDecimal montoAdeudado,
-        LocalDateTime calculadoEn
+        Instant calculadoEn
 ) {}

@@ -6,7 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Solicitud / plan de pago fraccionado creado por un residente.
@@ -68,15 +68,15 @@ public class PlanPago {
     private Long aprobadoPor;
 
     @Column(name = "fecha_decision")
-    private LocalDateTime fechaDecision;
+    private Instant fechaDecision;
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     // ── Getters / Setters ──────────────────────────────────────────
 
@@ -119,9 +119,9 @@ public class PlanPago {
     public Long getAprobadoPor() { return aprobadoPor; }
     public void setAprobadoPor(Long aprobadoPor) { this.aprobadoPor = aprobadoPor; }
 
-    public LocalDateTime getFechaDecision() { return fechaDecision; }
-    public void setFechaDecision(LocalDateTime fechaDecision) { this.fechaDecision = fechaDecision; }
+    public Instant getFechaDecision() { return fechaDecision; }
+    public void setFechaDecision(Instant fechaDecision) { this.fechaDecision = fechaDecision; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

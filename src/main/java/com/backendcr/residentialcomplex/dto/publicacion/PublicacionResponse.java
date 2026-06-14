@@ -5,7 +5,7 @@ import com.backendcr.residentialcomplex.entity.enums.CategoriaPublicacion;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPublicacion;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record PublicacionResponse(
@@ -19,8 +19,8 @@ public record PublicacionResponse(
         CategoriaPublicacion categoria,
         String contacto,
         EstadoPublicacion estado,
-        LocalDateTime creadoEn,
-        LocalDateTime actualizadoEn,
+        Instant creadoEn,
+        Instant actualizadoEn,
 
         // ── Nuevos campos ──────────────────────────────────────
         String marca,

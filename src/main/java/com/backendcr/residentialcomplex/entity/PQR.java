@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "pqrs")
@@ -43,15 +43,15 @@ public class PQR {
     private Long respondidoPor;
 
     @Column(name = "fecha_respuesta")
-    private LocalDateTime fechaRespuesta;
+    private Instant fechaRespuesta;
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)
-    private LocalDateTime actualizadoEn;
+    private Instant actualizadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -80,9 +80,9 @@ public class PQR {
     public Long getRespondidoPor() { return respondidoPor; }
     public void setRespondidoPor(Long respondidoPor) { this.respondidoPor = respondidoPor; }
 
-    public LocalDateTime getFechaRespuesta() { return fechaRespuesta; }
-    public void setFechaRespuesta(LocalDateTime fechaRespuesta) { this.fechaRespuesta = fechaRespuesta; }
+    public Instant getFechaRespuesta() { return fechaRespuesta; }
+    public void setFechaRespuesta(Instant fechaRespuesta) { this.fechaRespuesta = fechaRespuesta; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
-    public LocalDateTime getActualizadoEn() { return actualizadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
+    public Instant getActualizadoEn() { return actualizadoEn; }
 }

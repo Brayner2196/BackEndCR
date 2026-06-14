@@ -1,6 +1,6 @@
 package com.backendcr.residentialcomplex.dto.usuario;
 
-import java.time.format.DateTimeFormatter;
+import java.time.Instant;
 
 import com.backendcr.residentialcomplex.entity.Usuario;
 import com.backendcr.residentialcomplex.entity.enums.EstadoUsuario;
@@ -13,10 +13,8 @@ public record UsuarioResponse(
         String telefono,
         EstadoUsuario estado,
         boolean activo,
-        String creadoEn
+        Instant creadoEn
 ) {
-	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-
     public static UsuarioResponse from(Usuario usuario, String email, String rol, boolean activo) {
         return new UsuarioResponse(
                 usuario.getId(),
@@ -26,7 +24,7 @@ public record UsuarioResponse(
                 usuario.getTelefono(),
                 usuario.getEstado(),
                 activo,
-                usuario.getCreadoEn().format(FORMATTER)
+                usuario.getCreadoEn()
         );
     }
 }

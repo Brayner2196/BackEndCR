@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Snapshot del estado de cartera vigente de una propiedad. Evita recalcular el
@@ -33,7 +33,7 @@ public class EstadoCarteraPropiedad {
 
     @UpdateTimestamp
     @Column(name = "calculado_en", nullable = false)
-    private LocalDateTime calculadoEn;
+    private Instant calculadoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -50,5 +50,5 @@ public class EstadoCarteraPropiedad {
     public BigDecimal getMontoAdeudado() { return montoAdeudado; }
     public void setMontoAdeudado(BigDecimal montoAdeudado) { this.montoAdeudado = montoAdeudado; }
 
-    public LocalDateTime getCalculadoEn() { return calculadoEn; }
+    public Instant getCalculadoEn() { return calculadoEn; }
 }

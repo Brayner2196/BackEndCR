@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import java.util.List;
 import java.util.Optional;
@@ -93,7 +93,7 @@ public class PQRService {
         EstadoPQR estadoAnterior = pqr.getEstado();
         pqr.setRespuestaAdmin(req.respuesta());
         pqr.setRespondidoPor(adminId);
-        pqr.setFechaRespuesta(ColombiaTimeZone.ahora());
+        pqr.setFechaRespuesta(TenantClock.ahora());
         if (pqr.getEstado() == EstadoPQR.RADICADA || pqr.getEstado() == EstadoPQR.EN_PROCESO) {
             pqr.setEstado(EstadoPQR.RESUELTO);
         }

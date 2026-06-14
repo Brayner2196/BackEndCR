@@ -1,6 +1,6 @@
 package com.backendcr.residentialcomplex.service.cartera;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.cartera.EstadoCarteraResponse;
 import com.backendcr.residentialcomplex.entity.*;
@@ -44,7 +44,7 @@ public class EvaluadorCarteraService {
     // ─── Cálculo de métricas ──────────────────────────────────────────────
 
     public MetricasCartera calcularMetricas(Long propiedadId) {
-        LocalDate hoy = ColombiaTimeZone.hoy();
+        LocalDate hoy = TenantClock.hoy();
         List<Cobro> activos = cobroRepo.findAllByPropiedadId(propiedadId).stream()
                 .filter(c -> ESTADOS_DEUDA.contains(c.getEstado()))
                 .toList();

@@ -5,6 +5,7 @@ import com.backendcr.residentialcomplex.entity.MovimientoAbono;
 import com.backendcr.residentialcomplex.entity.Pago;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -21,12 +22,10 @@ public record MovimientoCobroDto(
         String metodoPago,       // puede ser null en movimientos de abono
         String referencia,
         String motivoRechazo,
-        String creadoEn
+        Instant creadoEn
 ) {
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter DT_FMT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static MovimientoCobroDto fromPago(Pago pago) {
         return new MovimientoCobroDto(
@@ -38,7 +37,7 @@ public record MovimientoCobroDto(
                 pago.getMetodoPago() != null ? pago.getMetodoPago().name() : null,
                 pago.getReferencia(),
                 pago.getMotivoRechazo(),
-                pago.getCreadoEn() != null ? pago.getCreadoEn().format(DT_FMT) : null
+                pago.getCreadoEn()
         );
     }
 
@@ -52,7 +51,7 @@ public record MovimientoCobroDto(
                 abono.getMetodoPago() != null ? abono.getMetodoPago().name() : null,
                 abono.getReferencia(),
                 null,
-                mov.getCreadoEn() != null ? mov.getCreadoEn().format(DT_FMT) : null
+                mov.getCreadoEn()
         );
     }
 }

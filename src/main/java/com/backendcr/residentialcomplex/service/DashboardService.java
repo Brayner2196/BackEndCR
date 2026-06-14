@@ -16,7 +16,7 @@ import com.backendcr.residentialcomplex.repository.ReservaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import com.backendcr.residentialcomplex.config.ColombiaTimeZone;
+import com.backendcr.residentialcomplex.config.TenantClock;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -83,7 +83,7 @@ public class DashboardService {
     }
 
     public CarteraVencidaResponse carteraVencida() {
-        LocalDate hoy = ColombiaTimeZone.hoy();
+        LocalDate hoy = TenantClock.hoy();
         BigDecimal montoActual = BigDecimal.ZERO;
         BigDecimal montoMesAnterior = BigDecimal.ZERO;
         long unidades = 0;
@@ -121,7 +121,7 @@ public class DashboardService {
 
     public EstadoUnidadesResponse estadoUnidades() {
         long total = propiedadRepo.countPropiedadesIsFacturable();
-        LocalDate hoy = ColombiaTimeZone.hoy();
+        LocalDate hoy = TenantClock.hoy();
         LocalDate proximaSemana = hoy.plusDays(7);
         java.util.Set<Long> mora = new java.util.HashSet<>();
         java.util.Set<Long> porVencer = new java.util.HashSet<>();

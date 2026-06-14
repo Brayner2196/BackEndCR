@@ -4,6 +4,7 @@ import com.backendcr.residentialcomplex.entity.Pago;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.entity.enums.MetodoPago;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 
 public record PagoResponse(
@@ -18,12 +19,11 @@ public record PagoResponse(
         String urlComprobante,
         EstadoPago estado,
         String motivoRechazo,
-        String fechaVerificacion,
-        String creadoEn
+        Instant fechaVerificacion,
+        Instant creadoEn
 ) {
 	private static final DateTimeFormatter FORMATTER_yyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-	private static final DateTimeFormatter FORMATTER_yyyyMMddHHmmss = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-	
+
     public static PagoResponse from(Pago p, String usuarioNombre) {
         return new PagoResponse(
                 p.getId(), 
@@ -37,8 +37,8 @@ public record PagoResponse(
                 p.getUrlComprobante(),
                 p.getEstado(), 
                 p.getMotivoRechazo(),
-                p.getFechaVerificacion() != null ? p.getFechaVerificacion().format(FORMATTER_yyyyMMddHHmmss) : null,
-                p.getCreadoEn().toString()
+                p.getFechaVerificacion(),
+                p.getCreadoEn()
         );
     }
 }

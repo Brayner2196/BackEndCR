@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.dto.planpago;
 import com.backendcr.residentialcomplex.entity.ConfiguracionPlanPago;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ConfiguracionPlanPagoResponse(
         Long id,
@@ -13,7 +13,7 @@ public record ConfiguracionPlanPagoResponse(
         BigDecimal porcentajeRecargo,
         boolean moraCongeladaDurantePlan,
         boolean aprobacionAutomatica,
-        LocalDateTime actualizadoEn
+        Instant actualizadoEn
 ) {
     public static ConfiguracionPlanPagoResponse from(ConfiguracionPlanPago e) {
         return new ConfiguracionPlanPagoResponse(

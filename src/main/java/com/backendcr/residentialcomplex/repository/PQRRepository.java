@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public interface PQRRepository extends JpaRepository<PQR, Long> {
@@ -17,6 +17,6 @@ public interface PQRRepository extends JpaRepository<PQR, Long> {
 
     @Query("SELECT p FROM PQR p WHERE p.creadoEn >= :desde AND p.creadoEn <= :hasta")
     List<PQR> findByCreadoEnBetween(
-            @Param("desde") LocalDateTime desde,
-            @Param("hasta") LocalDateTime hasta);
+            @Param("desde") Instant desde,
+            @Param("hasta") Instant hasta);
 }

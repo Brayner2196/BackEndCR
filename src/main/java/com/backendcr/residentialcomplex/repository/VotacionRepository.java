@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public interface VotacionRepository extends JpaRepository<Votacion, Long> {
@@ -15,6 +15,6 @@ public interface VotacionRepository extends JpaRepository<Votacion, Long> {
 
     @Query("SELECT v FROM Votacion v WHERE v.creadoEn >= :desde AND v.creadoEn <= :hasta")
     List<Votacion> findByCreadoEnBetween(
-            @Param("desde") LocalDateTime desde,
-            @Param("hasta") LocalDateTime hasta);
+            @Param("desde") Instant desde,
+            @Param("hasta") Instant hasta);
 }

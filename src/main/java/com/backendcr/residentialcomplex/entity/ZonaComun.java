@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 
 @Entity
@@ -126,7 +126,7 @@ public class ZonaComun {
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private Instant creadoEn;
 
     // ── Getters / Setters ─────────────────────────────────────────
 
@@ -223,5 +223,5 @@ public class ZonaComun {
     public String getMotivoSuspension() { return motivoSuspension; }
     public void setMotivoSuspension(String motivoSuspension) { this.motivoSuspension = motivoSuspension; }
 
-    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

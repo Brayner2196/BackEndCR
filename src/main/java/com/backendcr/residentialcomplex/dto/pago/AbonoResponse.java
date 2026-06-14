@@ -4,6 +4,7 @@ import com.backendcr.residentialcomplex.entity.Abono;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPago;
 import com.backendcr.residentialcomplex.entity.enums.MetodoPago;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -20,8 +21,8 @@ public record AbonoResponse(
         String notas,
         EstadoPago estado,
         String motivoRechazo,
-        String fechaVerificacion,
-        String creadoEn,
+        Instant fechaVerificacion,
+        Instant creadoEn,
         List<MovimientoAbonoDto> movimientos
 ) {
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -40,8 +41,8 @@ public record AbonoResponse(
                 a.getNotas(),
                 a.getEstado(),
                 a.getMotivoRechazo(),
-                a.getFechaVerificacion() != null ? a.getFechaVerificacion().format(FORMATTER) : null,
-                a.getCreadoEn() != null ? a.getCreadoEn().format(FORMATTER) : null,
+                a.getFechaVerificacion(),
+                a.getCreadoEn(),
                 movimientos
         );
     }

@@ -3,7 +3,7 @@ package com.backendcr.residentialcomplex.entity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Registro de cada vez que un residente ve un anuncio.
@@ -29,7 +29,7 @@ public class AnuncioVista {
 
     @CreationTimestamp
     @Column(name = "visto_en", nullable = false, updatable = false)
-    private LocalDateTime vistoEn;
+    private Instant vistoEn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -43,5 +43,5 @@ public class AnuncioVista {
     public String getResidenteNombre() { return residenteNombre; }
     public void setResidenteNombre(String residenteNombre) { this.residenteNombre = residenteNombre; }
 
-    public LocalDateTime getVistoEn() { return vistoEn; }
+    public Instant getVistoEn() { return vistoEn; }
 }
