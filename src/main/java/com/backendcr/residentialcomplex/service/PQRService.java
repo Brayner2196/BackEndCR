@@ -19,8 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.TenantClock;
+import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -31,6 +33,7 @@ public class PQRService {
     private final UsuarioRepository usuarioRepo;
     private final PQRHistorialRepository historialRepo;
     private final IdentidadRepository identidadRepo;
+    private final NotificacionService notificacionService;
 
     public List<PQRResponse> listarTodas() {
         return pqrRepo.findAll().stream().map(this::toResponse).toList();
@@ -81,6 +84,7 @@ public class PQRService {
         pqr.setEstado(EstadoPQR.RADICADA);
         PQR saved = pqrRepo.save(pqr);
         registrarHistorial(saved.getId(), null, EstadoPQR.RADICADA, residenteId, "PQR creada");
+        notificarAdminsNuevaPqr(saved);
         return toResponse(saved);
     }
 
@@ -99,6 +103,7 @@ public class PQRService {
         }
         PQR saved = pqrRepo.save(pqr);
         registrarHistorial(saved.getId(), estadoAnterior, saved.getEstado(), adminId, req.respuesta());
+        notificarResidenteRespuesta(saved);
         return toResponse(saved);
     }
 
@@ -109,7 +114,68 @@ public class PQRService {
         pqr.setEstado(req.estado());
         PQR saved = pqrRepo.save(pqr);
         registrarHistorial(saved.getId(), estadoAnterior, req.estado(), adminId, req.comentario());
+        notificarResidenteCambioEstado(saved);
         return toResponse(saved);
+    }
+
+    // ─── Notificaciones FCM ───────────────────────────────────
+
+    /** Notifica a los admins del conjunto cuando un residente radica una PQR. */
+    private void notificarAdminsNuevaPqr(PQR pqr) {
+        String nombre = usuarioRepo.findById(pqr.getResidenteId())
+                .map(Usuario::getNombre).orElse("Un residente");
+
+        notificacionService.enviarAAdminsTenant(
+                TenantContext.getTenant(),
+                "📩 Nueva PQR radicada",
+                String.format("%s radicó: \"%s\"", nombre, pqr.getAsunto()),
+                Map.of(
+                        "tipo",  "PQR_NUEVA",
+                        "pqrId", pqr.getId().toString(),
+                        "route", "pqr"
+                )
+        );
+    }
+
+    /** Notifica al residente cuando la administración responde su PQR. */
+    private void notificarResidenteRespuesta(PQR pqr) {
+        notificacionService.enviarAUsuario(
+                pqr.getResidenteId(),
+                "✅ Respuesta a tu PQR",
+                String.format("La administración respondió tu PQR \"%s\".", pqr.getAsunto()),
+                Map.of(
+                        "tipo",   "PQR_RESPONDIDA",
+                        "pqrId",  pqr.getId().toString(),
+                        "estado", pqr.getEstado().name(),
+                        "route",  "pqr"
+                )
+        );
+    }
+
+    /** Notifica al residente cuando la administración cambia el estado de su PQR. */
+    private void notificarResidenteCambioEstado(PQR pqr) {
+        notificacionService.enviarAUsuario(
+                pqr.getResidenteId(),
+                "🔄 Tu PQR cambió de estado",
+                String.format("Tu PQR \"%s\" ahora está: %s.",
+                        pqr.getAsunto(), estadoLegible(pqr.getEstado())),
+                Map.of(
+                        "tipo",   "PQR_ESTADO",
+                        "pqrId",  pqr.getId().toString(),
+                        "estado", pqr.getEstado().name(),
+                        "route",  "pqr"
+                )
+        );
+    }
+
+    private String estadoLegible(EstadoPQR estado) {
+        return switch (estado) {
+            case RADICADA   -> "Radicada";
+            case EN_PROCESO -> "En proceso";
+            case RESUELTO   -> "Resuelta";
+            case CERRADO    -> "Cerrada";
+            case RECHAZADA  -> "Rechazada";
+        };
     }
 
     // ─── Helpers ──────────────────────────────────────────────
