@@ -77,10 +77,13 @@ public class PublicSchemaInitializer implements CommandLineRunner {
 	}
 
 	private void crearTenants() {
+		// La entidad Tenant no declara @Column(name=...), así que Hibernate mapea
+		// el campo schemaName a la columna 'schemaname' (sin guion bajo). El DDL
+		// usa el mismo nombre para evitar la columna duplicada/null.
 		jdbcTemplate.execute("""
 				CREATE TABLE IF NOT EXISTS public.tenants (
 				    id          BIGSERIAL    PRIMARY KEY,
-				    schema_name VARCHAR(255) NOT NULL UNIQUE,
+				    schemaname  VARCHAR(255) NOT NULL UNIQUE,
 				    nombre      VARCHAR(255) NOT NULL,
 				    codigo      VARCHAR(255) NOT NULL UNIQUE,
 				    activo      BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -90,6 +93,26 @@ public class PublicSchemaInitializer implements CommandLineRunner {
 				""");
 		jdbcTemplate.execute(
 				"ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) NOT NULL DEFAULT 'America/Bogota'");
+		jdbcTemplate.execute(
+				"ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS schemaname VARCHAR(255)");
+
+		// Migración idempotente: si existe la columna antigua 'schema_name'
+		// (creada por versiones previas), copia sus datos a 'schemaname' y la
+		// elimina. El bloque DO la protege para no fallar en BDs nuevas.
+		jdbcTemplate.execute("""
+				DO $$
+				BEGIN
+				    IF EXISTS (SELECT 1 FROM information_schema.columns
+				               WHERE table_schema = 'public'
+				                 AND table_name   = 'tenants'
+				                 AND column_name  = 'schema_name') THEN
+				        UPDATE public.tenants
+				           SET schemaname = schema_name
+				         WHERE schemaname IS NULL;
+				        ALTER TABLE public.tenants DROP COLUMN schema_name;
+				    END IF;
+				END $$;
+				""");
 	}
 
 	private void crearDeviceTokens() {

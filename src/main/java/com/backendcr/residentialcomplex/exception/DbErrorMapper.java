@@ -93,7 +93,7 @@ public final class DbErrorMapper {
             return null;
         }
         return switch (columna) {
-            case "schema_name" -> "nombre del esquema";
+            case "schemaname", "schema_name" -> "nombre del esquema";
             case "codigo"      -> "código";
             case "email"       -> "correo";
             case "nombre"      -> "nombre";
