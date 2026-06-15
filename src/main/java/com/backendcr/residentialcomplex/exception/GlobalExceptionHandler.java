@@ -3,6 +3,7 @@ package com.backendcr.residentialcomplex.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -65,6 +66,24 @@ public class GlobalExceptionHandler {
 				.message(firstMessage).path(request.getRequestURI()).validationErrors(validationErrors).build();
 
 		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+			HttpServletRequest request) {
+
+		HttpStatus status = DbErrorMapper.status(ex);
+		String mensaje = DbErrorMapper.mensaje(ex);
+
+		// El detalle técnico solo va al log, nunca al cliente.
+		log.warn("Violación de integridad en {}: {}", request.getRequestURI(),
+				ex.getMostSpecificCause().getMessage());
+
+		ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())
+				.status(status.value()).error(status.getReasonPhrase())
+				.message(mensaje).path(request.getRequestURI()).build();
+
+		return new ResponseEntity<>(errorResponse, status);
 	}
 
 	@ExceptionHandler(Exception.class)
