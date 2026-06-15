@@ -38,6 +38,13 @@ public class TenantService {
 
     @Transactional
     public CrearTenantResponse crearTenant(CrearTenantRequest request) {
+    	System.out.println("Recibiendo request para crear tenant:");
+    	printJson(request);
+
+        // Guard explícito: corta ANTES de crear esquemas/tablas si falta algún
+        // dato obligatorio. Evita que un schemaName null genere un esquema basura
+        // (CREATE SCHEMA "null") y devuelve un mensaje claro a Flutter.
+        //validarCamposObligatorios(request);
 
         if (tenantRepository.existsBySchemaName(request.schemaName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -104,6 +111,28 @@ public class TenantService {
                 new CrearTenantResponse.AdminInfo(identidad.getId(), identidad.getEmail())
         );
     }
+
+    // ─── Validaciones reutilizables ───────────────────────────────────────────
+
+    /** Valida los campos obligatorios del request antes de tocar la BD. */
+    /**private void validarCamposObligatorios(CrearTenantRequest request) {
+        requerido(request.schemaName(), "El nombre del esquema (schemaName) es obligatorio.");
+        if (!request.schemaName().matches("^[a-z0-9_]+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El nombre del esquema solo admite minúsculas, números y guion bajo.");
+        }
+        requerido(request.nombre(), "El nombre del conjunto es obligatorio.");
+        requerido(request.codigo(), "El código es obligatorio.");
+        requerido(request.emailAdmin(), "El correo del administrador es obligatorio.");
+        requerido(request.passwordAdmin(), "La contraseña del administrador es obligatoria.");
+    }*/
+
+    /** Lanza 400 con mensaje claro si el valor es null o está en blanco. */
+    /**private void requerido(String valor, String mensaje) {
+        if (valor == null || valor.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, mensaje);
+        }
+    }*/
 
     public List<TenantResponse> obtenerTenants() {
         return tenantRepository.findAll().stream()
@@ -1009,5 +1038,16 @@ public class TenantService {
                 insertarTiposPropiedad(schema, nodo.hijos(), nuevoId, 0);
             }
         }
+    }
+    
+    private void printJson(Object objeto){
+    			try {
+			String json = new com.fasterxml.jackson.databind.ObjectMapper()
+					.writerWithDefaultPrettyPrinter()
+					.writeValueAsString(objeto);
+			System.out.println(json);
+		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			System.err.println("Error al convertir a JSON: " + e.getMessage());
+		}
     }
 }

@@ -22,14 +22,6 @@ public class SecurityUtils {
     private final IdentidadRepository identidadRepo;
     private final UsuarioRepository usuarioRepo;
 
-    /**
-     * Resuelve el ID de usuario (en el schema del tenant activo) a partir del
-     * email del principal autenticado.
-     *
-     * @param email email extraído de {@code @AuthenticationPrincipal}
-     * @return ID del usuario en la tabla usuarios del tenant
-     * @throws ResponseStatusException 401 si no se encuentra
-     */
     public Long resolverUsuarioId(String email) {
         String tenantId = TenantContext.getTenant();
         return identidadRepo.findByEmailAndTenantId(email, tenantId)
