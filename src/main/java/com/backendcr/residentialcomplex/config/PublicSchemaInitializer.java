@@ -40,6 +40,7 @@ public class PublicSchemaInitializer implements CommandLineRunner {
 		TenantContext.setTenant("public");
 		try {
 			log.info("Verificando tablas del schema public...");
+			crearSchemaPublic();
 			crearIdentidades();
 			crearTenants();
 			crearDeviceTokens();
@@ -49,6 +50,12 @@ public class PublicSchemaInitializer implements CommandLineRunner {
 		} finally {
 			TenantContext.clear();
 		}
+	}
+
+	// ─── Schema ────────────────────────────────────────────────────────────────
+
+	private void crearSchemaPublic() {
+		jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS public");
 	}
 
 	// ─── Tablas ────────────────────────────────────────────────────────────────
