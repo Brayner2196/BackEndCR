@@ -2,7 +2,6 @@ package com.backendcr.residentialcomplex.service.reserva;
 
 import com.backendcr.residentialcomplex.config.TenantClock;
 import com.backendcr.residentialcomplex.dto.cartera.ResultadoRestriccion;
-import com.backendcr.residentialcomplex.entity.Cobro;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Reserva;
 import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;

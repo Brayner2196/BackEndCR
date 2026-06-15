@@ -2,8 +2,6 @@ package com.backendcr.residentialcomplex.auth;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,17 +19,17 @@ public class JwtService {
 	@Value("${jwt.expiration-ms}")
 	private long expirationMs;
 
-	// Genera la clave de firma a partir del secret
+
 	private Key getKey() {
 		return Keys.hmacShaKeyFor(secret.getBytes());
 	}
 
-	// Genera el token con toda la info del usuario (sin rol consejo)
+
 	public String generarToken(Long id, String email, String rol, String tenantId) {
 		return generarToken(id, email, rol, tenantId, false, null);
 	}
 
-	// Genera el token incluyendo si el usuario es consejero activo y su cargo
+
 	public String generarToken(Long id, String email, String rol, String tenantId,
 			boolean esConsejero, String cargoConsejo) {
 		var claims = new java.util.HashMap<String, Object>();

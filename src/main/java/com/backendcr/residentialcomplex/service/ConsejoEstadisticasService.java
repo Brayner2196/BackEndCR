@@ -6,7 +6,6 @@ import com.backendcr.residentialcomplex.entity.PQR;
 import com.backendcr.residentialcomplex.entity.Votacion;
 import com.backendcr.residentialcomplex.entity.enums.EstadoAnuncio;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPQR;
-import com.backendcr.residentialcomplex.entity.enums.EstadoVotacion;
 import com.backendcr.residentialcomplex.repository.AnuncioRepository;
 import com.backendcr.residentialcomplex.repository.AnuncioVistaRepository;
 import com.backendcr.residentialcomplex.repository.PQRRepository;
