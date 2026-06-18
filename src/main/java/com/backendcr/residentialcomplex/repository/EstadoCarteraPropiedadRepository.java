@@ -10,6 +10,6 @@ public interface EstadoCarteraPropiedadRepository extends JpaRepository<EstadoCa
 
     Optional<EstadoCarteraPropiedad> findByPropiedadId(Long propiedadId);
 
-    /** Propiedades cuya fase de cartera vigente es la indicada (para envíos masivos). */
+    /** Propiedades cuya fase de cartera vigente es la indicada (para envios masivos). */
     List<EstadoCarteraPropiedad> findByEstadoCarteraId(Long estadoCarteraId);
 }

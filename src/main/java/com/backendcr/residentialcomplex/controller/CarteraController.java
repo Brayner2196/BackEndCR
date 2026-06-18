@@ -13,8 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Consulta y recálculo del estado de cartera de una propiedad (admin).
- * La configuración de estados/reglas/restricciones (CRUD) es Fase 2.
+ * Consulta y recalculo del estado de cartera de una propiedad (admin).
  */
 @RestController
 @RequestMapping("/api/admin/propiedades")
@@ -41,9 +40,9 @@ public class CarteraController {
         return evaluador.recalcularYConsultar(id);
     }
 
-    // ─── Gestión de cobranza (avisos a morosos) ──────────────────────
+    // Gestion de cobranza (avisos a morosos)
 
-    /** Envía un aviso de cobranza a los residentes de una propiedad. */
+    /** Envia un aviso de cobranza a los residentes de una propiedad. */
     @PostMapping("/{id}/cartera/notificar")
     public AvisoCobranzaResponse notificarCartera(
             @PathVariable Long id,
@@ -52,7 +51,7 @@ public class CarteraController {
         return gestionCartera.notificarPropiedad(id, req, email);
     }
 
-    /** Envía un aviso masivo a todas las propiedades en una fase de cartera. */
+    /** Envia un aviso masivo a todas las propiedades en una fase de cartera. */
     @PostMapping("/cartera/notificar-masivo")
     public List<AvisoCobranzaResponse> notificarCarteraMasivo(
             @RequestBody NotificarCarteraRequest req,
