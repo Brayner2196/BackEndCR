@@ -13,6 +13,8 @@ import com.backendcr.residentialcomplex.repository.PQRHistorialRepository;
 import com.backendcr.residentialcomplex.repository.PQRRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +38,7 @@ public class PQRService {
     private final NotificacionService notificacionService;
 
     public List<PQRResponse> listarTodas() {
-        return pqrRepo.findAll().stream().map(this::toResponse).toList();
+        return pqrRepo.findAll(Sort.by(Sort.Direction.DESC, "creadoEn")).stream().map(this::toResponse).toList();
     }
 
     /** Alias para el ConsejoController — filtra por estado si se indica. */
