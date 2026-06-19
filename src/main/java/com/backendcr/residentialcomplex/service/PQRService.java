@@ -7,10 +7,12 @@ import com.backendcr.residentialcomplex.dto.pqr.PQRResponderRequest;
 import com.backendcr.residentialcomplex.dto.pqr.PQRResponse;
 import com.backendcr.residentialcomplex.entity.PQR;
 import com.backendcr.residentialcomplex.entity.PQRHistorial;
+import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Usuario;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPQR;
 import com.backendcr.residentialcomplex.repository.PQRHistorialRepository;
 import com.backendcr.residentialcomplex.repository.PQRRepository;
+import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -35,6 +37,7 @@ public class PQRService {
     private final UsuarioRepository usuarioRepo;
     private final PQRHistorialRepository historialRepo;
     private final IdentidadRepository identidadRepo;
+    private final PropiedadRepository propiedadRepo;
     private final NotificacionService notificacionService;
 
     public List<PQRResponse> listarTodas() {
@@ -212,6 +215,10 @@ public class PQRService {
     private PQRResponse toResponse(PQR p) {
         String nombre = usuarioRepo.findById(p.getResidenteId())
                 .map(Usuario::getNombre).orElse("N/A");
-        return PQRResponse.from(p, nombre);
+        String propiedadIdentificador = p.getPropiedadId() != null
+                ? propiedadRepo.findById(p.getPropiedadId())
+                        .map(Propiedad::getIdentificador).orElse(null)
+                : null;
+        return PQRResponse.from(p, nombre, propiedadIdentificador);
     }
 }

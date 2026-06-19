@@ -15,16 +15,18 @@ public record PQRResponse(
         Long residenteId,
         String residenteNombre,
         Long propiedadId,
+        String propiedadIdentificador,
         String respuestaAdmin,
         Long respondidoPor,
         Instant fechaRespuesta,
         Instant creadoEn
 ) {
-    public static PQRResponse from(PQR p, String residenteNombre) {
+    public static PQRResponse from(PQR p, String residenteNombre, String propiedadIdentificador) {
         return new PQRResponse(
                 p.getId(), p.getTipo(), p.getAsunto(), p.getDescripcion(),
                 p.getEstado(), p.getResidenteId(), residenteNombre,
-                p.getPropiedadId(), p.getRespuestaAdmin(), p.getRespondidoPor(),
+                p.getPropiedadId(), propiedadIdentificador,
+                p.getRespuestaAdmin(), p.getRespondidoPor(),
                 p.getFechaRespuesta(),
                 p.getCreadoEn()
         );
