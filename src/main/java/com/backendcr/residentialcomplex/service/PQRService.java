@@ -7,12 +7,12 @@ import com.backendcr.residentialcomplex.dto.pqr.PQRResponderRequest;
 import com.backendcr.residentialcomplex.dto.pqr.PQRResponse;
 import com.backendcr.residentialcomplex.entity.PQR;
 import com.backendcr.residentialcomplex.entity.PQRHistorial;
-import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.Usuario;
+import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPQR;
 import com.backendcr.residentialcomplex.repository.PQRHistorialRepository;
 import com.backendcr.residentialcomplex.repository.PQRRepository;
-import com.backendcr.residentialcomplex.repository.PropiedadRepository;
+import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -37,8 +37,9 @@ public class PQRService {
     private final UsuarioRepository usuarioRepo;
     private final PQRHistorialRepository historialRepo;
     private final IdentidadRepository identidadRepo;
-    private final PropiedadRepository propiedadRepo;
+    private final UsuarioPropiedadRepository usuarioPropiedadRepo;
     private final NotificacionService notificacionService;
+    private final PropiedadService propiedadService;
 
     public List<PQRResponse> listarTodas() {
         return pqrRepo.findAll(Sort.by(Sort.Direction.DESC, "creadoEn")).stream().map(this::toResponse).toList();
@@ -84,7 +85,12 @@ public class PQRService {
         pqr.setTipo(req.tipo());
         pqr.setAsunto(req.asunto());
         pqr.setDescripcion(req.descripcion());
-        pqr.setPropiedadId(req.propiedadId());
+        // El cliente puede enviar la propiedad; si no viene, usamos la propiedad
+        // activa (principal) del usuario para que siempre quede registrada en BD.
+        Long propiedadId = req.propiedadId() != null
+                ? req.propiedadId()
+                : propiedadPrincipalId(residenteId);
+        pqr.setPropiedadId(propiedadId);
         pqr.setResidenteId(residenteId);
         pqr.setEstado(EstadoPQR.RADICADA);
         PQR saved = pqrRepo.save(pqr);
@@ -212,13 +218,23 @@ public class PQRService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PQR no encontrada"));
     }
 
+    /** Propiedad activa del usuario: la principal y, si no hay, la primera asignada. */
+    private Long propiedadPrincipalId(Long usuarioId) {
+        if (usuarioId == null) return null;
+        List<UsuarioPropiedad> propiedades = usuarioPropiedadRepo.findByUsuarioId(usuarioId);
+        return propiedades.stream()
+                .filter(UsuarioPropiedad::isEsPrincipal)
+                .findFirst()
+                .or(() -> propiedades.stream().findFirst())
+                .map(UsuarioPropiedad::getPropiedadId)
+                .orElse(null);
+    }
+
     private PQRResponse toResponse(PQR p) {
         String nombre = usuarioRepo.findById(p.getResidenteId())
                 .map(Usuario::getNombre).orElse("N/A");
-        String propiedadIdentificador = p.getPropiedadId() != null
-                ? propiedadRepo.findById(p.getPropiedadId())
-                        .map(Propiedad::getIdentificador).orElse(null)
-                : null;
+        String propiedadIdentificador =
+                propiedadService.pathCortoDePropiedad(p.getPropiedadId());
         return PQRResponse.from(p, nombre, propiedadIdentificador);
     }
 }
