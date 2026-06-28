@@ -27,9 +27,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UsuarioService {
 
+    // PORTERO descontinuado: unificado en VIGILANTE. No se permite crear nuevos PORTERO.
     private static final Set<String> ROLES_VALIDOS = Set.of(
             "PROPIETARIO", "INQUILINO", "TENANT_ADMIN",
-            "VIGILANTE", "PORTERO", "PISCINERO", "CONTADOR");
+            "VIGILANTE", "PISCINERO", "CONTADOR");
 
     private final UsuarioRepository usuarioRepository;
     private final IdentidadRepository identidadRepository;

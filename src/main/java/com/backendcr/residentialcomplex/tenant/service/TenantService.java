@@ -1019,6 +1019,82 @@ public class TenantService {
                 """.formatted(schema, schema, schema, schema));
         log.info("Tabla historial_estado_cartera creada para tenant '{}'", schema);
 
+        // ── 39. bitacora_acceso (minuta de vigilancia) ────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.bitacora_acceso (
+                    id               BIGSERIAL   PRIMARY KEY,
+                    tipo_evento      VARCHAR(25)  NOT NULL,
+                    resultado        VARCHAR(15)  NOT NULL,
+                    descripcion      VARCHAR(300),
+                    propiedad_id     BIGINT,
+                    placa            VARCHAR(15),
+                    documento        VARCHAR(30),
+                    nombre_visitante VARCHAR(120),
+                    vigilante_id     BIGINT,
+                    visita_id        BIGINT,
+                    paquete_id       BIGINT,
+                    creado_en        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+        log.info("Tabla bitacora_acceso creada para tenant '{}'", schema);
+
+        // ── 40. visitas (pre-registro + QR) ───────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.visitas (
+                    id               BIGSERIAL   PRIMARY KEY,
+                    codigo           VARCHAR(16)  NOT NULL,
+                    nombre_visitante VARCHAR(120) NOT NULL,
+                    documento        VARCHAR(30),
+                    placa            VARCHAR(15),
+                    motivo           VARCHAR(200),
+                    propiedad_id     BIGINT       NOT NULL REFERENCES %s.propiedades(id),
+                    residente_id     BIGINT       NOT NULL,
+                    estado           VARCHAR(12)  NOT NULL DEFAULT 'PENDIENTE',
+                    expira_en        TIMESTAMPTZ  NOT NULL,
+                    ingreso_en       TIMESTAMPTZ,
+                    validada_por     BIGINT,
+                    creado_en        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(codigo)
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla visitas creada para tenant '{}'", schema);
+
+        // ── 41. paquetes (correspondencia) ────────────────────────────────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.paquetes (
+                    id              BIGSERIAL   PRIMARY KEY,
+                    propiedad_id    BIGINT       NOT NULL REFERENCES %s.propiedades(id),
+                    descripcion     VARCHAR(200) NOT NULL,
+                    remitente       VARCHAR(120),
+                    transportadora  VARCHAR(80),
+                    estado          VARCHAR(12)  NOT NULL DEFAULT 'RECIBIDO',
+                    recibido_por    BIGINT,
+                    entregado_en    TIMESTAMPTZ,
+                    entregado_a     VARCHAR(120),
+                    entregado_por   BIGINT,
+                    recibido_en     TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla paquetes creada para tenant '{}'", schema);
+
+        // ── 42. config_vigilancia (parametrización, fila singleton) ───────────
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.config_vigilancia (
+                    id                        BIGINT  PRIMARY KEY,
+                    expiracion_visita_horas   INT     NOT NULL DEFAULT 24,
+                    exige_documento_peatonal  BOOLEAN NOT NULL DEFAULT TRUE,
+                    exige_foto_paquete        BOOLEAN NOT NULL DEFAULT FALSE,
+                    notificar_llegada_paquete BOOLEAN NOT NULL DEFAULT TRUE,
+                    actualizado_en            TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema));
+        jdbcTemplate.execute(
+                "INSERT INTO %s.config_vigilancia (id) VALUES (1) ON CONFLICT (id) DO NOTHING"
+                        .formatted(schema));
+        log.info("Tabla config_vigilancia creada para tenant '{}'", schema);
+
     }
 
 

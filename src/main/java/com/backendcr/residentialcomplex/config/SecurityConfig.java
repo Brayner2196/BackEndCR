@@ -55,6 +55,11 @@ public class SecurityConfig {
 					).permitAll()
 					.requestMatchers("/api/tenants/**").hasRole("SUPER_ADMIN")
 					.requestMatchers("/api/super/**").hasRole("SUPER_ADMIN")
+					// Área de vigilancia: vigilante operativo (admin como respaldo).
+					// PORTERO incluido solo por compatibilidad con usuarios legados.
+					.requestMatchers("/api/vigilante/**").hasAnyRole("VIGILANTE", "PORTERO", "TENANT_ADMIN")
+					// Parametrización y reportes de vigilancia: solo administrador
+					.requestMatchers("/api/admin/vigilancia/**").hasRole("TENANT_ADMIN")
 					.anyRequest().authenticated()
 		).sessionManagement(session -> session
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)

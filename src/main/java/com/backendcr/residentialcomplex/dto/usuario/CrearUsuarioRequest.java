@@ -24,7 +24,9 @@ public record CrearUsuarioRequest(
         String password,
 
         @NotBlank
-        @Pattern(regexp = "TENANT_ADMIN|RESIDENTE|RESIDENTE_PENDIENTE|PROPIETARIO|INQUILINO|VIGILANTE|PORTERO|PISCINERO|CONTADOR",
+        // PORTERO descontinuado: unificado en VIGILANTE. Se mantiene fuera del patrón
+        // para impedir crear nuevos usuarios con ese rol (los legados siguen funcionando).
+        @Pattern(regexp = "TENANT_ADMIN|RESIDENTE|RESIDENTE_PENDIENTE|PROPIETARIO|INQUILINO|VIGILANTE|PISCINERO|CONTADOR",
                  message = "Rol no válido")
         String rol,
 
