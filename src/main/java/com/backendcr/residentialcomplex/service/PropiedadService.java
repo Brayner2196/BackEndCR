@@ -16,6 +16,8 @@ import com.backendcr.residentialcomplex.dto.propiedad.PropiedadResponse;
 import com.backendcr.residentialcomplex.dto.propiedad.ResidenteResumenDto;
 import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 import com.backendcr.residentialcomplex.dto.propiedad.UsuarioPropiedadResponse;
+import com.backendcr.residentialcomplex.dto.vigilancia.PropiedadOpcionPage;
+import com.backendcr.residentialcomplex.dto.vigilancia.PropiedadOpcionResponse;
 import com.backendcr.residentialcomplex.entity.Parqueadero;
 import com.backendcr.residentialcomplex.entity.Propiedad;
 import com.backendcr.residentialcomplex.entity.TipoPropiedad;
@@ -94,6 +96,42 @@ public class PropiedadService {
         return propiedadRepo.findAll().stream()
                 .map(p -> toPropiedadResponse(p, true))
                 .toList();
+    }
+
+    /**
+     * Selector paginado de propiedades FACTURABLES con buscador, para portería
+     * (registro de paquetes/visitas). Filtra por path corto o identificador.
+     */
+    public PropiedadOpcionPage buscarFacturablesParaSelector(String buscar, int page, int size) {
+        int p = Math.max(page, 0);
+        int s = size <= 0 ? 20 : Math.min(size, 100);
+        String q = buscar == null ? "" : buscar.trim().toLowerCase();
+
+        List<PropiedadOpcionResponse> todas = propiedadRepo.findAll().stream()
+                .filter(prop -> {
+                    TipoPropiedad t = tipoRepo.findById(prop.getTipoId()).orElse(null);
+                    return t != null && t.isEsFacturable();
+                })
+                .map(prop -> new PropiedadOpcionResponse(
+                        prop.getId(), prop.getIdentificador(), construirPathCorto(prop)))
+                .filter(dto -> q.isEmpty()
+                        || (dto.pathCorto() != null && dto.pathCorto().toLowerCase().contains(q))
+                        || (dto.identificador() != null && dto.identificador().toLowerCase().contains(q)))
+                .sorted((a, b) -> {
+                    String pa = a.pathCorto() != null ? a.pathCorto() : "";
+                    String pb = b.pathCorto() != null ? b.pathCorto() : "";
+                    return pa.compareToIgnoreCase(pb);
+                })
+                .toList();
+
+        int total = todas.size();
+        int totalPages = (int) Math.ceil((double) total / s);
+        int from = Math.min(p * s, total);
+        int to = Math.min(from + s, total);
+        List<PropiedadOpcionResponse> content = todas.subList(from, to);
+        boolean last = p >= totalPages - 1;
+
+        return new PropiedadOpcionPage(content, p, s, total, totalPages, last);
     }
 
     @Transactional

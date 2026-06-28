@@ -6,7 +6,7 @@ import com.backendcr.residentialcomplex.dto.cartera.ResultadoRestriccion;
 import com.backendcr.residentialcomplex.dto.vigilancia.BitacoraAccesoResponse;
 import com.backendcr.residentialcomplex.dto.vigilancia.EntregarPaqueteRequest;
 import com.backendcr.residentialcomplex.dto.vigilancia.PaqueteResponse;
-import com.backendcr.residentialcomplex.dto.vigilancia.PropiedadOpcionResponse;
+import com.backendcr.residentialcomplex.dto.vigilancia.PropiedadOpcionPage;
 import com.backendcr.residentialcomplex.dto.vigilancia.RegistrarAccesoPeatonalRequest;
 import com.backendcr.residentialcomplex.dto.vigilancia.RegistrarPaqueteRequest;
 import com.backendcr.residentialcomplex.dto.vigilancia.ValidarVisitaResponse;
@@ -19,6 +19,7 @@ import com.backendcr.residentialcomplex.entity.enums.ResultadoAcceso;
 import com.backendcr.residentialcomplex.entity.enums.TipoEventoAcceso;
 import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.VehiculoRepository;
+import com.backendcr.residentialcomplex.service.PropiedadService;
 import com.backendcr.residentialcomplex.service.cartera.RestriccionService;
 import com.backendcr.residentialcomplex.service.vigilancia.BitacoraService;
 import com.backendcr.residentialcomplex.service.vigilancia.ConfigVigilanciaService;
@@ -48,6 +49,7 @@ public class VigilanteController {
     private final VehiculoRepository vehiculoRepo;
     private final PropiedadRepository propiedadRepo;
     private final RestriccionService restriccionService;
+    private final PropiedadService propiedadService;
     private final BitacoraService bitacoraService;
     private final ConfigVigilanciaService configService;
     private final VisitaService visitaService;
@@ -151,12 +153,16 @@ public class VigilanteController {
 
     // ── Propiedades (selector para peatonal/paquetes) ─────────────────────────
 
+    /**
+     * Selector paginado de unidades FACTURABLES con buscador (por path corto o
+     * identificador), para registrar paquetes/visitas.
+     */
     @GetMapping("/propiedades")
-    public List<PropiedadOpcionResponse> propiedades() {
-        return propiedadRepo.findAll().stream()
-                .filter(p -> p.getIdentificador() != null && !p.getIdentificador().isBlank())
-                .map(p -> new PropiedadOpcionResponse(p.getId(), p.getIdentificador()))
-                .toList();
+    public PropiedadOpcionPage propiedades(
+            @RequestParam(required = false) String buscar,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return propiedadService.buscarFacturablesParaSelector(buscar, page, size);
     }
 
     // ── Bitácora / minuta ─────────────────────────────────────────────────────
