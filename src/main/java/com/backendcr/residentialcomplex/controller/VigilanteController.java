@@ -9,7 +9,8 @@ import com.backendcr.residentialcomplex.dto.vigilancia.PaqueteResponse;
 import com.backendcr.residentialcomplex.dto.vigilancia.PropiedadOpcionPage;
 import com.backendcr.residentialcomplex.dto.vigilancia.RegistrarAccesoPeatonalRequest;
 import com.backendcr.residentialcomplex.dto.vigilancia.RegistrarPaqueteRequest;
-import com.backendcr.residentialcomplex.dto.vigilancia.ValidarVisitaResponse;
+import com.backendcr.residentialcomplex.dto.vigilancia.DetalleVisitaResponse;
+import com.backendcr.residentialcomplex.dto.vigilancia.RechazarVisitaRequest;
 import com.backendcr.residentialcomplex.entity.BitacoraAcceso;
 import com.backendcr.residentialcomplex.entity.ConfigVigilancia;
 import com.backendcr.residentialcomplex.entity.Propiedad;
@@ -119,10 +120,26 @@ public class VigilanteController {
 
     // ── Visitas (validar QR) ──────────────────────────────────────────────────
 
-    @GetMapping("/visitas/validar")
-    public ValidarVisitaResponse validarVisita(@RequestParam String codigo,
+    /** Consulta (sin mutar estado) los datos de la visita escaneada. */
+    @GetMapping("/visitas/{codigo}")
+    public DetalleVisitaResponse consultarVisita(@PathVariable String codigo,
+                                                 @AuthenticationPrincipal String email) {
+        return visitaService.consultar(codigo, vigilanteId(email));
+    }
+
+    /** Aprueba el ingreso de la visita (registra INGRESO). */
+    @PostMapping("/visitas/{id}/aprobar")
+    public DetalleVisitaResponse aprobarVisita(@PathVariable Long id,
                                                @AuthenticationPrincipal String email) {
-        return visitaService.validar(codigo, vigilanteId(email));
+        return visitaService.aprobar(id, vigilanteId(email));
+    }
+
+    /** Rechaza el ingreso con un motivo obligatorio. */
+    @PostMapping("/visitas/{id}/rechazar")
+    public DetalleVisitaResponse rechazarVisita(@PathVariable Long id,
+                                                @Valid @RequestBody RechazarVisitaRequest req,
+                                                @AuthenticationPrincipal String email) {
+        return visitaService.rechazar(id, req.motivo(), vigilanteId(email));
     }
 
     // ── Paquetería ────────────────────────────────────────────────────────────

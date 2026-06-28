@@ -13,6 +13,14 @@ public record CrearVisitaRequest(
         @Size(max = 30) String documento,
         @Size(max = 15) String placa,
         @Size(max = 200) String motivo,
-        /** Horas de validez del QR; si es null usa la parametrización del conjunto. */
+        /** Cantidad de personas que ingresan (mínimo 1). */
+        Integer cantidadPersonas,
+        /** Nombres de acompañantes en texto libre (opcional). */
+        @Size(max = 500) String acompanantes,
+        /** Inicio del horario esperado de la visita en ISO-8601 (opcional). */
+        String franjaDesde,
+        /** Fin del horario esperado de la visita en ISO-8601 (opcional). */
+        String franjaHasta,
+        /** Horas de validez del QR; si es null usa el horario o la parametrización. */
         Integer validezHoras
 ) {}

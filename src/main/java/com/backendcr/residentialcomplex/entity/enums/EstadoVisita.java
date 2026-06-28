@@ -13,5 +13,7 @@ public enum EstadoVisita {
     /** Expiró sin haber ingresado. */
     VENCIDA,
     /** Cancelada por el residente antes de ingresar. */
-    CANCELADA
+    CANCELADA,
+    /** Rechazada por el vigilante al escanear (con motivo). */
+    RECHAZADA
 }

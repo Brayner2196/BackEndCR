@@ -33,6 +33,7 @@ public class ConfigVigilanciaService {
         c.setExigeDocumentoPeatonal(dto.exigeDocumentoPeatonal());
         c.setExigeFotoPaquete(dto.exigeFotoPaquete());
         c.setNotificarLlegadaPaquete(dto.notificarLlegadaPaquete());
+        c.setPermitirAprobarConCarteraRestringida(dto.permitirAprobarConCarteraRestringida());
         return ConfigVigilanciaDto.from(repo.save(c));
     }
 }

@@ -41,6 +41,18 @@ public class Visita {
     @Column(name = "residente_id", nullable = false)
     private Long residenteId;
 
+    @Column(name = "cantidad_personas", nullable = false)
+    private int cantidadPersonas = 1;
+
+    @Column(length = 500)
+    private String acompanantes;
+
+    @Column(name = "franja_desde")
+    private Instant franjaDesde;
+
+    @Column(name = "franja_hasta")
+    private Instant franjaHasta;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 12)
     private EstadoVisita estado = EstadoVisita.PENDIENTE;
@@ -53,6 +65,9 @@ public class Visita {
 
     @Column(name = "validada_por")
     private Long validadaPor;
+
+    @Column(name = "motivo_rechazo", length = 300)
+    private String motivoRechazo;
 
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
@@ -87,6 +102,18 @@ public class Visita {
     public Long getResidenteId() { return residenteId; }
     public void setResidenteId(Long residenteId) { this.residenteId = residenteId; }
 
+    public int getCantidadPersonas() { return cantidadPersonas; }
+    public void setCantidadPersonas(int cantidadPersonas) { this.cantidadPersonas = cantidadPersonas; }
+
+    public String getAcompanantes() { return acompanantes; }
+    public void setAcompanantes(String acompanantes) { this.acompanantes = acompanantes; }
+
+    public Instant getFranjaDesde() { return franjaDesde; }
+    public void setFranjaDesde(Instant franjaDesde) { this.franjaDesde = franjaDesde; }
+
+    public Instant getFranjaHasta() { return franjaHasta; }
+    public void setFranjaHasta(Instant franjaHasta) { this.franjaHasta = franjaHasta; }
+
     public EstadoVisita getEstado() { return estado; }
     public void setEstado(EstadoVisita estado) { this.estado = estado; }
 
@@ -98,6 +125,9 @@ public class Visita {
 
     public Long getValidadaPor() { return validadaPor; }
     public void setValidadaPor(Long validadaPor) { this.validadaPor = validadaPor; }
+
+    public String getMotivoRechazo() { return motivoRechazo; }
+    public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
 
     public Instant getCreadoEn() { return creadoEn; }
     public Instant getActualizadoEn() { return actualizadoEn; }

@@ -6,5 +6,6 @@ public enum PermisoInquilino {
     RESERVAS,
     MARKETPLACE,
     ANUNCIOS,
-    ESTADO_CUENTA
+    ESTADO_CUENTA,
+    VISITAS
 }

@@ -1055,9 +1055,20 @@ public class TenantService {
                     validada_por     BIGINT,
                     creado_en        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    cantidad_personas INT         NOT NULL DEFAULT 1,
+                    acompanantes     VARCHAR(500),
+                    franja_desde     TIMESTAMPTZ,
+                    franja_hasta     TIMESTAMPTZ,
+                    motivo_rechazo   VARCHAR(300),
                     UNIQUE(codigo)
                 )
                 """.formatted(schema, schema));
+        // Columnas agregadas después (tenants ya existentes).
+        jdbcTemplate.execute("ALTER TABLE %s.visitas ADD COLUMN IF NOT EXISTS cantidad_personas INT NOT NULL DEFAULT 1".formatted(schema));
+        jdbcTemplate.execute("ALTER TABLE %s.visitas ADD COLUMN IF NOT EXISTS acompanantes VARCHAR(500)".formatted(schema));
+        jdbcTemplate.execute("ALTER TABLE %s.visitas ADD COLUMN IF NOT EXISTS franja_desde TIMESTAMPTZ".formatted(schema));
+        jdbcTemplate.execute("ALTER TABLE %s.visitas ADD COLUMN IF NOT EXISTS franja_hasta TIMESTAMPTZ".formatted(schema));
+        jdbcTemplate.execute("ALTER TABLE %s.visitas ADD COLUMN IF NOT EXISTS motivo_rechazo VARCHAR(300)".formatted(schema));
         log.info("Tabla visitas creada para tenant '{}'", schema);
 
         // ── 41. paquetes (correspondencia) ────────────────────────────────────
@@ -1087,9 +1098,11 @@ public class TenantService {
                     exige_documento_peatonal  BOOLEAN NOT NULL DEFAULT TRUE,
                     exige_foto_paquete        BOOLEAN NOT NULL DEFAULT FALSE,
                     notificar_llegada_paquete BOOLEAN NOT NULL DEFAULT TRUE,
+                    permitir_aprobar_cartera_restringida BOOLEAN NOT NULL DEFAULT FALSE,
                     actualizado_en            TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema));
+        jdbcTemplate.execute("ALTER TABLE %s.config_vigilancia ADD COLUMN IF NOT EXISTS permitir_aprobar_cartera_restringida BOOLEAN NOT NULL DEFAULT FALSE".formatted(schema));
         jdbcTemplate.execute(
                 "INSERT INTO %s.config_vigilancia (id) VALUES (1) ON CONFLICT (id) DO NOTHING"
                         .formatted(schema));

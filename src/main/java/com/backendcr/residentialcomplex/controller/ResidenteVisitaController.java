@@ -27,6 +27,7 @@ public class ResidenteVisitaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('PROPIETARIO') or @permisoValidator.tienePermiso(#email, 'VISITAS')")
     public VisitaResponse crear(@Valid @RequestBody CrearVisitaRequest req,
                                 @AuthenticationPrincipal String email) {
         return visitaService.crear(req, securityUtils.resolverUsuarioId(email));
