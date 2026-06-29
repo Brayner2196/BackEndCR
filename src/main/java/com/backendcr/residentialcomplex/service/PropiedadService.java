@@ -109,15 +109,18 @@ public class PropiedadService {
         int s = size <= 0 ? 20 : Math.min(size, 100);
         String q = buscar == null ? "" : buscar.trim();
 
-        List<PropiedadRepository.PropiedadSelectorRow> filas =
-                propiedadRepo.buscarFacturablesSelector(q, s, p * s);
+        // Columnas: [0]=id, [1]=identificador, [2]=path_corto, [3]=total
+        List<Object[]> filas = propiedadRepo.buscarFacturablesSelector(q, s, p * s);
 
-        long total = filas.isEmpty() ? 0 : filas.get(0).getTotal();
+        long total = filas.isEmpty() ? 0 : ((Number) filas.get(0)[3]).longValue();
         int totalPages = (int) Math.ceil((double) total / s);
         boolean last = p >= totalPages - 1;
 
         List<PropiedadOpcionResponse> content = filas.stream()
-                .map(f -> new PropiedadOpcionResponse(f.getId(), f.getIdentificador(), f.getPathCorto()))
+                .map(f -> new PropiedadOpcionResponse(
+                        ((Number) f[0]).longValue(),
+                        (String) f[1],
+                        (String) f[2]))
                 .toList();
 
         return new PropiedadOpcionPage(content, p, s, total, totalPages, last);

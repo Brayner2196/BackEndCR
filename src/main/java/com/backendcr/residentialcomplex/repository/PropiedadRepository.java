@@ -47,28 +47,17 @@ public interface PropiedadRepository extends JpaRepository<Propiedad, Long> {
                 FROM propiedades h
                 JOIN arbol a ON h.parent_id = a.id
             )
-            SELECT a.id AS id,
-                   a.identificador AS identificador,
-                   a.path_corto AS "pathCorto",
-                   COUNT(*) OVER() AS total
+            SELECT a.id, a.identificador, a.path_corto, COUNT(*) OVER() AS total
             FROM arbol a
             JOIN tipos_propiedad t ON t.id = a.tipo_id
             WHERE t.es_facturable = true
-              AND ( :buscar = ''
-                    OR a.path_corto ILIKE '%' || :buscar || '%'
-                    OR a.identificador ILIKE '%' || :buscar || '%' )
+              AND ( CAST(:buscar AS text) = ''
+                    OR a.path_corto ILIKE '%' || CAST(:buscar AS text) || '%'
+                    OR a.identificador ILIKE '%' || CAST(:buscar AS text) || '%' )
             ORDER BY a.path_corto
             LIMIT :size OFFSET :offset
             """, nativeQuery = true)
-    List<PropiedadSelectorRow> buscarFacturablesSelector(@Param("buscar") String buscar,
-                                                         @Param("size") int size,
-                                                         @Param("offset") int offset);
-
-    /** Proyección de fila para el selector del vigilante (incluye el total de la página). */
-    interface PropiedadSelectorRow {
-        Long getId();
-        String getIdentificador();
-        String getPathCorto();
-        long getTotal();
-    }
+    List<Object[]> buscarFacturablesSelector(@Param("buscar") String buscar,
+                                             @Param("size") int size,
+                                             @Param("offset") int offset);
 }
