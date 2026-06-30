@@ -38,7 +38,7 @@ public interface PropiedadRepository extends JpaRepository<Propiedad, Long> {
     @Query(value = """
             WITH RECURSIVE arbol AS (
                 SELECT p.id, p.parent_id, p.tipo_id, p.identificador,
-                       p.identificador::text AS path_corto
+                       CAST(p.identificador AS text) AS path_corto
                 FROM propiedades p
                 WHERE p.parent_id IS NULL
                 UNION ALL
