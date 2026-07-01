@@ -309,17 +309,29 @@ public class TenantService {
         log.info("Tabla tipos_propiedad creada para tenant '{}'", schema);
 
         // ── 3. propiedades ────────────────────────────────────────────────
+        // path_corto: concatenacion de identificadores desde la raiz (ej. "A101"),
+        // denormalizada para lecturas/paginacion sin recursion. La mantiene
+        // sincronizada PropiedadPathCalculator.
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS %s.propiedades (
                     id             BIGSERIAL PRIMARY KEY,
                     tipo_id        BIGINT NOT NULL REFERENCES %s.tipos_propiedad(id),
                     identificador  VARCHAR(50) NOT NULL,
                     parent_id      BIGINT REFERENCES %s.propiedades(id),
+                    path_corto     VARCHAR(255),
                     estado         VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE',
                     creado_en      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """.formatted(schema, schema, schema));
+        // Idempotente para tenants creados antes de agregar la columna.
+        jdbcTemplate.execute(
+                "ALTER TABLE %s.propiedades ADD COLUMN IF NOT EXISTS path_corto VARCHAR(255)"
+                        .formatted(schema));
+        // Indice para el buscador del vigilante (ILIKE por substring sobre path_corto).
+        jdbcTemplate.execute(
+                "CREATE INDEX IF NOT EXISTS idx_prop_path_corto_trgm ON %s.propiedades USING gin (path_corto gin_trgm_ops)"
+                        .formatted(schema));
         log.info("Tabla propiedades creada para tenant '{}'", schema);
 
         // ── 4. usuario_propiedades ────────────────────────────────────────

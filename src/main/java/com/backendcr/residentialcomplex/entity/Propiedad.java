@@ -26,6 +26,15 @@ public class Propiedad {
     @Column(name = "parent_id")
     private Long parentId;
 
+    /**
+     * Path corto denormalizado: concatenacion de los identificadores desde la
+     * raiz hasta esta propiedad, sin separador (ej. "A101"). Se mantiene
+     * sincronizado por {@link com.backendcr.residentialcomplex.service.PropiedadPathCalculator}.
+     * La CTE / calculo dinamico queda como fallback y fuente de verdad.
+     */
+    @Column(name = "path_corto", length = 255)
+    private String pathCorto;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoPropiedad estado = EstadoPropiedad.DISPONIBLE;
@@ -49,6 +58,9 @@ public class Propiedad {
 
     public Long getParentId() { return parentId; }
     public void setParentId(Long parentId) { this.parentId = parentId; }
+
+    public String getPathCorto() { return pathCorto; }
+    public void setPathCorto(String pathCorto) { this.pathCorto = pathCorto; }
 
     public EstadoPropiedad getEstado() { return estado; }
     public void setEstado(EstadoPropiedad estado) { this.estado = estado; }

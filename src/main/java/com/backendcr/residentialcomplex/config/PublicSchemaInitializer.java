@@ -56,6 +56,9 @@ public class PublicSchemaInitializer implements CommandLineRunner {
 
 	private void crearSchemaPublic() {
 		jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS public");
+		// Extension a nivel de BD (una sola vez) para los indices GIN de busqueda
+		// por substring, p. ej. idx_prop_path_corto_trgm sobre propiedades.path_corto.
+		jdbcTemplate.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm");
 	}
 
 	// ─── Tablas ────────────────────────────────────────────────────────────────

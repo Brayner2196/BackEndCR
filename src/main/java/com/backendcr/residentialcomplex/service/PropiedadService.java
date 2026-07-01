@@ -45,6 +45,7 @@ public class PropiedadService {
     private final UsuarioPropiedadRepository usuarioPropiedadRepo;
     private final UsuarioRepository usuarioRepo;
     private final IdentidadRepository identidadRepo;
+    private final PropiedadPathCalculator pathCalculator;
 
     // ── Tipos de propiedad ────────────────────────────────────────────────────
 
@@ -215,7 +216,7 @@ public class PropiedadService {
                     if (p == null) return null;
                     String path = construirPathTexto(p);
                     String tipoRaiz = obtenerNombreTipoRaiz(p);
-                    String pathCorto = construirPathCorto(p);
+                    String pathCorto = pathCalculator.pathCortoDe(p);
                     boolean esParqueadero = obtenerEsParqueaderoRaiz(p);
                     return new UsuarioPropiedadResponse(up.getId(), p.getId(), path, pathCorto, tipoRaiz, p.getEstado(), up.isEsPrincipal(), esParqueadero);
                 })
@@ -230,24 +231,34 @@ public class PropiedadService {
 
         Long parentPropiedadId = null;
         Propiedad actual = null;
+        // Prefijo acumulado del path corto (top-down): evita recalcular hacia arriba.
+        String prefijoPath = "";
 
         for (PropiedadPathItemDto item : path) {
             String valorNormalizado = item.valor().trim().toUpperCase();
             Long finalParent = parentPropiedadId;
+            String pathCortoNodo = pathCalculator.concat(prefijoPath, valorNormalizado);
             Optional<Propiedad> existente = propiedadRepo
                     .findByTipoIdAndIdentificadorAndParentId(item.tipoId(), valorNormalizado, finalParent);
 
             if (existente.isPresent()) {
                 actual = existente.get();
+                // Backfill defensivo: si un nodo previo no tenia path, lo completa.
+                if (actual.getPathCorto() == null || actual.getPathCorto().isBlank()) {
+                    actual.setPathCorto(pathCortoNodo);
+                    actual = propiedadRepo.save(actual);
+                }
             } else {
                 actual = new Propiedad();
                 actual.setTipoId(item.tipoId());
                 actual.setIdentificador(valorNormalizado);
                 actual.setParentId(parentPropiedadId);
                 actual.setEstado(EstadoPropiedad.DISPONIBLE);
+                actual.setPathCorto(pathCortoNodo);
                 actual = propiedadRepo.save(actual);
             }
             parentPropiedadId = actual.getId();
+            prefijoPath = actual.getPathCorto();
         }
 
         return actual != null?actual.getId():null;
@@ -299,7 +310,7 @@ public class PropiedadService {
         boolean esFacturable  = tipoHoja != null && tipoHoja.isEsFacturable();
         boolean esParqueadero = tipoHoja != null && tipoHoja.isEsParqueadero();
         String path      = construirPathTexto(p);
-        String pathCorto = construirPathCorto(p);
+        String pathCorto = pathCalculator.pathCortoDe(p);
 
         List<ResidenteResumenDto> residentes = Collections.emptyList();
         if (incluirResidentes) {
@@ -324,20 +335,7 @@ public class PropiedadService {
     public String pathCortoDePropiedad(Long propiedadId) {
         if (propiedadId == null) return null;
         return propiedadRepo.findById(propiedadId)
-                .map(this::construirPathCorto).orElse(null);
-    }
-
-    /** Versión corta del path: concatena solo los identificadores sin separador.
-     *  Ej: "Torre A / Piso 1 / Apartamento 01" → "A101" */
-    private String construirPathCorto(Propiedad hoja) {
-        List<String> partes = new ArrayList<>();
-        Propiedad actual = hoja;
-        while (actual != null) {
-            partes.add(0, actual.getIdentificador());
-            if (actual.getParentId() == null) break;
-            actual = propiedadRepo.findById(actual.getParentId()).orElse(null);
-        }
-        return String.join("", partes);
+                .map(pathCalculator::pathCortoDe).orElse(null);
     }
 
     private String construirPathTexto(Propiedad hoja) {

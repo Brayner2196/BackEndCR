@@ -25,9 +25,15 @@ public interface PropiedadRepository extends JpaRepository<Propiedad, Long> {
     Integer countPropiedadesIsFacturable();
 
     /**
-     * Selector paginado de propiedades FACTURABLES con su path corto (concatenación
-     * de identificadores desde la raíz, ej. "A101"), calculado en una sola consulta
-     * con una CTE recursiva. Filtra por path o identificador y pagina en la BD.
+     * Selector paginado de propiedades FACTURABLES con su path corto (columna
+     * denormalizada {@code path_corto}, ej. "A101"). Filtra por path o
+     * identificador y pagina en la BD.
+     *
+     * <p>Antes usaba una CTE recursiva; ahora lee la columna persistida, que se
+     * mantiene sincronizada al crear/renombrar/mover propiedades
+     * (ver {@link com.backendcr.residentialcomplex.service.PropiedadPathCalculator}).
+     * El filtro por substring aprovecha el índice GIN {@code pg_trgm}
+     * {@code idx_prop_path_corto_trgm}.</p>
      *
      * <p>La consulta corre sin prefijo de schema: el {@code search_path} del tenant
      * activo (multitenancy por schema) la resuelve a la base correcta.</p>
@@ -36,25 +42,14 @@ public interface PropiedadRepository extends JpaRepository<Propiedad, Long> {
      * problemas de tipado de parámetros en la query nativa.</p>
      */
     @Query(value = """
-            WITH RECURSIVE arbol AS (
-                SELECT p.id, p.parent_id, p.tipo_id, p.identificador,
-                       CAST(p.identificador AS text) AS path_corto
-                FROM propiedades p
-                WHERE p.parent_id IS NULL
-                UNION ALL
-                SELECT h.id, h.parent_id, h.tipo_id, h.identificador,
-                       a.path_corto || h.identificador
-                FROM propiedades h
-                JOIN arbol a ON h.parent_id = a.id
-            )
-            SELECT a.id, a.identificador, a.path_corto, COUNT(*) OVER() AS total
-            FROM arbol a
-            JOIN tipos_propiedad t ON t.id = a.tipo_id
+            SELECT p.id, p.identificador, p.path_corto, COUNT(*) OVER() AS total
+            FROM propiedades p
+            JOIN tipos_propiedad t ON t.id = p.tipo_id
             WHERE t.es_facturable = true
               AND ( CAST(:buscar AS text) = ''
-                    OR a.path_corto ILIKE '%' || CAST(:buscar AS text) || '%'
-                    OR a.identificador ILIKE '%' || CAST(:buscar AS text) || '%' )
-            ORDER BY a.path_corto
+                    OR p.path_corto ILIKE '%' || CAST(:buscar AS text) || '%'
+                    OR p.identificador ILIKE '%' || CAST(:buscar AS text) || '%' )
+            ORDER BY p.path_corto
             LIMIT :size OFFSET :offset
             """, nativeQuery = true)
     List<Object[]> buscarFacturablesSelector(@Param("buscar") String buscar,
