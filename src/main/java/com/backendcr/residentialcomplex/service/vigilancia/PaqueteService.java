@@ -129,8 +129,9 @@ public class PaqueteService {
     }
 
     private PaqueteResponse toResponse(Paquete p) {
-        String ident = propiedadRepo.findById(p.getPropiedadId())
-                .map(Propiedad::getIdentificador).orElse(null);
+        @SuppressWarnings("null")
+		String ident = propiedadRepo.findById(p.getPropiedadId())
+                .map(Propiedad::getPathCorto).orElse(null);
         return PaqueteResponse.from(p, ident);
     }
 }
