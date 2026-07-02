@@ -16,6 +16,7 @@ import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.VisitaRepository;
 import com.backendcr.residentialcomplex.service.NotificacionService;
+import com.backendcr.residentialcomplex.service.PropiedadPathCalculator;
 import com.backendcr.residentialcomplex.service.cartera.RestriccionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ public class VisitaService {
     private final BitacoraService bitacoraService;
     private final ConfigVigilanciaService configService;
     private final NotificacionService notificacionService;
+    private final PropiedadPathCalculator pathCalculator;
 
     // ── Residente ───────────────────────────────────────────────────────────
 
@@ -133,6 +135,11 @@ public class VisitaService {
     public DetalleVisitaResponse aprobar(Long visitaId, Long vigilanteId) {
         Visita v = obtenerDecidible(visitaId);
 
+        if (v.getFranjaDesde() != null && TenantClock.ahora().isBefore(v.getFranjaDesde())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El QR aún no es válido; el horario de la visita no ha iniciado");
+        }
+
         ResultadoRestriccion r = restriccionService.verificar(
                 v.getPropiedadId(), AccionRestringible.ACCESO_PEATONAL_VISITANTE);
         if (!r.permitido() && !configService.obtener().isPermitirAprobarConCarteraRestringida()) {
@@ -205,7 +212,10 @@ public class VisitaService {
         boolean restringida = !r.permitido();
         boolean politicaOverride = configService.obtener().isPermitirAprobarConCarteraRestringida();
         boolean puedeDecidir = v.getEstado() == EstadoVisita.PENDIENTE;
-        boolean puedeAprobar = puedeDecidir && (!restringida || politicaOverride);
+        // El QR con franja horaria aún no inicia: se avisa y no se permite aprobar.
+        boolean noVigenteAun = puedeDecidir && v.getFranjaDesde() != null
+                && TenantClock.ahora().isBefore(v.getFranjaDesde());
+        boolean puedeAprobar = puedeDecidir && !noVigenteAun && (!restringida || politicaOverride);
 
         String mensaje;
         if (!puedeDecidir) {
@@ -216,6 +226,8 @@ public class VisitaService {
                 case VENCIDA -> "El QR de la visita está vencido";
                 default -> "La visita ya fue procesada";
             };
+        } else if (noVigenteAun) {
+            mensaje = "El QR aún no es válido; el horario de la visita no ha iniciado";
         } else if (restringida) {
             mensaje = r.mensaje() != null ? r.mensaje() : "Unidad restringida por cartera";
         } else {
@@ -241,7 +253,7 @@ public class VisitaService {
 
     private String identificador(Visita v) {
         return propiedadRepo.findById(v.getPropiedadId())
-                .map(Propiedad::getIdentificador).orElse("N/A");
+                .map(pathCalculator::pathCortoDe).orElse("N/A");
     }
 
     private String generarCodigoUnico() {
