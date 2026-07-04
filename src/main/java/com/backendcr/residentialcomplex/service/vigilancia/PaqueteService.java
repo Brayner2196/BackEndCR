@@ -61,7 +61,7 @@ public class PaqueteService {
 
         ConfigVigilancia cfg = configService.obtener();
         if (cfg.isNotificarLlegadaPaquete()) {
-            notificarResidentes(req.propiedadId(), propiedad.getIdentificador());
+            notificarResidentes(req.propiedadId(), propiedad.getPathCorto());
         }
 
         return PaqueteResponse.from(guardado, propiedad.getIdentificador());
