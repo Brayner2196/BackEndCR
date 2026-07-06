@@ -1120,6 +1120,27 @@ public class TenantService {
                         .formatted(schema));
         log.info("Tabla config_vigilancia creada para tenant '{}'", schema);
 
+        // ── 43. acta_reunion (actas por voz — Whisper local) ──────────────────
+        // Solo el PRESIDENTE del consejo crea/edita; los demás consejeros leen.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.acta_reunion (
+                    id                    BIGSERIAL    PRIMARY KEY,
+                    titulo                VARCHAR(200) NOT NULL,
+                    fecha_reunion         TIMESTAMPTZ  NOT NULL,
+                    estado                VARCHAR(20)  NOT NULL DEFAULT 'PROCESANDO',
+                    transcripcion         TEXT,
+                    contenido             TEXT,
+                    audio_path            VARCHAR(500),
+                    duracion_segundos     INT,
+                    creado_por_usuario_id BIGINT       NOT NULL REFERENCES %s.usuarios(id),
+                    error_mensaje         VARCHAR(500),
+                    finalizada_en         TIMESTAMPTZ,
+                    creado_en             TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en        TIMESTAMPTZ
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla acta_reunion creada para tenant '{}'", schema);
+
     }
 
 

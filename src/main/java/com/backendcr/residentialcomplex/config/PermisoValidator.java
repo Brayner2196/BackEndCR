@@ -1,6 +1,7 @@
 package com.backendcr.residentialcomplex.config;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
+import com.backendcr.residentialcomplex.entity.enums.CargoConsejo;
 import com.backendcr.residentialcomplex.entity.enums.PermisoInquilino;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.InquilinoPermisoRepository;
@@ -62,6 +63,37 @@ public class PermisoValidator {
         return identidadRepo.findByEmailAndTenantId(email, tenantId).map(identidad ->
                 usuarioRepo.findByIdentidadId(identidad.getId()).map(usuario ->
                         miembroConsejoRepo.existsByUsuarioIdAndActivoTrue(usuario.getId())
+                ).orElse(false)
+        ).orElse(false);
+    }
+
+    /**
+     * Verifica si el usuario autenticado es el PRESIDENTE activo del consejo comunal.
+     * Validación autoritativa contra BD (no confía solo en el claim del JWT, que
+     * puede quedar desactualizado si el cargo cambia durante la vigencia del token).
+     *
+     * Uso en @PreAuthorize:
+     *   @PreAuthorize("@permisoValidator.esPresidenteActivo(authentication.name)")
+     *
+     * @param email email del principal autenticado
+     */
+    public boolean esPresidenteActivo(String email) {
+        return tieneCargoActivo(email, CargoConsejo.PRESIDENTE);
+    }
+
+    /**
+     * Verifica si el usuario autenticado tiene un cargo específico activo en el consejo.
+     * Reutilizable para futuras funciones restringidas por cargo (SECRETARIO, TESORERO...).
+     */
+    public boolean tieneCargoActivo(String email, CargoConsejo cargo) {
+        String tenantId = TenantContext.getTenant();
+        if (tenantId == null) return false;
+
+        return identidadRepo.findByEmailAndTenantId(email, tenantId).map(identidad ->
+                usuarioRepo.findByIdentidadId(identidad.getId()).map(usuario ->
+                        miembroConsejoRepo.findByUsuarioIdAndActivoTrue(usuario.getId())
+                                .map(m -> m.getCargo() == cargo)
+                                .orElse(false)
                 ).orElse(false)
         ).orElse(false);
     }
