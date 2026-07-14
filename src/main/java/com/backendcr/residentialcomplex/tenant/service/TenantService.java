@@ -308,6 +308,29 @@ public class TenantService {
                 """.formatted(schema, schema));
         log.info("Tabla tipos_propiedad creada para tenant '{}'", schema);
 
+        // ── 2b. valores_tipo_propiedad ────────────────────────────────────
+        // Catálogo de valores permitidos por tipo (modelo híbrido):
+        //   parent_valor_id NULL  → plantilla global del tipo.
+        //   parent_valor_id != NULL → excepción bajo ese valor padre concreto.
+        // Alimenta los dropdowns de registro/creación y evita valores libres.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.valores_tipo_propiedad (
+                    id              BIGSERIAL PRIMARY KEY,
+                    tipo_id         BIGINT NOT NULL REFERENCES %s.tipos_propiedad(id),
+                    valor           VARCHAR(50) NOT NULL,
+                    parent_valor_id BIGINT REFERENCES %s.valores_tipo_propiedad(id),
+                    orden           INT NOT NULL DEFAULT 0,
+                    activo          BOOLEAN NOT NULL DEFAULT TRUE
+                )
+                """.formatted(schema, schema, schema));
+        // Evita valores duplicados dentro del mismo tipo y misma rama padre.
+        // COALESCE(parent_valor_id, 0) normaliza los NULL (plantilla global).
+        jdbcTemplate.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_valor_tipo_padre
+                ON %s.valores_tipo_propiedad (tipo_id, UPPER(valor), COALESCE(parent_valor_id, 0))
+                """.formatted(schema));
+        log.info("Tabla valores_tipo_propiedad creada para tenant '{}'", schema);
+
         // ── 3. propiedades ────────────────────────────────────────────────
         // path_corto: concatenacion de identificadores desde la raiz (ej. "A101"),
         // denormalizada para lecturas/paginacion sin recursion. La mantiene

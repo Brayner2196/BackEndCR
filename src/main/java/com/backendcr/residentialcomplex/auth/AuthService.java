@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
 import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
+import com.backendcr.residentialcomplex.dto.propiedad.ValorTipoPropiedadDto;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Tenant;
 import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
@@ -19,6 +20,7 @@ import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.MiembroConsejoRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.PropiedadService;
+import com.backendcr.residentialcomplex.service.ValorTipoPropiedadService;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ public class AuthService {
 	private final RefreshTokenService refreshTokenService;
 	private final JdbcTemplate jdbcTemplate;
 	private final PropiedadService propiedadService;
+	private final ValorTipoPropiedadService valorService;
 	private final UsuarioPropiedadRepository usuarioPropiedadRepository;
 	private final UsuarioRepository usuarioRepository;
 	private final MiembroConsejoRepository miembroConsejoRepository;
@@ -198,6 +201,24 @@ public class AuthService {
 		try {
 			TenantContext.setTenant(tenant.getSchemaName());
 			return propiedadService.obtenerArbol();
+		} finally {
+			TenantContext.clear();
+		}
+	}
+
+	/** Valores permitidos (híbrido) de un nivel, para los dropdowns del registro público. */
+	public List<ValorTipoPropiedadDto> getValoresPropiedad(String codigoConjunto, Long tipoId, Long parentValorId) {
+		Tenant tenant = tenantRepository.findByCodigo(codigoConjunto)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+						"No existe un conjunto con ese código"));
+
+		if (!tenant.isActivo()) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El conjunto no está activo");
+		}
+
+		try {
+			TenantContext.setTenant(tenant.getSchemaName());
+			return valorService.resolverPermitidos(tipoId, parentValorId);
 		} finally {
 			TenantContext.clear();
 		}

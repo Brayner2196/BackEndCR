@@ -12,10 +12,12 @@ import com.backendcr.residentialcomplex.dto.propiedad.PropiedadRequest;
 import com.backendcr.residentialcomplex.dto.propiedad.PropiedadResponse;
 import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 import com.backendcr.residentialcomplex.dto.propiedad.UsuarioPropiedadResponse;
+import com.backendcr.residentialcomplex.dto.propiedad.ValorTipoPropiedadDto;
 import com.backendcr.residentialcomplex.entity.enums.EstadoPropiedad;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.PropiedadService;
+import com.backendcr.residentialcomplex.service.ValorTipoPropiedadService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class PropiedadController {
 
     private final PropiedadService propiedadService;
+    private final ValorTipoPropiedadService valorService;
     private final UsuarioRepository usuarioRepo;
     private final IdentidadRepository identidadRepo;
 
@@ -54,6 +57,46 @@ public class PropiedadController {
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public void desactivarTipo(@PathVariable Long id) {
         propiedadService.desactivarTipo(id);
+    }
+
+    // ── Valores permitidos por tipo (catálogo) ────────────────────────────────
+
+    /** Valores resueltos (híbrido) para alimentar un dropdown de un nivel. */
+    @GetMapping("/api/tipos-propiedad/{tipoId}/valores")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public List<ValorTipoPropiedadDto> valoresPermitidos(
+            @PathVariable Long tipoId,
+            @RequestParam(required = false) Long parentValorId) {
+        return valorService.resolverPermitidos(tipoId, parentValorId);
+    }
+
+    /** Todos los valores del tipo (activos e inactivos), para la gestión. */
+    @GetMapping("/api/tipos-propiedad/{tipoId}/valores/todos")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public List<ValorTipoPropiedadDto> valoresTodos(@PathVariable Long tipoId) {
+        return valorService.listarTodos(tipoId);
+    }
+
+    @PostMapping("/api/tipos-propiedad/{tipoId}/valores")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ValorTipoPropiedadDto crearValor(@PathVariable Long tipoId,
+                                            @Valid @RequestBody ValorTipoPropiedadDto request) {
+        return valorService.crear(tipoId, request);
+    }
+
+    @PutMapping("/api/valores-propiedad/{id}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ValorTipoPropiedadDto actualizarValor(@PathVariable Long id,
+                                                 @Valid @RequestBody ValorTipoPropiedadDto request) {
+        return valorService.actualizar(id, request);
+    }
+
+    @DeleteMapping("/api/valores-propiedad/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public void desactivarValor(@PathVariable Long id) {
+        valorService.desactivar(id);
     }
 
     @GetMapping("/api/propiedades")

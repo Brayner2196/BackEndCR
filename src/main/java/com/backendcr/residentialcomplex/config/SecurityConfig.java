@@ -34,7 +34,7 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
-					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad", "/auth/refresh").permitAll()
+					.requestMatchers("/auth/login","/auth/login/seleccionar", "/auth/registro", "/auth/tiposPropiedad", "/auth/tiposPropiedad/**", "/auth/refresh").permitAll()
 					// Webhooks y landing pages de pasarelas (sin auth — vienen de servicios externos o del WebView)
 					.requestMatchers(
 						// Landing pages MP (back_urls interceptadas por el WebView)

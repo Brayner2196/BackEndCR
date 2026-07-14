@@ -46,6 +46,7 @@ public class PropiedadService {
     private final UsuarioRepository usuarioRepo;
     private final IdentidadRepository identidadRepo;
     private final PropiedadPathCalculator pathCalculator;
+    private final ValorPropiedadValidator valorValidator;
 
     // ── Tipos de propiedad ────────────────────────────────────────────────────
 
@@ -228,6 +229,10 @@ public class PropiedadService {
         if (path == null || path.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El path de propiedad no puede estar vacío");
         }
+
+        // Barrera de seguridad: rechaza valores fuera del catálogo permitido
+        // antes de crear cualquier nodo (evita "ABCDERGRTGG" y similares).
+        valorValidator.validarPath(path);
 
         Long parentPropiedadId = null;
         Propiedad actual = null;
