@@ -108,6 +108,18 @@
 		    <version>9.2.0</version>
 		</dependency>
 
+		<!-- AWS SDK v2 - S3 (Railway Buckets / cualquier storage S3-compatible) -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>s3</artifactId>
+		    <version>2.25.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>auth</artifactId>
+		    <version>2.25.0</version>
+		</dependency>
+
     </dependencies>
     
     <build>
