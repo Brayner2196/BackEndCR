@@ -1164,6 +1164,41 @@ public class TenantService {
                 """.formatted(schema, schema));
         log.info("Tabla acta_reunion creada para tenant '{}'", schema);
 
+        // ── 44. documentos_interes (documentos de interés general) ────────────
+        // El TENANT_ADMIN gestiona; residentes (propietario/inquilino) ven los PUBLICADOS.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.documentos_interes (
+                    id             BIGSERIAL    PRIMARY KEY,
+                    titulo         VARCHAR(200) NOT NULL,
+                    descripcion    VARCHAR(2000),
+                    categoria      VARCHAR(20)  NOT NULL DEFAULT 'OTROS',
+                    estado         VARCHAR(20)  NOT NULL DEFAULT 'BORRADOR',
+                    creado_por     BIGINT       NOT NULL REFERENCES %s.usuarios(id),
+                    creado_en      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    actualizado_en TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+        log.info("Tabla documentos_interes creada para tenant '{}'", schema);
+
+        // ── 45. archivos_documento (adjuntos → keys del bucket S3) ────────────
+        // Relaciona cada documento con las rutas (keys) de sus archivos físicos.
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS %s.archivos_documento (
+                    id              BIGSERIAL    PRIMARY KEY,
+                    documento_id    BIGINT       NOT NULL REFERENCES %s.documentos_interes(id) ON DELETE CASCADE,
+                    storage_key     VARCHAR(500) NOT NULL,
+                    nombre_original VARCHAR(255) NOT NULL,
+                    content_type    VARCHAR(150),
+                    tipo            VARCHAR(20)  NOT NULL,
+                    tamano_bytes    BIGINT,
+                    creado_en       TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """.formatted(schema, schema));
+        jdbcTemplate.execute(
+                "CREATE INDEX IF NOT EXISTS idx_archivos_documento_doc ON %s.archivos_documento(documento_id)"
+                        .formatted(schema));
+        log.info("Tabla archivos_documento creada para tenant '{}'", schema);
+
     }
 
 

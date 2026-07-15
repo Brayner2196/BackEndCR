@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/test-storage")
 @RequiredArgsConstructor
-public class TestStorageController {
+public class StorageController {
 
 	private final StorageService storageService;
 
