@@ -73,10 +73,15 @@ public class AdminDocumentoController {
 
     // ─── Archivos adjuntos ────────────────────────────────────────────────────
 
-    /** Sube uno o varios archivos al documento. multipart/form-data → campo "archivos". */
+    /**
+     * Sube uno o varios archivos al documento. multipart/form-data → campo "archivos".
+     * Se usa {@code @RequestParam} (no {@code @RequestPart}) porque es la forma fiable
+     * de recibir una lista de MultipartFile en Spring; con @RequestPart la lista puede
+     * llegar vacía y disparar "El archivo es obligatorio".
+     */
     @PostMapping(path = "/{id}/archivos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public DocumentoInteresResponse subirArchivos(@PathVariable Long id,
-                                                  @RequestPart("archivos") List<MultipartFile> archivos) {
+                                                  @RequestParam("archivos") List<MultipartFile> archivos) {
         return documentoService.agregarArchivos(id, archivos);
     }
 
