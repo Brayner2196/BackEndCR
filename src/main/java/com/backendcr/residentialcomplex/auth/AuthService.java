@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
@@ -14,12 +13,11 @@ import com.backendcr.residentialcomplex.dto.propiedad.TipoPropiedadNodoDto;
 import com.backendcr.residentialcomplex.dto.propiedad.ValorTipoPropiedadDto;
 import com.backendcr.residentialcomplex.entity.Identidad;
 import com.backendcr.residentialcomplex.entity.Tenant;
-import com.backendcr.residentialcomplex.entity.UsuarioPropiedad;
 import com.backendcr.residentialcomplex.repository.IdentidadRepository;
-import com.backendcr.residentialcomplex.repository.UsuarioPropiedadRepository;
 import com.backendcr.residentialcomplex.repository.MiembroConsejoRepository;
 import com.backendcr.residentialcomplex.repository.UsuarioRepository;
 import com.backendcr.residentialcomplex.service.PropiedadService;
+import com.backendcr.residentialcomplex.service.UsuarioService;
 import com.backendcr.residentialcomplex.service.ValorTipoPropiedadService;
 import com.backendcr.residentialcomplex.tenant.repository.TenantRepository;
 
@@ -37,7 +35,7 @@ public class AuthService {
 	private final JdbcTemplate jdbcTemplate;
 	private final PropiedadService propiedadService;
 	private final ValorTipoPropiedadService valorService;
-	private final UsuarioPropiedadRepository usuarioPropiedadRepository;
+	private final UsuarioService usuarioService;
 	private final UsuarioRepository usuarioRepository;
 	private final MiembroConsejoRepository miembroConsejoRepository;
 
@@ -134,7 +132,6 @@ public class AuthService {
 		return generarLoginResponse(identidad, request.tenantId(), tenant.getNombre());
 	}
 
-	@Transactional
 	public RegistroResponse registro(RegistroRequest request) {
 
 		Tenant tenant = tenantRepository.findByCodigo(request.codigoConjunto())
@@ -150,6 +147,7 @@ public class AuthService {
 					"Ya existe una cuenta con ese email en este conjunto");
 		}
 
+		// 1) Identidad en el schema public (la entidad Identidad está fijada a public).
 		Identidad identidad = new Identidad();
 		identidad.setEmail(request.email());
 		identidad.setPassword(passwordEncoder.encode(request.password()));
@@ -157,29 +155,21 @@ public class AuthService {
 		identidad.setTenantId(tenant.getSchemaName());
 		identidad = identidadRepository.save(identidad);
 
-		jdbcTemplate.update("""
-				INSERT INTO %s.usuarios (nombre, identidad_id, telefono, estado)
-				VALUES (?, ?, ?, 'PENDIENTE')
-				""".formatted(tenant.getSchemaName()),
-				request.nombre(), identidad.getId(), request.telefono());
-
-		if (request.propiedadPath() != null && !request.propiedadPath().isEmpty()) {
-			try {
-				TenantContext.setTenant(tenant.getSchemaName());
-				Long usuarioId = jdbcTemplate.queryForObject(
-						"SELECT id FROM " + tenant.getSchemaName() + ".usuarios WHERE identidad_id = ?",
-						Long.class, identidad.getId());
-
-				Long propiedadId = propiedadService.resolverOCrearPath(request.propiedadPath());
-
-				UsuarioPropiedad up = new UsuarioPropiedad();
-				up.setUsuarioId(usuarioId);
-				up.setPropiedadId(propiedadId);
-				up.setEsPrincipal(true);
-				usuarioPropiedadRepository.save(up);
-			} finally {
-				TenantContext.clear();
-			}
+		// 2) Usuario + propiedad en el schema del tenant. Se fija el TenantContext
+		//    ANTES de invocar el método @Transactional para que la sesión de
+		//    Hibernate enlace el search_path del conjunto; de lo contrario la
+		//    propiedad (usuario_propiedades) terminaba guardándose en 'public' y
+		//    quedaba invisible tras la aprobación.
+		try {
+			TenantContext.setTenant(tenant.getSchemaName());
+			usuarioService.crearUsuarioPendienteDesdeRegistro(
+					identidad.getId(), request.nombre(), request.telefono(), request.propiedadPath());
+		} catch (RuntimeException e) {
+			// Compensación: evita dejar una identidad huérfana en public si falla el paso 2.
+			identidadRepository.delete(identidad);
+			throw e;
+		} finally {
+			TenantContext.clear();
 		}
 
 		return new RegistroResponse(

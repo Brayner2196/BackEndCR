@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.backendcr.residentialcomplex.config.multitenant.TenantContext;
+import com.backendcr.residentialcomplex.dto.propiedad.PropiedadPathItemDto;
 import com.backendcr.residentialcomplex.dto.usuario.ActualizarUsuarioRequest;
 import com.backendcr.residentialcomplex.dto.usuario.CrearUsuarioRequest;
 import com.backendcr.residentialcomplex.dto.usuario.UsuarioResponse;
@@ -100,6 +101,36 @@ public class UsuarioService {
         }
 
         return toResponse(usuario, identidad);
+    }
+
+    /**
+     * Crea el Usuario (estado PENDIENTE) del auto-registro público y, si viene
+     * informada, asocia su propiedad principal.
+     *
+     * IMPORTANTE: debe invocarse con el TenantContext YA fijado al schema del
+     * conjunto. Al ser @Transactional, la sesión de Hibernate enlaza el
+     * search_path del tenant al abrir la transacción, garantizando que tanto el
+     * usuario como la propiedad (usuario_propiedades) se persistan en el schema
+     * correcto y no en 'public'.
+     */
+    @Transactional
+    public void crearUsuarioPendienteDesdeRegistro(Long identidadId, String nombre, String telefono,
+                                                   List<PropiedadPathItemDto> propiedadPath) {
+        Usuario usuario = new Usuario();
+        usuario.setNombre(nombre.trim());
+        usuario.setIdentidadId(identidadId);
+        usuario.setTelefono(telefono);
+        usuario.setEstado(EstadoUsuario.PENDIENTE);
+        usuario = usuarioRepository.save(usuario);
+
+        if (propiedadPath != null && !propiedadPath.isEmpty()) {
+            Long propiedadId = propiedadService.resolverOCrearPath(propiedadPath);
+            UsuarioPropiedad up = new UsuarioPropiedad();
+            up.setUsuarioId(usuario.getId());
+            up.setPropiedadId(propiedadId);
+            up.setEsPrincipal(true);
+            usuarioPropiedadRepository.save(up);
+        }
     }
 
     // ── Actualizar datos personales ────────────────────────────────────────────
