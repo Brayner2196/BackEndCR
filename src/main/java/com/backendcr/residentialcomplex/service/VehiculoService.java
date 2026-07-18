@@ -131,9 +131,9 @@ public class VehiculoService {
 
     private void validarTipoPermitido(VehiculoRequest req, ConfiguracionParqueadero config) {
         boolean permitido = switch (req.tipo()) {
-            case CARRO -> config.isPermiteCarro();
-            case MOTO -> config.isPermiteMoto();
-            case BICICLETA -> config.isPermiteBicicleta();
+            case carro -> config.isPermiteCarro();
+            case moto -> config.isPermiteMoto();
+            case bicicleta -> config.isPermiteBicicleta();
         };
         if (!permitido) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
