@@ -1,6 +1,6 @@
 package com.backendcr.residentialcomplex.service;
 
-import com.backendcr.residentialcomplex.dto.documento.ArchivoDescarga;
+import com.backendcr.residentialcomplex.dto.documento.ArchivoDescargaUrl;
 import com.backendcr.residentialcomplex.dto.documento.CambiarEstadoDocumentoRequest;
 import com.backendcr.residentialcomplex.dto.documento.DocumentoInteresRequest;
 import com.backendcr.residentialcomplex.dto.documento.DocumentoInteresResponse;
@@ -30,7 +30,7 @@ import java.util.List;
  * Gestión (crear, editar, publicar, subir/eliminar archivos, borrar) → administrador.
  * Consulta y descarga de documentos PUBLICADOS → residentes.
  *
- * Los binarios viven en el bucket S3 vía {@link StorageService}; aquí solo se
+ * Los binarios viven en el bucket de Backblaze B2 vía {@link StorageService}; aquí solo se
  * persisten las keys y su metadata.
  */
 @Service
@@ -158,19 +158,19 @@ public class DocumentoInteresService {
         archivoRepo.delete(archivo);
     }
 
-    // ─── Descarga (admin: cualquier estado | residente: solo PUBLICADO) ──────
+    // ─── Descarga: URL firmada (admin: cualquier estado | residente: solo PUBLICADO) ──
 
     @Transactional(readOnly = true)
-    public ArchivoDescarga descargar(Long documentoId, Long archivoId, boolean soloPublicado) {
+    public ArchivoDescargaUrl generarUrlDescarga(Long documentoId, Long archivoId, boolean soloPublicado) {
         DocumentoInteres doc = soloPublicado ? buscarPublicado(documentoId) : buscar(documentoId);
         ArchivoDocumento archivo = archivoRepo.findByIdAndDocumentoId(archivoId, doc.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Archivo no encontrado"));
 
-        byte[] contenido = storageService.descargar(archivo.getStorageKey());
+        String url = storageService.generarUrlDescarga(archivo.getStorageKey());
         String contentType = archivo.getContentType() != null
                 ? archivo.getContentType()
                 : storageService.obtenerContentType(archivo.getStorageKey());
-        return new ArchivoDescarga(contenido, contentType, archivo.getNombreOriginal());
+        return new ArchivoDescargaUrl(url, archivo.getNombreOriginal(), contentType);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

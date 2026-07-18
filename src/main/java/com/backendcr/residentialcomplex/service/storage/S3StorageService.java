@@ -1,6 +1,7 @@
 package com.backendcr.residentialcomplex.service.storage;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -24,13 +25,17 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 /**
- * Implementación de {@link StorageService} sobre almacenamiento S3-compatible (Railway Bucket).
+ * Implementación de {@link StorageService} sobre Backblaze B2 (API S3-compatible).
  *
  * Genera keys aisladas por tenant: {modulo}/{tenant}/{uuid}.{ext}. No guarda el nombre original
  * del archivo en la key (evita colisiones y caracteres inseguros); el content-type se conserva
- * como metadato del objeto.
+ * como metadato del objeto. Las descargas para el cliente se sirven con URLs firmadas
+ * (presigned), de modo que los bytes viajan directo de B2 al dispositivo, no por el backend.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,9 +46,13 @@ public class S3StorageService implements StorageService {
 	private static final String CONTENT_TYPE_POR_DEFECTO = "application/octet-stream";
 
 	private final S3Client s3Client;
+	private final S3Presigner s3Presigner;
 
 	@Value("${bucket.name:}")
 	private String bucketName;
+
+	@Value("${bucket.url-ttl-minutes:15}")
+	private long urlTtlMinutes;
 
 	@Override
 	public String subir(MultipartFile archivo, String modulo) {
@@ -62,13 +71,13 @@ public class S3StorageService implements StorageService {
 					.build();
 
 			s3Client.putObject(request, RequestBody.fromInputStream(archivo.getInputStream(), archivo.getSize()));
-			log.info("Archivo subido a S3: {}", key);
+			log.info("Archivo subido a B2: {}", key);
 			return key;
 		} catch (IOException e) {
 			log.error("Error leyendo el archivo a subir ({}): {}", key, e.getMessage());
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pudo leer el archivo");
 		} catch (S3Exception e) {
-			log.error("Error subiendo a S3 ({}): {}", key, e.getMessage());
+			log.error("Error subiendo a B2 ({}): {}", key, e.getMessage());
 			throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No se pudo almacenar el archivo");
 		}
 	}
@@ -79,6 +88,30 @@ public class S3StorageService implements StorageService {
 		// Se elimina el anterior solo tras subir el nuevo con éxito (evita perder el archivo).
 		eliminar(keyAnterior);
 		return nuevaKey;
+	}
+
+	@Override
+	public String generarUrlDescarga(String key) {
+		if (key == null || key.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La key del archivo es obligatoria");
+		}
+		try {
+			GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+					.bucket(bucketName)
+					.key(key)
+					.build();
+
+			GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+					.signatureDuration(Duration.ofMinutes(urlTtlMinutes))
+					.getObjectRequest(getObjectRequest)
+					.build();
+
+			PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
+			return presigned.url().toString();
+		} catch (S3Exception e) {
+			log.error("Error generando URL firmada ({}): {}", key, e.getMessage());
+			throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No se pudo generar el enlace de descarga");
+		}
 	}
 
 	@Override
@@ -93,7 +126,7 @@ public class S3StorageService implements StorageService {
 		} catch (NoSuchKeyException e) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Archivo no encontrado");
 		} catch (S3Exception e) {
-			log.error("Error descargando de S3 ({}): {}", key, e.getMessage());
+			log.error("Error descargando de B2 ({}): {}", key, e.getMessage());
 			throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No se pudo obtener el archivo");
 		}
 	}
@@ -110,7 +143,7 @@ public class S3StorageService implements StorageService {
 		} catch (NoSuchKeyException e) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Archivo no encontrado");
 		} catch (S3Exception e) {
-			log.error("Error consultando metadata en S3 ({}): {}", key, e.getMessage());
+			log.error("Error consultando metadata en B2 ({}): {}", key, e.getMessage());
 			return CONTENT_TYPE_POR_DEFECTO;
 		}
 	}
@@ -126,10 +159,10 @@ public class S3StorageService implements StorageService {
 					.key(key)
 					.build();
 			s3Client.deleteObject(request);
-			log.info("Archivo eliminado de S3: {}", key);
+			log.info("Archivo eliminado de B2: {}", key);
 		} catch (S3Exception e) {
 			// No propagamos: borrar es best-effort (igual que el borrado silencioso de audios de acta).
-			log.warn("No se pudo eliminar de S3 ({}): {}", key, e.getMessage());
+			log.warn("No se pudo eliminar de B2 ({}): {}", key, e.getMessage());
 		}
 	}
 
@@ -144,7 +177,7 @@ public class S3StorageService implements StorageService {
 		} catch (NoSuchKeyException e) {
 			return false;
 		} catch (S3Exception e) {
-			log.warn("Error verificando existencia en S3 ({}): {}", key, e.getMessage());
+			log.warn("Error verificando existencia en B2 ({}): {}", key, e.getMessage());
 			return false;
 		}
 	}

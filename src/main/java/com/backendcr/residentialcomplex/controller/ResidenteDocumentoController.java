@@ -1,12 +1,10 @@
 package com.backendcr.residentialcomplex.controller;
 
-import com.backendcr.residentialcomplex.dto.documento.ArchivoDescarga;
+import com.backendcr.residentialcomplex.dto.documento.ArchivoDescargaUrl;
 import com.backendcr.residentialcomplex.dto.documento.DocumentoInteresResponse;
 import com.backendcr.residentialcomplex.entity.enums.CategoriaDocumento;
 import com.backendcr.residentialcomplex.service.DocumentoInteresService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,10 +33,9 @@ public class ResidenteDocumentoController {
         return documentoService.obtenerPublicado(id);
     }
 
-    /** Descarga un archivo de un documento publicado. */
-    @GetMapping("/{id}/archivos/{archivoId}/descargar")
-    public ResponseEntity<Resource> descargar(@PathVariable Long id, @PathVariable Long archivoId) {
-        ArchivoDescarga descarga = documentoService.descargar(id, archivoId, true);
-        return AdminDocumentoController.construirRespuestaDescarga(descarga);
+    /** URL firmada para descargar un archivo de un documento publicado. */
+    @GetMapping("/{id}/archivos/{archivoId}/url")
+    public ArchivoDescargaUrl urlDescarga(@PathVariable Long id, @PathVariable Long archivoId) {
+        return documentoService.generarUrlDescarga(id, archivoId, true);
     }
 }

@@ -5,9 +5,10 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Abstracción de almacenamiento de archivos.
  *
- * Mantiene el resto del código desacoplado del proveedor concreto (S3/Railway, disco, etc.):
- * los servicios de dominio (productos, actas, PQR...) dependen de esta interfaz, no de S3.
- * Para migrar de proveedor basta con otra implementación, sin tocar controllers ni entidades.
+ * Mantiene el resto del código desacoplado del proveedor concreto (Backblaze B2 u otro
+ * storage S3-compatible): los servicios de dominio (documentos, actas, PQR...) dependen de
+ * esta interfaz, no de S3. Para migrar de proveedor basta con otra implementación, sin tocar
+ * controllers ni entidades.
  *
  * Convención de "key": {modulo}/{tenant}/{uuid}.{ext} — así los archivos quedan aislados
  * por tenant, igual que los schemas de la base de datos.
@@ -18,7 +19,7 @@ public interface StorageService {
 	 * Sube un archivo y retorna su key (identificador único dentro del bucket).
 	 *
 	 * @param archivo archivo recibido (no nulo, no vacío)
-	 * @param modulo  carpeta lógica de primer nivel (ej: "productos", "actas")
+	 * @param modulo  carpeta lógica de primer nivel (ej: "documentos", "actas")
 	 * @return key generada, que debe persistirse en la entidad correspondiente
 	 */
 	String subir(MultipartFile archivo, String modulo);
@@ -34,7 +35,18 @@ public interface StorageService {
 	String reemplazar(MultipartFile archivo, String modulo, String keyAnterior);
 
 	/**
-	 * Descarga el contenido binario de un archivo.
+	 * Genera una URL firmada (presigned) temporal para que el cliente descargue el archivo
+	 * directo del bucket, sin pasar los bytes por el backend. La vigencia se controla con
+	 * {@code bucket.url-ttl-minutes}.
+	 *
+	 * @param key key del archivo
+	 * @return URL absoluta y firmada, válida por un tiempo limitado
+	 */
+	String generarUrlDescarga(String key);
+
+	/**
+	 * Descarga el contenido binario de un archivo. Uso INTERNO del servidor (ej: procesamiento);
+	 * para entregar archivos al cliente usar {@link #generarUrlDescarga(String)}.
 	 *
 	 * @param key key del archivo
 	 * @return bytes del archivo
@@ -42,8 +54,8 @@ public interface StorageService {
 	byte[] descargar(String key);
 
 	/**
-	 * Retorna el content-type almacenado del archivo (ej: "image/webp"),
-	 * útil para servirlo por un endpoint. Retorna "application/octet-stream" si no se conoce.
+	 * Retorna el content-type almacenado del archivo (ej: "image/webp").
+	 * Retorna "application/octet-stream" si no se conoce.
 	 */
 	String obtenerContentType(String key);
 

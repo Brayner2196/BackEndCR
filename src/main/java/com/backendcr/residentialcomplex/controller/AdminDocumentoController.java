@@ -1,7 +1,7 @@
 package com.backendcr.residentialcomplex.controller;
 
 import com.backendcr.residentialcomplex.config.SecurityUtils;
-import com.backendcr.residentialcomplex.dto.documento.ArchivoDescarga;
+import com.backendcr.residentialcomplex.dto.documento.ArchivoDescargaUrl;
 import com.backendcr.residentialcomplex.dto.documento.CambiarEstadoDocumentoRequest;
 import com.backendcr.residentialcomplex.dto.documento.DocumentoInteresRequest;
 import com.backendcr.residentialcomplex.dto.documento.DocumentoInteresResponse;
@@ -9,12 +9,8 @@ import com.backendcr.residentialcomplex.entity.enums.CategoriaDocumento;
 import com.backendcr.residentialcomplex.service.DocumentoInteresService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -91,18 +87,12 @@ public class AdminDocumentoController {
         documentoService.eliminarArchivo(id, archivoId);
     }
 
-    /** Descarga un archivo (el admin puede descargar aunque esté en borrador). */
-    @GetMapping("/{id}/archivos/{archivoId}/descargar")
-    public ResponseEntity<Resource> descargar(@PathVariable Long id, @PathVariable Long archivoId) {
-        ArchivoDescarga descarga = documentoService.descargar(id, archivoId, false);
-        return construirRespuestaDescarga(descarga);
-    }
-
-    static ResponseEntity<Resource> construirRespuestaDescarga(ArchivoDescarga descarga) {
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(descarga.contentType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + descarga.nombreOriginal() + "\"")
-                .body(new ByteArrayResource(descarga.contenido()));
+    /**
+     * Devuelve una URL firmada para descargar el archivo directo de B2 (el admin puede
+     * descargar aunque el documento esté en borrador). La URL es temporal.
+     */
+    @GetMapping("/{id}/archivos/{archivoId}/url")
+    public ArchivoDescargaUrl urlDescarga(@PathVariable Long id, @PathVariable Long archivoId) {
+        return documentoService.generarUrlDescarga(id, archivoId, false);
     }
 }
