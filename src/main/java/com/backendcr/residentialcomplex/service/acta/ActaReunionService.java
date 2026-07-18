@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -110,7 +111,7 @@ public class ActaReunionService {
     // ─── Edición (solo BORRADOR) ──────────────────────────────────────────────
 
     @Transactional
-    public ActaReunionResponse actualizar(Long id, ActaReunionUpdateRequest req) {
+    public ActaReunionResponse actualizar(@NonNull Long id, ActaReunionUpdateRequest req) {
         ActaReunion acta = buscar(id);
         exigirEstado(acta, EstadoActa.BORRADOR, "Solo se puede editar un acta en borrador");
 
@@ -124,7 +125,7 @@ public class ActaReunionService {
     }
 
     @Transactional
-    public ActaReunionResponse finalizar(Long id) {
+    public ActaReunionResponse finalizar(@NonNull Long id) {
         ActaReunion acta = buscar(id);
         exigirEstado(acta, EstadoActa.BORRADOR, "Solo se puede finalizar un acta en borrador");
 
@@ -175,7 +176,7 @@ public class ActaReunionService {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private ActaReunion buscar(Long id) {
+    private ActaReunion buscar(@NonNull Long id) {
         return actaRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Acta no encontrada con id: " + id));

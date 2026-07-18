@@ -46,7 +46,7 @@ public class StorageController {
 	 * Ej: GET /api/test-storage/descargar?key=pruebas/mi_tenant/uuid.png
 	 */
 	@GetMapping("/descargar")
-	public ResponseEntity<byte[]> descargar(@RequestParam("key") String key) {
+	public ResponseEntity<byte[]> descargar(@RequestParam String key) {
 		byte[] contenido = storageService.descargar(key);
 		String contentType = storageService.obtenerContentType(key);
 		return ResponseEntity.ok()
@@ -59,7 +59,7 @@ public class StorageController {
 	 * Ej: DELETE /api/test-storage?key=pruebas/mi_tenant/uuid.png
 	 */
 	@DeleteMapping
-	public ResponseEntity<String> eliminar(@RequestParam("key") String key) {
+	public ResponseEntity<String> eliminar(@RequestParam String key) {
 		storageService.eliminar(key);
 		return ResponseEntity.ok("Eliminado (o inexistente): " + key);
 	}
