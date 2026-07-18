@@ -46,6 +46,7 @@ public class CobroService {
     private final NotificacionService notificacionService;
     private final NumMesStringConverter numMesStringConverter;
     private final TenantRepository tenantRepository;
+    private final VencimientoCobroService vencimientoService;
 
     // ─── Períodos ──────────────────────────────────────────────
 
@@ -414,11 +415,19 @@ public class CobroService {
     @Transactional
     public void calcularMorasParaTenant() {
         LocalDate hoy = LocalDate.now(ZoneId.of(TenantContext.getTimezone()));
+        // Incluimos VENCIDO además de PENDIENTE/PARCIAL: la persistencia perezosa de las
+        // lecturas puede haber marcado un cobro como VENCIDO antes de que corriera este job;
+        // en ese caso aún le falta aplicar la mora. Los VENCIDO que ya tienen mora se omiten.
         List<Cobro> vencidos = cobroRepo.findAllByEstadoInAndFechaLimitePagoBefore(
-                List.of(EstadoCobro.PENDIENTE, EstadoCobro.PARCIAL), hoy);
+                List.of(EstadoCobro.PENDIENTE, EstadoCobro.PARCIAL, EstadoCobro.VENCIDO), hoy);
         ConfiguracionMora config = moraRepo.findFirstByActivoTrueOrderByFechaVigenciaDesc().orElse(null);
 
         for (Cobro cobro : vencidos) {
+            boolean moraYaAplicada = cobro.getEstado() == EstadoCobro.VENCIDO
+                    && cobro.getMontoMora() != null
+                    && cobro.getMontoMora().signum() > 0;
+            if (moraYaAplicada) continue; // ya procesado en una corrida previa
+
             if (config != null) {
                 BigDecimal mora;
                 if (config.getTipoCalculo() == TipoCalculoMora.PORCENTAJE) {
@@ -465,7 +474,10 @@ public class CobroService {
                 ? List.of(propiedadId)
                 : usuarioPropiedadRepo.findByUsuarioId(usuarioId)
                         .stream().map(UsuarioPropiedad::getPropiedadId).toList();
-        List<Cobro> activos = cobroRepo.findAllByPropiedadIdIn(propiedadIds).stream()
+        List<Cobro> todos = cobroRepo.findAllByPropiedadIdIn(propiedadIds);
+        // Corrige vencidos en BD antes de agrupar/sumar, para que los totales sean correctos.
+        vencimientoService.marcarVencidos(todos);
+        List<Cobro> activos = todos.stream()
                 .filter(c -> c.getEstado() == EstadoCobro.PENDIENTE
                           || c.getEstado() == EstadoCobro.PARCIAL
                           || c.getEstado() == EstadoCobro.VENCIDO)
@@ -570,6 +582,9 @@ public class CobroService {
     private List<CobroResponse> toResponseList(List<Cobro> cobros) {
         if (cobros.isEmpty()) return List.of();
 
+        // Persistencia perezosa: corrige en BD los PENDIENTE/PARCIAL ya vencidos antes de mapear.
+        vencimientoService.marcarVencidos(cobros);
+
         Set<Long> cobroIds   = cobros.stream().map(Cobro::getId).collect(Collectors.toSet());
         Set<Long> propIds    = cobros.stream().map(Cobro::getPropiedadId).collect(Collectors.toSet());
         // periodoId puede ser null en cobros especiales — filtramos
@@ -608,12 +623,8 @@ public class CobroService {
                     ? construirPathTextoDesdeMap(prop, propMap, tipoMap) : "N/A";
             PeriodoCobro periodo = c.getPeriodoId() != null ? periodoMap.get(c.getPeriodoId()) : null;
             boolean tieneMovimientos = conPagos.contains(c.getId()) || conMovAbonos.contains(c.getId());
+            // El estado ya viene corregido en BD por vencimientoService.marcarVencidos.
             EstadoCobro estadoCobro = c.getEstado();
-            if (c.getEstado() != null
-                    && (c.getEstado() == EstadoCobro.PENDIENTE || c.getEstado() == EstadoCobro.PARCIAL)
-                    && c.getFechaLimitePago().isBefore(TenantClock.hoy())) {
-                estadoCobro = EstadoCobro.VENCIDO;
-            }
 
             return new CobroResponse(
                     c.getId(), c.getPeriodoId(),
@@ -644,6 +655,8 @@ public class CobroService {
     }
 
     private CobroResponse toResponse(Cobro c) {
+        // Persistencia perezosa también en la consulta individual.
+        vencimientoService.marcarVencidos(List.of(c));
         String descripcionPropiedad = propiedadRepo.findById(c.getPropiedadId())
                 .map(this::construirPathTexto).orElse("N/A");
         PeriodoCobro periodo = c.getPeriodoId() != null
