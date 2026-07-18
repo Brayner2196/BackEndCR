@@ -41,3 +41,6 @@ build/
 logs/
 *.log
 /.agents
+/.claude
+/docs
+/docs
