@@ -36,21 +36,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.List;
 
-/**
- * Implementación de MercadoPago para la interfaz PasarelaService.
- *
- * Las credenciales se leen EXCLUSIVAMENTE de TenantPasarela (BD encriptada).
- * Ya no existe fallback a variables de entorno; cada tenant debe tener
- * su propia configuración registrada en la tabla tenant_pasarelas.
- *
- * URLs de retorno:
- *  - Si el tenant configuró successUrl/failureUrl/pendingUrl en TenantPasarela, se usan esas.
- *  - Si no, se usan los paths estándar de este backend (interceptados por el WebView Flutter).
- *
- * Notificación MP:
- *  - Se usa una URL por-tenant: {appBaseUrl}/api/pago/webhook/mp/{tenantId}
- *  - Esto permite al controller resolver la config correcta al recibir el webhook.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
