@@ -11,15 +11,6 @@ import com.backendcr.residentialcomplex.repository.PropiedadRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Logica reutilizable para el "path corto" de una propiedad (concatenacion de
- * los identificadores desde la raiz hasta la hoja).
- *
- * <p>Centraliza la REGLA de concatenacion en un unico metodo ({@link #concat})
- * para que escritura, backfill y verificacion produzcan siempre el mismo valor.
- * Actualmente sin separador (ej. "A" + "1" + "01" => "A101"); cambiar la regla
- * aqui es suficiente para cambiarla en toda la app.</p>
- */
 @Component
 @RequiredArgsConstructor
 public class PropiedadPathCalculator {
