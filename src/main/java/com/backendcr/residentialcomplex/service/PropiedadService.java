@@ -140,7 +140,7 @@ public class PropiedadService {
                 Parqueadero spot = new Parqueadero();
                 spot.setIdentificador(hoja.getIdentificador());
                 spot.setTipo(TipoParqueadero.PRIVADO);
-                spot.setModeloPropiedad(ModeloParqueaderoPrivado.INDEPENDIENTE);
+                spot.setModeloPropiedad(ModeloParqueaderoPrivado.independiente);
                 spot.setPropiedadParqueaderoId(hoja.getId());
                 parqueaderoRepo.save(spot);
             }

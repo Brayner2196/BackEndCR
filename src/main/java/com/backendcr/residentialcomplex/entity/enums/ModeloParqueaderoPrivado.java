@@ -13,6 +13,6 @@ package com.backendcr.residentialcomplex.entity.enums;
  *                 No genera cobro de administración propio.
  */
 public enum ModeloParqueaderoPrivado {
-    INDEPENDIENTE,
-    ACCESORIO
+    independiente,
+    accesorio
 }

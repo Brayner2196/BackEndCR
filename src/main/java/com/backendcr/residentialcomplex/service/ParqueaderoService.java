@@ -49,7 +49,7 @@ public class ParqueaderoService {
         // Leer el modelo configurado para este tenant (default ACCESORIO si no hay config)
         ModeloParqueaderoPrivado modelo = configRepo.findFirstBy()
                 .map(ConfiguracionParqueadero::getModeloPrivadoDefault)
-                .orElse(ModeloParqueaderoPrivado.ACCESORIO);
+                .orElse(ModeloParqueaderoPrivado.accesorio);
 
         List<ParqueaderoBulkResultado.ItemResultado> resultados = new ArrayList<>();
         int creados = 0;
@@ -108,7 +108,7 @@ public class ParqueaderoService {
         //   INDEPENDIENTE → propiedadParqueaderoId coincide (el residente es dueño de la propiedad-parqueadero)
         //   null (legacy) → se trata como ACCESORIO
         boolean esIndependiente =
-                parqueadero.getModeloPropiedad() == ModeloParqueaderoPrivado.INDEPENDIENTE;
+                parqueadero.getModeloPropiedad() == ModeloParqueaderoPrivado.independiente;
 
         boolean perteneceAlResidente = esIndependiente
                 ? propiedadId.equals(parqueadero.getPropiedadParqueaderoId())

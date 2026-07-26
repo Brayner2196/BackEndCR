@@ -46,7 +46,7 @@ public class ConfiguracionParqueadero {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "modelo_privado_default", nullable = false, length = 20)
-    private ModeloParqueaderoPrivado modeloPrivadoDefault = ModeloParqueaderoPrivado.ACCESORIO;
+    private ModeloParqueaderoPrivado modeloPrivadoDefault = ModeloParqueaderoPrivado.accesorio;
 
     /** ¿El conjunto habilita spots físicos para visitantes? */
     @Column(name = "acepta_parqueadero_visitantes", nullable = false)
