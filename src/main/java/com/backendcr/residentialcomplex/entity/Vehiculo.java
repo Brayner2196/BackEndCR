@@ -41,7 +41,7 @@ public class Vehiculo {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
-    private EstadoVehiculo estado = EstadoVehiculo.PENDIENTE;
+    private EstadoVehiculo estado = EstadoVehiculo.pendiente;
 
     @Column(name = "motivo_rechazo")
     private String motivoRechazo;

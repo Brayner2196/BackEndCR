@@ -35,7 +35,7 @@ public class VehiculoService {
         validarTipoPermitido(req, config);
 
         // Validar límite de vehículos
-        long actuales = vehiculoRepo.countByPropiedadIdAndEstadoNot(propiedadId, EstadoVehiculo.RECHAZADO);
+        long actuales = vehiculoRepo.countByPropiedadIdAndEstadoNot(propiedadId, EstadoVehiculo.rechazado);
         if (actuales >= config.getMaxVehiculosPorPropiedad()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Se alcanzó el límite de " + config.getMaxVehiculosPorPropiedad() + " vehículos por propiedad");
@@ -56,8 +56,8 @@ public class VehiculoService {
         v.setPropiedadId(propiedadId);
         // Si no requiere aprobación, se aprueba automáticamente
         v.setEstado(config.isRequiereAprobacionVehiculo()
-                ? EstadoVehiculo.PENDIENTE
-                : EstadoVehiculo.APROBADO);
+                ? EstadoVehiculo.pendiente
+                : EstadoVehiculo.aprobado);
 
         return toResponse(vehiculoRepo.save(v));
     }
@@ -92,7 +92,7 @@ public class VehiculoService {
     // ─── Admin: listar pendientes ──────────────────────────────
 
     public List<VehiculoResponse> listarPendientes() {
-        return vehiculoRepo.findAllByEstado(EstadoVehiculo.PENDIENTE).stream()
+        return vehiculoRepo.findAllByEstado(EstadoVehiculo.pendiente).stream()
                 .map(this::toResponse).toList();
     }
 
@@ -105,7 +105,7 @@ public class VehiculoService {
     @Transactional
     public VehiculoResponse aprobar(Long vehiculoId) {
         Vehiculo v = obtenerPendiente(vehiculoId);
-        v.setEstado(EstadoVehiculo.APROBADO);
+        v.setEstado(EstadoVehiculo.aprobado);
         v.setMotivoRechazo(null);
         return toResponse(vehiculoRepo.save(v));
     }
@@ -113,7 +113,7 @@ public class VehiculoService {
     @Transactional
     public VehiculoResponse rechazar(Long vehiculoId, DecisionVehiculoRequest req) {
         Vehiculo v = obtenerPendiente(vehiculoId);
-        v.setEstado(EstadoVehiculo.RECHAZADO);
+        v.setEstado(EstadoVehiculo.rechazado);
         v.setMotivoRechazo(req != null ? req.motivo() : null);
         return toResponse(vehiculoRepo.save(v));
     }
@@ -123,7 +123,7 @@ public class VehiculoService {
     private Vehiculo obtenerPendiente(Long id) {
         Vehiculo v = vehiculoRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehículo no encontrado"));
-        if (v.getEstado() != EstadoVehiculo.PENDIENTE) {
+        if (v.getEstado() != EstadoVehiculo.pendiente) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El vehículo no está en estado PENDIENTE");
         }
         return v;
